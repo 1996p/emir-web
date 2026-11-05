@@ -62,6 +62,8 @@ public class ServiceLine
     public required string TariffName { get; set; }
     public required string ChargeStatus { get; set; }
     public long Debt { get; set; }
+    /// <summary>Общедомовой счётчик, по которому начисляется услуга со схемой MeterHouse.</summary>
+    public string? HouseMeterId { get; set; }
     public string? MeterNumber { get; set; }
     public decimal? MeterLastReading { get; set; }
     public string? MeterVerifiedUntil { get; set; }
@@ -129,6 +131,29 @@ public class ChargeEntry
     public string? ContractNorm { get; set; }
     /// <summary>Нет для счётчиков: их сумма попадает в долг при вводе показания.</summary>
     public bool AppliedToDebt { get; set; }
+    public DateTime AtUtc { get; set; }
+}
+
+/// <summary>Общедомовой счётчик. Расход делится по площади между услугами, привязанными к счётчику.</summary>
+public class HouseMeter
+{
+    public required string Id { get; set; }
+    public string Place { get; set; } = "";
+    public required string Street { get; set; }
+    public string Number { get; set; } = "";
+    public string Unit { get; set; } = "Гкал";
+    /// <summary>Сколько Гкал в единице показаний: для Гкал 1, для ГДж около 0,239.</summary>
+    public decimal UnitFactor { get; set; } = 1;
+}
+
+/// <summary>Показание общедомового счётчика на конец месяца.</summary>
+public class HouseMeterReading
+{
+    public int Id { get; set; }
+    public required string HouseMeterId { get; set; }
+    public required string Period { get; set; }
+    public decimal Value { get; set; }
+    public string Who { get; set; } = "";
     public DateTime AtUtc { get; set; }
 }
 

@@ -210,6 +210,22 @@ public static partial class DataMigration
             db.AbonentFacts.Add(new AbonentFact { AbonentId = abonent.Id, FromPeriod = TariffHistory.Beginning, Area = area, Residents = (int)residents, Who = Who, AtUtc = now, Reason = "Перенос данных" });
         }
 
+        // Общедомовые счётчики и их показания
+        var houseMeterIds = new HashSet<string>();
+        foreach (var row in ctx.Read("house_meters.csv", ["id", "street"], optional: true))
+        {
+            if (!houseMeterIds.Add(row["id"])) { ctx.Error("house_meters.csv", row.Line, "", "Счётчик указан дважды"); continue; }
+            var factor = ctx.Number("house_meters.csv", row, "unit_factor", "", scale: 8) ?? 1;
+            db.HouseMeters.Add(new HouseMeter { Id = row["id"], Place = row["place"], Street = row["street"], Number = row["number"], Unit = row["unit"] == "" ? "Гкал" : row["unit"], UnitFactor = factor });
+        }
+        foreach (var row in ctx.Read("house_meter_readings.csv", ["meter_id", "period", "value"], optional: true))
+        {
+            if (!houseMeterIds.Contains(row["meter_id"])) { ctx.Error("house_meter_readings.csv", row.Line, "", "Нет такого общедомового счётчика"); continue; }
+            if (!PeriodFormat().IsMatch(row["period"])) { ctx.Error("house_meter_readings.csv", row.Line, "", "Месяц должен быть ГГГГ-ММ"); continue; }
+            if (ctx.Number("house_meter_readings.csv", row, "value", "", required: true) is not { } meterValue) continue;
+            db.HouseMeterReadings.Add(new HouseMeterReading { HouseMeterId = row["meter_id"], Period = row["period"], Value = meterValue, Who = Who, AtUtc = now });
+        }
+
         // Услуги: остатки, тариф, счётчик
         var lines = new Dictionary<(string Account, string Service), ServiceLine>();
         var positions = new Dictionary<string, int>();
@@ -239,11 +255,13 @@ public static partial class DataMigration
             if (tariffId is not null && tariffs[tariffId].Scheme == "MeterApartment" && meter is null && state == TariffHistory.Working)
                 ctx.Warn("services.csv", row.Line, account, "Тариф по счётчику, а счётчика нет");
 
+            var houseMeterId = row["house_meter_id"] == "" ? null : row["house_meter_id"];
+            if (houseMeterId is not null && !houseMeterIds.Contains(houseMeterId)) ctx.Error("services.csv", row.Line, account, "Нет такого общедомового счётчика");
             var position = positions.GetValueOrDefault(account);
             positions[account] = position + 1;
             var line = new ServiceLine
             {
-                AbonentId = abonent.Id, ServiceId = serviceId, Position = position, Name = row["name"], State = state, TariffId = tariffId, TariffName = tariffId is null ? (serviceId == "penalty" ? "По настройке пени" : "Не выбран") : tariffs[tariffId].Name,
+                HouseMeterId = houseMeterId, AbonentId = abonent.Id, ServiceId = serviceId, Position = position, Name = row["name"], State = state, TariffId = tariffId, TariffName = tariffId is null ? (serviceId == "penalty" ? "По настройке пени" : "Не выбран") : tariffs[tariffId].Name,
                 ChargeStatus = "Ждёт начисления", Debt = debt, ContractNorm = row["contract_norm"] == "" ? null : row["contract_norm"], MeterNumber = meter, MeterLastReading = meter is null ? null : last,
                 MeterVerifiedUntil = row["meter_verified_until"] == "" ? null : row["meter_verified_until"], MeterAverage = ctx.Number("services.csv", row, "meter_average", account) ?? 5,
             };

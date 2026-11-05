@@ -117,6 +117,27 @@ public sealed class DataMigrationTests : IDisposable
     }
 
     [Fact]
+    public async Task MeterHouseTariff_SplitsUsageByArea_WithUnitConversion()
+    {
+        Write("tariffs.csv", "id;name;scheme;unit\nheat;Общедомовой счётчик;MeterHouse;Гкал\n");
+        Write("tariff_prices.csv", "tariff_id;from_period;price\nheat;2000-01;1000\n");
+        Write("abonents.csv", "account;kind;name;street;area\n100;ФЛ;Первый;ул. 1;30\n200;ФЛ;Второй;ул. 1;70\n");
+        Write("services.csv", "account;service_id;name;debt;tariff_id;house_meter_id\n100;heat;Тепло;0;heat;m1\n200;heat;Тепло;0;heat;m1\n");
+        Write("charges.csv", "account;service_id;period;amount\n");
+        Write("house_meters.csv", "id;place;street;number;unit;unit_factor\nm1;с. Тест;ул. 1;77;ГДж;0,25\n");
+        Write("house_meter_readings.csv", "meter_id;period;value\nm1;2026-10;100\nm1;2026-11;140\n");
+        var report = await Run();
+        Assert.True(report.Ok, DataMigration.Format(report));
+        await using var db = Db();
+        var abonents = await db.Abonents.Include(item => item.Services).OrderBy(item => item.Account).ToListAsync();
+        var plan = await ChargingService.Plan(db, abonents, "2026-11");
+        // Расход 40 ГДж × 0,25 = 10 Гкал: 30% и 70% при цене 1000 ₽
+        Assert.Equal(300000, plan[0].Result.Amount);
+        Assert.Equal(700000, plan[1].Result.Amount);
+        Assert.Contains("Нет данных", (await ChargingService.Plan(db, abonents, "2026-12"))[0].Result.Error);
+    }
+
+    [Fact]
     public async Task NotEmptyBase_IsRefused()
     {
         Assert.True((await Run()).Ok);

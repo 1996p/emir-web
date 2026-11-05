@@ -33,6 +33,25 @@ public static class ChargingService
         var facts = await db.AbonentFacts.ToListAsync();
         var tariffs = await db.Tariffs.ToDictionaryAsync(tariff => tariff.Id);
         var readings = await db.PeriodReadings.Where(reading => reading.Period == period).ToListAsync();
+        var houseMeters = await db.HouseMeters.ToDictionaryAsync(meter => meter.Id);
+        var houseReadings = houseMeters.Count == 0 ? [] : await db.HouseMeterReadings.ToListAsync();
+        var houseLines = houseMeters.Count == 0 ? [] : await db.ServiceLines.Where(item => item.HouseMeterId != null).Select(item => new { item.HouseMeterId, item.AbonentId, item.ServiceId }).ToListAsync();
+        var houseData = new Dictionary<string, HouseMeterData?>();
+        // Расход месяца в Гкал и площадь всех работающих услуг на счётчике. Без показания начислить нельзя.
+        HouseMeterData? HouseDataOf(string meterId)
+        {
+            if (houseData.TryGetValue(meterId, out var known)) return known;
+            HouseMeterData? data = null;
+            var current = houseReadings.FirstOrDefault(item => item.HouseMeterId == meterId && item.Period == period);
+            var previous = houseReadings.Where(item => item.HouseMeterId == meterId && string.CompareOrdinal(item.Period, period) < 0).OrderByDescending(item => item.Period).FirstOrDefault();
+            if (current is not null && previous is not null && houseMeters.TryGetValue(meterId, out var meter))
+            {
+                var area = houseLines.Where(item => item.HouseMeterId == meterId && TariffHistory.TermOn(terms, item.AbonentId, item.ServiceId, period)?.State == TariffHistory.Working)
+                    .Sum(item => TariffHistory.FactOn(facts, item.AbonentId, period)?.Area ?? 0);
+                data = new HouseMeterData((current.Value - previous.Value) * meter.UnitFactor, 0, area, 0, 0, 0);
+            }
+            return houseData[meterId] = data;
+        }
         var plan = new List<PlannedCharge>();
 
         foreach (var abonent in abonents)
@@ -64,7 +83,7 @@ public static class ChargingService
                 var snapshot = snapshots?.FirstOrDefault(item => item.AbonentId == line.AbonentId && item.ServiceId == line.ServiceId);
                 var result = ChargeEngine.Calculate(new ChargeInput(
                     tariff.Scheme, price, MonthOf(period), fact?.Area ?? snapshot?.Area ?? abonent.Area, fact?.Residents ?? snapshot?.Residents ?? abonent.Residents,
-                    HouseHeatNorm: abonent.HouseHeatNorm, ServiceNorm: tariff.ServiceNorm, TariffNorm: tariff.TariffNorm, ContractNorm: snapshot is null ? line.ContractNorm : snapshot.ContractNorm, MeterUsage: usage));
+                    HouseHeatNorm: abonent.HouseHeatNorm, HouseMeter: tariff.Scheme == "MeterHouse" && line.HouseMeterId is not null ? HouseDataOf(line.HouseMeterId) : null, ServiceNorm: tariff.ServiceNorm, TariffNorm: tariff.TariffNorm, ContractNorm: snapshot is null ? line.ContractNorm : snapshot.ContractNorm, MeterUsage: usage));
                 // Начисление по счётчику уже добавлено в долг при вводе показания
                 plan.Add(new PlannedCharge(abonent, line, tariff, price, result, tariff.Scheme == "MeterApartment"));
             }

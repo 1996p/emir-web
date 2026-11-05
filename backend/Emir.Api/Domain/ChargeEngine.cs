@@ -77,7 +77,7 @@ public static class ChargeEngine
             case "MeterHouse":
                 if (input.HouseMeter is not { } m1) return Need("общедомовой счётчик");
                 var restArea = m1.TotalArea - m1.IndividualArea;
-                return restArea <= 0 ? Need("площадь дома без индивидуальных счётчиков") : Result((m1.Usage - m1.IndividualUsage) * input.Area / restArea);
+                return restArea <= 0 ? Need("площадь дома без индивидуальных счётчиков") : Result(Math.Round((m1.Usage - m1.IndividualUsage) * input.Area / restArea, 4, MidpointRounding.AwayFromZero));
             case "HouseMeterLeftover":
                 if (input.HouseMeter is not { } m2) return Need("общедомовой счётчик");
                 var restPeople = m2.TotalResidents - m2.IndividualResidents;

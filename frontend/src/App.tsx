@@ -17,6 +17,7 @@ import { DocumentsPage } from './pages/DocumentsPage';
 import { PrintDocumentsPage } from './pages/PrintDocumentsPage';
 import { PrintStatementPage } from './pages/PrintStatementPage';
 import { ReadingImportPage } from './pages/ReadingImportPage';
+import { HouseMetersPage } from './pages/HouseMetersPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { TodayPage } from './pages/TodayPage';
 
@@ -33,6 +34,7 @@ export function App() {
           <Route path="cash" element={<CashPage />} />
           <Route path="readings" element={<ReadingsPage />} />
           <Route path="readings/import" element={<ReadingImportPage />} />
+          <Route path="readings/house" element={<HouseMetersPage />} />
           <Route path="period" element={<PeriodPage />} />
           <Route path="period/cancel" element={<CancelChargesPage />} />
           <Route path="corrections" element={<CorrectionsPage />} />

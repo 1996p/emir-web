@@ -582,6 +582,71 @@ namespace Emir.Api.Migrations
                     b.ToTable("ExchangeLines");
                 });
 
+            modelBuilder.Entity("Emir.Api.Data.HouseMeter", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Place")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Street")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("UnitFactor")
+                        .HasPrecision(18, 8)
+                        .HasColumnType("numeric(18,8)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("HouseMeters");
+                });
+
+            modelBuilder.Entity("Emir.Api.Data.HouseMeterReading", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("AtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("HouseMeterId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Period")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Value")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<string>("Who")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HouseMeterId", "Period")
+                        .IsUnique();
+
+                    b.ToTable("HouseMeterReadings");
+                });
+
             modelBuilder.Entity("Emir.Api.Data.JournalRecord", b =>
                 {
                     b.Property<int>("Id")
@@ -878,6 +943,9 @@ namespace Emir.Api.Migrations
 
                     b.Property<long>("Debt")
                         .HasColumnType("bigint");
+
+                    b.Property<string>("HouseMeterId")
+                        .HasColumnType("text");
 
                     b.Property<decimal>("MeterAverage")
                         .HasPrecision(18, 4)

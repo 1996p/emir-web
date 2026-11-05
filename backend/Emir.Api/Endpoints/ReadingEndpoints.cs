@@ -17,6 +17,42 @@ public static class ReadingEndpoints
     {
         var group = api.MapGroup("/readings").RequireAuthorization();
 
+        group.MapGet("/house-meters", async (EmirDb db) =>
+        {
+            var period = await Periods.WorkPeriod(db);
+            var meters = await db.HouseMeters.OrderBy(meter => meter.Place).ThenBy(meter => meter.Street).ToListAsync();
+            var readings = await db.HouseMeterReadings.ToListAsync();
+            var lines = await db.ServiceLines.Where(line => line.HouseMeterId != null).GroupBy(line => line.HouseMeterId!).Select(items => new { items.Key, Count = items.Count() }).ToDictionaryAsync(item => item.Key, item => item.Count);
+            return new
+            {
+                period,
+                rows = meters.Select(meter =>
+                {
+                    var previous = readings.Where(item => item.HouseMeterId == meter.Id && string.CompareOrdinal(item.Period, period) < 0).OrderByDescending(item => item.Period).FirstOrDefault();
+                    var current = readings.FirstOrDefault(item => item.HouseMeterId == meter.Id && item.Period == period);
+                    return new { meter.Id, meter.Place, meter.Street, meter.Number, meter.Unit, Previous = previous?.Value, Value = current?.Value, Lines = lines.GetValueOrDefault(meter.Id) };
+                }),
+            };
+        });
+
+        group.MapPost("/house-meters/{id}", async (string id, HouseMeterReadingRequest request, EmirDb db, ClaimsPrincipal user) =>
+        {
+            var period = await Periods.WorkPeriod(db);
+            if (!await db.HouseMeters.AnyAsync(meter => meter.Id == id)) throw new ApiError(404, "Счётчик не найден");
+            var charged = await db.ServiceLines.Where(line => line.HouseMeterId == id)
+                .Join(db.ChargeEntries.Where(entry => entry.Period == period), line => new { line.AbonentId, line.ServiceId }, entry => new { entry.AbonentId, entry.ServiceId }, (line, entry) => entry).AnyAsync();
+            if (charged) throw new ApiError(409, "По этому счётчику уже есть начисления месяца. Сначала отмените их");
+            var previous = await db.HouseMeterReadings.Where(item => item.HouseMeterId == id && string.Compare(item.Period, period) < 0).OrderByDescending(item => item.Period).FirstOrDefaultAsync();
+            if (request.Value < 0 || (previous is not null && request.Value < previous.Value)) throw new ApiError(400, "Показание меньше предыдущего");
+            var reading = await db.HouseMeterReadings.FirstOrDefaultAsync(item => item.HouseMeterId == id && item.Period == period);
+            if (reading is null) db.HouseMeterReadings.Add(reading = new HouseMeterReading { HouseMeterId = id, Period = period });
+            reading.Value = request.Value;
+            reading.Who = user.Identity?.Name ?? "";
+            reading.AtUtc = DateTime.UtcNow;
+            await db.SaveChangesAsync();
+            return Results.NoContent();
+        }).Roles(Roles.Service, Roles.Accountant, Roles.Admin);
+
         group.MapGet("/houses", async (EmirDb db) =>
         {
             var abonents = await db.Abonents.Include(abonent => abonent.Services).ToListAsync();
@@ -82,3 +118,5 @@ public static class ReadingEndpoints
         }).Roles(Roles.Cashier, Roles.Service, Roles.Admin);
     }
 }
+
+public record HouseMeterReadingRequest(decimal Value);

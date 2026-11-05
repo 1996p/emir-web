@@ -60,9 +60,15 @@ CSV с первой строкой из названий колонок, раз�
 
 ### services.csv, обязательный
 
-**account**, **service_id**, **name**, **debt**, state, tariff_id, contract_norm, meter_number, meter_last_reading, meter_verified_until, meter_average
+**account**, **service_id**, **name**, **debt**, state, tariff_id, contract_norm, meter_number, meter_last_reading, meter_verified_until, meter_average, house_meter_id
 
 `debt` это долг на начало первого месяца. Отрицательный долг переносится в переплату абонента, команда об этом предупреждает. Пени указываются отдельной услугой с `service_id` равным `penalty`.
+
+### house_meters.csv и house_meter_readings.csv, для схемы `MeterHouse`
+
+`house_meters.csv`: **id**, **street**, place, number, unit, unit_factor. `unit_factor` это сколько Гкал в единице показаний: для Гкал 1, для ГДж около 0,239.
+
+`house_meter_readings.csv`: **meter_id**, **period**, **value**. Расход месяца это разница показаний, умноженная на `unit_factor`. Он делится по площади между работающими услугами, у которых в `services.csv` указан этот `house_meter_id`.
 
 ### charges.csv, нужен для пени
 

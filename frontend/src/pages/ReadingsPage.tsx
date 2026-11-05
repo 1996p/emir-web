@@ -82,6 +82,7 @@ export function ReadingsPage() {
             </SelectInput>
           </label>
           {role !== 'cashier' && <LinkButton to="/readings/import">Из файла</LinkButton>}
+          {role !== 'cashier' && <LinkButton to="/readings/house">Общедомовые</LinkButton>}
         </div>
         {!canEdit && <div style={{ padding: '8px 16px' }}><Notice>Для вашей роли показания доступны только для просмотра.</Notice></div>}
         {mode === 'delta' && (

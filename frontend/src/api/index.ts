@@ -102,6 +102,8 @@ export const api = {
     shift: () => get<ShiftInfo>('/cash/shift'),
   },
   readings: {
+    houseMeters: () => get<HouseMeters>('/readings/house-meters'),
+    saveHouseMeter: (id: string, value: number) => mutate<void>(`/readings/house-meters/${encodeURIComponent(id)}`, { value }),
     importFile: async (file: File, columns: Record<string, string>, options: { apply?: boolean; includeHigh?: boolean; expected?: number }) => {
       const form = new FormData();
       form.append('file', file);
@@ -247,4 +249,20 @@ export function useApi<T>(load: () => Promise<T>, deps: DependencyList): ApiStat
   }, [run]);
 
   return state;
+}
+
+export interface HouseMeterRow {
+  id: string;
+  place: string;
+  street: string;
+  number: string;
+  unit: string;
+  previous: number | null;
+  value: number | null;
+  lines: number;
+}
+
+export interface HouseMeters {
+  period: string;
+  rows: HouseMeterRow[];
 }

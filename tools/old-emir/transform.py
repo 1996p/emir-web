@@ -188,6 +188,30 @@ house_categories = {}
 for row in zen('Данные_о_домах'):
     if row.get('HouseCategory'):
         house_categories[address_key(row.get('City'), row.get('Street'), row.get('Num'), '')] = row['HouseCategory']
+# Общедомовые счётчики: показания из отчёта, единица из справочника. Коэффициент 0,2389 подобран по начислениям
+# старой системы, с ним они совпадают точнее всего.
+UNIT_FACTORS = {'дж': ('ГДж', '0,2389'), 'гкал': ('Гкал', '1'), 'мвт*ч': ('МВт·ч', '0,8598452')}
+meter_units = {}
+for row in zen('Общедомовые_счетчики'):
+    if row.get('Number'):
+        meter_units[row['Number']] = re.sub(r'[^а-яa-z*]', '', (row.get('Unit') or '').lower())
+RU_MONTHS = {'январь': 1, 'февраль': 2, 'март': 3, 'апрель': 4, 'май': 5, 'июнь': 6, 'июль': 7, 'август': 8, 'сентябрь': 9, 'октябрь': 10, 'ноябрь': 11, 'декабрь': 12}
+house_rows = read_report('meter_house_active')
+house_head = next(row for row in house_rows if row[:2] == ['Адрес', 'Услуга'])
+house_periods = [f"{title.split()[1]}-{RU_MONTHS[title.split()[0]]:02d}" for title in house_head[4:]]
+house_meters_out, house_readings_out, meter_of_house = [], [], {}
+for row in house_rows:
+    if len(row) != len(house_head) or row == house_head:
+        continue
+    place_part, street_part, house_part, _ = parse_address(row[0] + '-')
+    key = address_key(place_part, street_part, house_part, '')
+    meter_id = f'hm{len(house_meters_out) + 1}'
+    unit, factor = UNIT_FACTORS.get(meter_units.get(row[2], 'гкал'), ('Гкал', '1'))
+    meter_of_house.setdefault(key, meter_id)
+    house_meters_out.append({'id': meter_id, 'place': place_part, 'street': f'{street_part} {house_part}'.strip(), 'number': row[2], 'unit': unit, 'unit_factor': factor})
+    for period, cell in zip(house_periods, row[4:]):
+        if re.fullmatch(r'[\d\s]+(?:[.,]\d+)?', cell or ''):
+            house_readings_out.append({'meter_id': meter_id, 'period': period, 'value': format(number(cell).quantize(Decimal('0.0001')), 'f').replace('.', ',')})
 abonents_out, services_out, residents_out, beneficiaries_out = [], [], [], []
 seen_benefits, seen_uuids = set(), set()
 tariffs, current_prices = {}, {}
@@ -256,7 +280,7 @@ for card in jsonl(os.path.join(normalized, 'abonents.jsonl')):
                 tariff_of_line[(card['id'], service_id)] = tariff_id
         meter = meter_by_account.get(line['account']) if tariffs.get(tariff_id, {}).get('scheme') == 'MeterApartment' else None
         services_out.append({
-            'account': core, 'service_id': service_id, 'name': line['service'], 'state': STATES.get(line['state'], line['state']), 'tariff_id': tariff_id, 'debt': rubles(-balance), 'contract_norm': contract_norms.get(line['contract'], ''),
+            'account': core, 'service_id': service_id, 'name': line['service'], 'state': STATES.get(line['state'], line['state']), 'tariff_id': tariff_id, 'debt': rubles(-balance), 'contract_norm': contract_norms.get(line['contract'], ''), 'house_meter_id': (meter_of_house.get(address_key(place_key, street_key, house_key, ''), '') if tariffs.get(tariff_id, {}).get('scheme') == 'MeterHouse' else ''),
             'meter_number': meter['number'] if meter else '', 'meter_last_reading': format(meter['last'], 'f').replace('.', ',') if meter else '', 'meter_verified_until': '',
         })
         if meter:
@@ -366,7 +390,9 @@ for tariff_id in tariffs:
 write('tariffs.csv', ['id', 'name', 'scheme', 'unit'], list(tariffs.values()))
 write('tariff_prices.csv', ['tariff_id', 'from_period', 'price'], price_rows)
 write('abonents.csv', ['account', 'kind', 'name', 'short_name', 'place', 'street', 'flat', 'phone', 'inn', 'area', 'residents', 'house_heat_norm', 'credit', 'note', 'consent', 'ownership_document'], abonents_out)
-write('services.csv', ['account', 'service_id', 'name', 'state', 'tariff_id', 'debt', 'contract_norm', 'meter_number', 'meter_last_reading', 'meter_verified_until', 'meter_average'], services_out)
+write('services.csv', ['account', 'service_id', 'name', 'state', 'tariff_id', 'debt', 'contract_norm', 'meter_number', 'meter_last_reading', 'meter_verified_until', 'meter_average', 'house_meter_id'], services_out)
+write('house_meters.csv', ['id', 'place', 'street', 'number', 'unit', 'unit_factor'], house_meters_out)
+write('house_meter_readings.csv', ['meter_id', 'period', 'value'], house_readings_out)
 write('residents.csv', ['account', 'name', 'from_date', 'to_date'], residents_out)
 write('beneficiaries.csv', ['account', 'full_name', 'category', 'from_date', 'to_date', 'uuid'], beneficiaries_out)
 
