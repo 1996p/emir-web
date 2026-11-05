@@ -1,0 +1,22 @@
+# Сборка и зависимости
+node_modules/
+dist/
+bin/
+obj/
+
+# Локальная база разработки
+.pgdata/
+
+# Данные переноса с персональными данными никогда не попадают в репозиторий
+emir-migration/
+*.dump
+*.jsonl
+*.html.gz
+tools/old-emir/raw/
+tools/old-emir/load/
+tools/old-emir/normalized/
+
+# Локальные настройки
+.env
+.env.*
+.DS_Store

@@ -1,0 +1,2427 @@
+{
+ "note": "Структура старого ЕМИР: только названия страниц, вызовов и полей, без данных. Снято 2026-11-05.",
+ "menus": [
+  [
+   "Обороты по кассе",
+   "Обороты по кассе в разрезе провайдеров и офисов",
+   "Реестр по кассиру",
+   "Реестр по кассиру в разрезе котельных",
+   "Реестр по кассиру в разрезе сельсоветов",
+   "Реестр по кассиру для 1С",
+   "Реестр по кассиру по системе Город"
+  ],
+  [
+   "Баланс по услуге",
+   "Ежемесячный отчет",
+   "Начисления / cостояние счетов (по домам)",
+   "Начисления по счетам (для печати)",
+   "Обороты по тарифам",
+   "Отложенные отчеты",
+   "Отчет по должникам",
+   "Отчет по должникам 2",
+   "Отчет по должникам для мобильного кассира",
+   "Отчет по домам и потребителям",
+   "Отчет по домам и потребителям в разрезе тарифов",
+   "Отчет по категориям домов",
+   "Отчет по нормативам и жильцам",
+   "Отчет по проживающим в разрезе количества",
+   "По начислениям",
+   "По объемам потребления",
+   "По объемам потребления по абонентам",
+   "По объемам потребления по юрицам",
+   "По объёмам потребления по адресам",
+   "По объёмам потребления по населённым пунктам",
+   "По объёмам потребления по сельсоветам",
+   "По переводу на среднее",
+   "Показания счетчиков за период",
+   "Потребление воды по скважинам",
+   "Потребление тепла в разрезе домов",
+   "Потребление тепла в разрезе квартир",
+   "Потребление тепла в разрезе тепловых камер",
+   "Реестр для Город (ЖилКомСервис)",
+   "Реестр для Город",
+   "Реестр для Платосферы",
+   "Реестр для Платосферы 2",
+   "Реестр для Сбербанка",
+   "Состояние счетов (для печати)"
+  ],
+  [
+   "Абоненты (дома)",
+   "Абоненты (по группам услуг)",
+   "Абоненты",
+   "Выплата из кассы",
+   "Заказы",
+   "Карта обслуживания",
+   "Контакты",
+   "Начислить (админ)",
+   "Начислить ФЛ",
+   "Поиск (старый)",
+   "Поиск",
+   "Показания Квартирные",
+   "Показания Общедомовые",
+   "Прием оплаты",
+   "Прием оплаты от юрлиц",
+   "Прием оплаты через банк",
+   "Регистрация ФЛ",
+   "Регистрация ЮЛ",
+   "Регистрация лицевого счета",
+   "Смена адреса абонента",
+   "Смена пароля",
+   "Состояния заказов",
+   "Счета",
+   "Тарифы заказов"
+  ],
+  [
+   "Блокировка начислений",
+   "Годовое распределение тепла",
+   "Документы",
+   "Загрузка платежей 1C",
+   "Загрузка показаний счетчиков (ЖилКомСервис)",
+   "Загрузка показаний счетчиков",
+   "Загрузка реестра Город",
+   "Загрузка реестра Платосфера",
+   "Загрузка реестра Сбербанк",
+   "Задачи",
+   "Закрытие периода",
+   "Настройка НДС",
+   "Настройки пени",
+   "Одинаковые ЛС на ФЛ",
+   "Отмена начислений",
+   "Отопительный сезон",
+   "Ошибки",
+   "Платежи из 1C",
+   "Показания счётчиков по приостановленным услугам",
+   "Проверка начислений",
+   "Расхождения в оперативном и бухгалтерском остатке",
+   "Расхождения начислений и закрытых периодов",
+   "Смена Услуг на одном л/с",
+   "Соответствие тарифа сельсовету",
+   "Списание остатков"
+  ],
+  [
+   "Загрузка ГИС-номера ЛС",
+   "Загрузка ГИС-номера дома",
+   "Загрузка ГИС-номера помещения",
+   "Загрузка ГИС-номера счетчиков",
+   "Загрузка платёжных документов",
+   "Объём коммунальных ресурсов",
+   "Платежи",
+   "Платёжные документы",
+   "Показания приборов учёта",
+   "Связка услуг",
+   "Список платёжных документов",
+   "Удаление ГИС-номера счетчиков"
+  ],
+  [
+   "Ведомость по контрагентам",
+   "Нумерация документов",
+   "Отчёт по сформированным документам",
+   "Перезакрытие периода",
+   "Печать документов",
+   "Список документов"
+  ],
+  [
+   "Корректировка бухгалтерского баланса",
+   "Корректировка начислений",
+   "Корректировка платежей",
+   "Отмена платежей",
+   "Перенос денег",
+   "Перенос денег между разными адресами",
+   "Разовые корректировки",
+   "Разовые начисления",
+   "Реестр оплат по кассиру"
+  ],
+  [
+   "Входящие",
+   "Написать",
+   "Отправленные",
+   "Удалённые"
+  ],
+  [
+   "Абоненты",
+   "Абоненты",
+   "Банк",
+   "Валюты",
+   "Города",
+   "Группы тарифов",
+   "Группы услуг",
+   "Данные о домах",
+   "Данные о квартирах",
+   "Должности руководителей",
+   "Дома",
+   "Доп. параметры абонентов",
+   "Доп. параметры заказов",
+   "Доп. параметры организаций",
+   "Дополнительные записи таблиц",
+   "Дополнительные суммы",
+   "Загрузка должников Поспелиха",
+   "Загрузка льготников",
+   "Загрузка льготников Поспелиха",
+   "Заказы",
+   "Записи таблиц соответствий",
+   "История льготников (Краснозерское)",
+   "История проживающих",
+   "Казначейство",
+   "Карта счетчиков",
+   "Категории домов",
+   "Категории корректировок",
+   "Категории льготников",
+   "Категории услуг",
+   "Квартирные счетчики",
+   "Квартиры",
+   "Коды ГААП",
+   "Котельные",
+   "Лицевые счета",
+   "Льготники",
+   "Люди",
+   "Марки ПУ",
+   "Материал стен",
+   "Модели ПУ",
+   "Настройки для платежей",
+   "Нормы потребления по заказу",
+   "Нормы потребления по тарифу",
+   "Нормы потребления по услугам",
+   "Общедомовые счетчики",
+   "Объекты Кладр 1-4",
+   "Объекты обслуживания",
+   "Организации (старый)",
+   "Организации",
+   "Основание организаций",
+   "Отделение банка",
+   "Параметры корректировок",
+   "Параметры разовых начислений",
+   "Порядок расчетов",
+   "Проживающие",
+   "РКЦ",
+   "Регионы",
+   "Связка услуг и единиц измерения",
+   "Сельсоветы",
+   "Скважины",
+   "Сокращения Кладр",
+   "Соответствие типов начислений",
+   "Список договоров",
+   "Список проводок для лимитов",
+   "Список счетов для лимитов",
+   "Сроки оказания услуг",
+   "Страны",
+   "Таблицы соответствий",
+   "Тарифы",
+   "Тарифы: норматив - ПК",
+   "Тарифы: счетчик - по среднему",
+   "Тепловые комнаты",
+   "Типы адресов доставки счетов",
+   "Типы городов",
+   "Типы договоров",
+   "Типы корректировок",
+   "Типы начислений",
+   "Типы организаций",
+   "Типы платежей",
+   "Типы пополнения лимитов",
+   "Типы регионов",
+   "Типы улиц",
+   "Улицы",
+   "Улицы Кладр",
+   "Услуги",
+   "Шаблоны счетов"
+  ],
+  [
+   "Коды услуг в Платосфере",
+   "Коды услуг в СберБанк",
+   "Коды услуг в системе Город (по счетчикам)",
+   "Коды услуг в системе Город",
+   "Офисы"
+  ],
+  [
+   "Загрузка должников Поспелиха",
+   "Загрузка льготников",
+   "Загрузка льготников Поспелиха"
+  ]
+ ],
+ "pages": {
+  "index.csp": {
+   "status": 200,
+   "title": "ЕМИР ЖКХ",
+   "serverMethods": [],
+   "captions": [],
+   "fields": []
+  },
+  "pmrolesmain.csp": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [],
+   "captions": [],
+   "fields": []
+  },
+  "BookKeeping/CashOrderReportByCashier.csp": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "act",
+    "cashier",
+    "city",
+    "fromday",
+    "frommonth",
+    "fromyear",
+    "reporttype",
+    "today",
+    "tomonth",
+    "toyear"
+   ]
+  },
+  "BookKeeping/CashOrderReportByCashierReestr.csp": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "act",
+    "cashier",
+    "city",
+    "fromday",
+    "frommonth",
+    "fromyear",
+    "reporttype",
+    "today",
+    "tomonth",
+    "toyear"
+   ]
+  },
+  "BookKeeping/CashOrderReportByOperatorOffice.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "CSVDR",
+    "CashOrderType",
+    "DRepCUR",
+    "EXCELDR",
+    "OrgList",
+    "dreport",
+    "fromday",
+    "frommonth",
+    "fromyear",
+    "reportType",
+    "today",
+    "tomonth",
+    "toyear"
+   ]
+  },
+  "BookKeeping/CashOrderReportFull.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "CSVDR",
+    "DRepCUR",
+    "EXCELDR",
+    "OrgList",
+    "dreport",
+    "fromday",
+    "frommonth",
+    "fromyear",
+    "today",
+    "tomonth",
+    "toyear"
+   ]
+  },
+  "Reports/AbonentDebt.csp": {
+   "status": 200,
+   "title": "Отчёт по должникам",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "abonenttype",
+    "balance",
+    "dreport",
+    "filterbalance",
+    "servicetype",
+    "viewpoint"
+   ]
+  },
+  "Reports/AbonentDebt2.csp": {
+   "status": 200,
+   "title": "Отчёт по должникам для мобильного кассира",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "dreport"
+   ]
+  },
+  "Reports/AccountReestrGorod.csp": {
+   "status": 200,
+   "title": "Реестр для загрузки в Систему \"Город\"",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "dreport"
+   ]
+  },
+  "Reports/AccountReestrGorodMeter.csp": {
+   "status": 500,
+   "title": "Cach Server Pages: Web Gateway Management",
+   "serverMethods": [],
+   "captions": [],
+   "fields": []
+  },
+  "Reports/AccountReestrPlato.csp": {
+   "status": 200,
+   "title": "Реестр для загрузки в \"Платосферу\"",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "dreport"
+   ]
+  },
+  "Reports/AccountReestrPlato2.csp": {
+   "status": 200,
+   "title": "Реестр для загрузки в \"Платосферу\"",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "dreport"
+   ]
+  },
+  "Reports/AccountReestrSberbank.csp": {
+   "status": 200,
+   "title": "Реестр для загрузки в Сбербанк",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "dreport",
+    "month",
+    "onlydebt"
+   ]
+  },
+  "Reports/BookKeepingDocsByTarif.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "Tarif",
+    "fromday",
+    "frommonth",
+    "fromyear",
+    "today",
+    "tomonth",
+    "toyear"
+   ]
+  },
+  "Reports/ByMonth.csp": {
+   "status": 200,
+   "title": "Отчет по услугам за выбранный период",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "ServiceCategory",
+    "dateradio",
+    "dreport",
+    "fromday",
+    "frommonth",
+    "fromyear",
+    "today",
+    "tomonth",
+    "toyear"
+   ]
+  },
+  "Reports/Consuming.csp": {
+   "status": 200,
+   "title": "Отчёт по объемам потребления",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "DCharge",
+    "FL",
+    "ReportType",
+    "TrueService",
+    "UL",
+    "dreport",
+    "fromday",
+    "frommonth",
+    "fromyear",
+    "today",
+    "tomonth",
+    "toyear"
+   ]
+  },
+  "Reports/Consuming2.csp": {
+   "status": 200,
+   "title": "Отчёт по объемам потребления по адресам",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "ByService",
+    "ByTarif",
+    "DCharge",
+    "FL",
+    "HideArea",
+    "UL",
+    "byabonent",
+    "dreport",
+    "fromday",
+    "frommonth",
+    "fromyear",
+    "today",
+    "tomonth",
+    "toyear"
+   ]
+  },
+  "Reports/ConsumingHeatByApartment.csp": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "SelAddressO",
+    "UL",
+    "bycharge",
+    "dreport",
+    "fromday",
+    "frommonth",
+    "fromyear",
+    "houseid",
+    "housename",
+    "service",
+    "today",
+    "tomonth",
+    "toyear"
+   ]
+  },
+  "Reports/ConsumingHeatByBoilerRoom.csp": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "UL",
+    "boilerlist",
+    "bycharge",
+    "dreport",
+    "fromday",
+    "frommonth",
+    "fromyear",
+    "service",
+    "today",
+    "tomonth",
+    "toyear"
+   ]
+  },
+  "Reports/ConsumingHeatByHouse.csp": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "SelAddressO",
+    "UL",
+    "bycharge",
+    "dreport",
+    "fromday",
+    "frommonth",
+    "fromyear",
+    "houseid",
+    "housename",
+    "service",
+    "today",
+    "tomonth",
+    "toyear"
+   ]
+  },
+  "Reports/ConsumingWaterByWell.csp": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "UL",
+    "bycharge",
+    "dreport",
+    "fromday",
+    "frommonth",
+    "fromyear",
+    "groupby",
+    "service",
+    "today",
+    "tomonth",
+    "toyear"
+   ]
+  },
+  "Reports/DelayedReportAbonent.csp": {
+   "status": 200,
+   "title": "Список отложенных отчётов",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "Filter",
+    "edit",
+    "fromday",
+    "frommonth",
+    "fromyear",
+    "link",
+    "today",
+    "tomonth",
+    "toyear",
+    "view"
+   ]
+  },
+  "Reports/HouseInfo.csp": {
+   "status": 200,
+   "title": "Отчет",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "ServiceId",
+    "dreport"
+   ]
+  },
+  "Reports/MeterReadingForPeriod.csp": {
+   "status": 200,
+   "title": "Отчет по показаниям счетчиков за период.",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "RTypeHard",
+    "ServiceType",
+    "chxfl",
+    "chxul",
+    "dreport",
+    "frommonth",
+    "fromyear",
+    "ignoreInactive",
+    "tomonth",
+    "toyear"
+   ]
+  },
+  "Reports/PrintCharges.csp": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [],
+   "captions": [],
+   "fields": []
+  },
+  "Reports/PrintChargesByHouse.csp": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "tomonth",
+    "toyear"
+   ]
+  },
+  "Reports/PrintChargesMain.csp": {
+   "status": 200,
+   "title": "Начисления за месяц",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "tomonth",
+    "toyear"
+   ]
+  },
+  "Reports/ResidentsCount.csp": {
+   "status": 200,
+   "title": "Численность проживающих в жил. фонде в разрезе количества проживающих",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "dreport"
+   ]
+  },
+  "Reports/ResidentsHouses.csp": {
+   "status": 200,
+   "title": "Отчет по нормативам и объемам услуг",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "CreateReport",
+    "ServiceCategory",
+    "dreport",
+    "fromday",
+    "frommonth",
+    "fromyear",
+    "onlyfl",
+    "reportType",
+    "today",
+    "tomonth",
+    "toyear"
+   ]
+  },
+  "Reports/ServiceRestForPeriod.csp": {
+   "status": 200,
+   "title": "Баланс по услуге.",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "ServiceCategory",
+    "district",
+    "dreport",
+    "today",
+    "tomonth",
+    "toyear"
+   ]
+  },
+  "Reports/ToMedian.csp": {
+   "status": 200,
+   "title": "Отчет по переводам на среднее и норматив",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "dreport",
+    "fromday",
+    "frommonth",
+    "fromyear",
+    "today",
+    "tomonth",
+    "toyear"
+   ]
+  },
+  "ZENInterface.User.DebtorList.cls": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [
+    "Search",
+    "SearchDebtor"
+   ],
+   "captions": [
+    "Найти",
+    "Отобразить календарь.",
+    "Точка зрения:",
+    "Физические лица",
+    "Фильтр по балансу",
+    "Фильтр по балансу в диапазоне",
+    "Юридические лица"
+   ],
+   "fields": []
+  },
+  "housecategoryreport.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "EXCEL",
+    "EXCELDR",
+    "topId"
+   ]
+  },
+  "journalsum.csp": {
+   "status": 200,
+   "title": "Отчёт по начислениям",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "DocumentType",
+    "Org",
+    "charge",
+    "dreport",
+    "fromday",
+    "frommonth",
+    "fromyear",
+    "showempty",
+    "splitservice",
+    "today",
+    "tomonth",
+    "toyear"
+   ]
+  },
+  "Address/Map.csp": {
+   "status": 200,
+   "title": "Cache Server Page",
+   "serverMethods": [],
+   "captions": [],
+   "fields": []
+  },
+  "Contract/StateHistory.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "CSV",
+    "EXCEL",
+    "Filter",
+    "fromday",
+    "frommonth",
+    "fromyear",
+    "today",
+    "tomonth",
+    "toyear"
+   ]
+  },
+  "Contract/TarifHistory.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "CSV",
+    "EXCEL",
+    "Filter",
+    "fromday",
+    "frommonth",
+    "fromyear",
+    "today",
+    "tomonth",
+    "toyear"
+   ]
+  },
+  "ZENInterface.BookKeeping.MoneyBack.cls": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [
+    "InitSelect",
+    "Search",
+    "Transfer"
+   ],
+   "captions": [
+    "Откуда списать",
+    "Поиск по Счету",
+    "Поиск по ФИО",
+    "Поиск по ФИО или Счету",
+    "Поиск по адресу",
+    "Снять деньги",
+    "Создать",
+    "перейти к просмотру журнала ошибок"
+   ],
+   "fields": [
+    "AbonentType",
+    "SelectionType"
+   ]
+  },
+  "ZENInterface.Contract.CreateGeneral.cls": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [
+    "ZenCreate",
+    "onChange"
+   ],
+   "captions": [
+    "#(%composite.selectCaption)#",
+    "Очистить",
+    "Перейти к карточке выбранного абонента",
+    "Сохранить"
+   ],
+   "fields": []
+  },
+  "ZENInterface.GKH.Charge.cls": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [
+    "Charge",
+    "Search"
+   ],
+   "captions": [
+    "Выберите список услуг по которым нужно выполнить начисления",
+    "Начислить",
+    "Поиск по Счету",
+    "Поиск по ФИО",
+    "Поиск по ФИО или Счету",
+    "Поиск по адресу",
+    "Создать",
+    "перейти к просмотру журнала ошибок"
+   ],
+   "fields": [
+    "AbonentType",
+    "SelectionType"
+   ]
+  },
+  "ZENInterface.GKH.Charge1.cls": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [
+    "Charge"
+   ],
+   "captions": [
+    "Выполнить начисления"
+   ],
+   "fields": []
+  },
+  "ZENInterface.GKH.InsertReading.cls": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [
+    "Charge",
+    "CheckList",
+    "CreateReportExcel",
+    "Execute",
+    "SaveReading"
+   ],
+   "captions": [
+    "Внесение показаний счетчиков",
+    "Вносить показания счетчиков",
+    "Выбрать",
+    "Добавлять значение к последним показаниям",
+    "Сохранить в Excel"
+   ],
+   "fields": [
+    "Mode"
+   ]
+  },
+  "ZENInterface.GKH.SearchAbonent.cls": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [
+    "Search"
+   ],
+   "captions": [
+    "Поиск по Счету",
+    "Поиск по ФИО",
+    "Поиск по ФИО или Счету",
+    "Поиск по адресу",
+    "Создать"
+   ],
+   "fields": [
+    "AbonentType",
+    "SelectionType"
+   ]
+  },
+  "ZENInterface.GKH.User.ChangeAddress.cls": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [
+    "ChangeAddress",
+    "Check",
+    "LoadObject",
+    "Search"
+   ],
+   "captions": [
+    "Новый адрес:",
+    "Поиск по Счету",
+    "Поиск по ФИО",
+    "Поиск по ФИО или Счету",
+    "Поиск по адресу",
+    "Сменить",
+    "Создать",
+    "Текущий адрес:"
+   ],
+   "fields": [
+    "AbonentType",
+    "SelectionType"
+   ]
+  },
+  "ZENInterface.GKH.User.RegisterFL.cls": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [
+    "GetAddressByHuman",
+    "Save"
+   ],
+   "captions": [
+    "#(%composite.selectCaption)#",
+    "Зарегистрировать",
+    "Очистить",
+    "Перейти к карточке абонента"
+   ],
+   "fields": []
+  },
+  "ZENInterface.GKH.User.RegisterLegal.cls": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [
+    "GetAddressByOrganization",
+    "Save"
+   ],
+   "captions": [
+    "#(%composite.selectCaption)#",
+    "Зарегистрировать",
+    "Очистить",
+    "Перейти к карточке абонента",
+    "Создать новую"
+   ],
+   "fields": []
+  },
+  "abonenthouselist.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "EXCEL",
+    "EXCELDR",
+    "Filter",
+    "topId"
+   ]
+  },
+  "abonentlist.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "CSV",
+    "CSVDR",
+    "EXCEL",
+    "EXCELDR",
+    "EXCELDRHTML",
+    "EXCELHTML",
+    "Filter",
+    "topId"
+   ]
+  },
+  "abonentservicegroup.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "Filter",
+    "XLSX",
+    "topId"
+   ]
+  },
+  "accountlist.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "EXCEL",
+    "EXCELDR",
+    "Filter",
+    "topId"
+   ]
+  },
+  "contactlist.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "CSV",
+    "CSVDR",
+    "EXCEL",
+    "EXCELDR",
+    "EXCELDRHTML",
+    "EXCELHTML",
+    "Filter",
+    "topId"
+   ]
+  },
+  "help.csp": {
+   "status": 200,
+   "title": "ПортМонет - Смена пароля",
+   "serverMethods": [],
+   "captions": [],
+   "fields": []
+  },
+  "membersearch.csp": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "ContractNet",
+    "ContractService",
+    "IP",
+    "MAC",
+    "PhoneHard",
+    "PhoneNumer",
+    "account",
+    "apartment",
+    "apartmentContract",
+    "apartmentHard",
+    "city",
+    "cityContract",
+    "cityHard",
+    "country",
+    "countryContract",
+    "countryHard",
+    "datefrom",
+    "dateto",
+    "domainname",
+    "house",
+    "houseContract",
+    "houseHard",
+    "loginabon",
+    "nick",
+    "notfirst",
+    "numberfrom",
+    "numberto",
+    "orginn",
+    "orgtitle",
+    "radiobox",
+    "region",
+    "regionContract",
+    "regionHard",
+    "street",
+    "streetContract",
+    "streetHard",
+    "vlanname",
+    "vlannumber",
+    "vtpdomen"
+   ]
+  },
+  "BookKeeping/AllowCharge.csp": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [],
+   "captions": [],
+   "fields": []
+  },
+  "BookKeeping/LoadBankPays.csp": {
+   "status": 200,
+   "title": "Загрузка платежей",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "account",
+    "address",
+    "amount",
+    "datecreate",
+    "filestream",
+    "name",
+    "office",
+    "separator",
+    "timecreate"
+   ]
+  },
+  "BookKeeping/LoadBankPaysGorod.csp": {
+   "status": 200,
+   "title": "Загрузка платежей от системы Город",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "account",
+    "amount",
+    "datecreate",
+    "filestream",
+    "office",
+    "separator"
+   ]
+  },
+  "BookKeeping/LoadBankPaysPlato.csp": {
+   "status": 200,
+   "title": "Загрузка платежей от Платосферы",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "account",
+    "amount",
+    "datecreate",
+    "filestream",
+    "office",
+    "separator"
+   ]
+  },
+  "BookKeeping/LoadCounters.csp": {
+   "status": 200,
+   "title": "Загрузка показаний счетчиков",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "account",
+    "date",
+    "filestream",
+    "meter",
+    "separator",
+    "value"
+   ]
+  },
+  "BookKeeping/LoadCountersGKS.csp": {
+   "status": 500,
+   "title": "Cach Server Pages: Web Gateway Management",
+   "serverMethods": [],
+   "captions": [],
+   "fields": []
+  },
+  "HeatSeason.csp": {
+   "status": 200,
+   "title": "Настройки отопительного сезона",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "act",
+    "heat_01",
+    "heat_02",
+    "heat_03",
+    "heat_04",
+    "heat_05",
+    "heat_06",
+    "heat_07",
+    "heat_08",
+    "heat_09",
+    "heat_10",
+    "heat_11",
+    "heat_12"
+   ]
+  },
+  "NDSSetting.csp": {
+   "status": 200,
+   "title": "Настроки НДС",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "Common||NDSDay1",
+    "Common||NDSDay2",
+    "Common||NDSDay3",
+    "Common||NDSPart1",
+    "Common||NDSPart2",
+    "Common||NDSPart3",
+    "act"
+   ]
+  },
+  "PenaltieSetting.csp": {
+   "status": 200,
+   "title": "Настроки пени",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "Penaltie||FromMonth",
+    "Penaltie||PaymentPeriod",
+    "Penaltie||PenaltieDay1",
+    "Penaltie||PenaltieDay2",
+    "Penaltie||PenaltieDay3",
+    "Penaltie||PenaltieDay4",
+    "Penaltie||PenaltiePart1",
+    "Penaltie||PenaltiePart2",
+    "Penaltie||PenaltiePart3",
+    "Penaltie||PenaltiePart4",
+    "Penaltie||RefinancingDay1",
+    "Penaltie||RefinancingDay10",
+    "Penaltie||RefinancingDay11",
+    "Penaltie||RefinancingDay12",
+    "Penaltie||RefinancingDay13",
+    "Penaltie||RefinancingDay14",
+    "Penaltie||RefinancingDay15",
+    "Penaltie||RefinancingDay16",
+    "Penaltie||RefinancingDay17",
+    "Penaltie||RefinancingDay18",
+    "Penaltie||RefinancingDay19",
+    "Penaltie||RefinancingDay2",
+    "Penaltie||RefinancingDay20",
+    "Penaltie||RefinancingDay21",
+    "Penaltie||RefinancingDay22",
+    "Penaltie||RefinancingDay23",
+    "Penaltie||RefinancingDay24",
+    "Penaltie||RefinancingDay25",
+    "Penaltie||RefinancingDay26",
+    "Penaltie||RefinancingDay27",
+    "Penaltie||RefinancingDay28",
+    "Penaltie||RefinancingDay29",
+    "Penaltie||RefinancingDay3",
+    "Penaltie||RefinancingDay4",
+    "Penaltie||RefinancingDay5",
+    "Penaltie||RefinancingDay6",
+    "Penaltie||RefinancingDay7",
+    "Penaltie||RefinancingDay8",
+    "Penaltie||RefinancingDay9",
+    "Penaltie||RefinancingPart1",
+    "Penaltie||RefinancingPart10",
+    "Penaltie||RefinancingPart11",
+    "Penaltie||RefinancingPart12",
+    "Penaltie||RefinancingPart13",
+    "Penaltie||RefinancingPart14",
+    "Penaltie||RefinancingPart15",
+    "Penaltie||RefinancingPart16",
+    "Penaltie||RefinancingPart17",
+    "Penaltie||RefinancingPart18",
+    "Penaltie||RefinancingPart19",
+    "Penaltie||RefinancingPart2",
+    "Penaltie||RefinancingPart20",
+    "Penaltie||RefinancingPart21",
+    "Penaltie||RefinancingPart22",
+    "Penaltie||RefinancingPart23",
+    "Penaltie||RefinancingPart24",
+    "Penaltie||RefinancingPart25",
+    "Penaltie||RefinancingPart26",
+    "Penaltie||RefinancingPart27",
+    "Penaltie||RefinancingPart28",
+    "Penaltie||RefinancingPart29",
+    "Penaltie||RefinancingPart3",
+    "Penaltie||RefinancingPart4",
+    "Penaltie||RefinancingPart5",
+    "Penaltie||RefinancingPart6",
+    "Penaltie||RefinancingPart7",
+    "Penaltie||RefinancingPart8",
+    "Penaltie||RefinancingPart9",
+    "act"
+   ]
+  },
+  "Reports/AbonentDebtDiff.csp": {
+   "status": 200,
+   "title": "Отчёт по расхождениям оперативного и бухгалтерского баланса",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "abonenttype",
+    "dreport",
+    "viewpoint"
+   ]
+  },
+  "Reports/SameProviderReport.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "XLSXDR"
+   ]
+  },
+  "Reports/TarifDistrictDiffReport.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": []
+  },
+  "Utils/BZ.csp": {
+   "status": 200,
+   "title": "Загрузка списания задолженности",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "EXCEL",
+    "Type",
+    "address",
+    "balance",
+    "comment",
+    "filestream",
+    "header",
+    "load",
+    "name",
+    "number",
+    "reportid",
+    "topId"
+   ]
+  },
+  "YearHeatDistribution.csp": {
+   "status": 200,
+   "title": "Настроки годового распределения тепла",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "act",
+    "heat_01",
+    "heat_02",
+    "heat_03",
+    "heat_04",
+    "heat_05",
+    "heat_06",
+    "heat_07",
+    "heat_08",
+    "heat_09",
+    "heat_10",
+    "heat_11",
+    "heat_12"
+   ]
+  },
+  "ZENInterface.BookKeeping.DocumentList.cls": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [
+    "CheckList",
+    "Execute",
+    "Export"
+   ],
+   "captions": [
+    "Выбрать",
+    "Сохранить в Excel",
+    "Список актов"
+   ],
+   "fields": []
+  },
+  "ZENInterface.FSG.LoadPaymentReestr.cls": {
+   "status": 200,
+   "title": "Загрузка файла",
+   "serverMethods": [],
+   "captions": [
+    "Загрузка файла"
+   ],
+   "fields": [
+    "PaySystemCode",
+    "autoclose",
+    "dependname",
+    "descr",
+    "filestream",
+    "load",
+    "name",
+    "oid",
+    "parentindex",
+    "rewrite",
+    "rule",
+    "setdescr",
+    "setname"
+   ]
+  },
+  "ZENInterface.FSG.PaymentRecordList.cls": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [
+    "CheckList",
+    "Execute",
+    "GetContractLinkToOpen",
+    "GetContractLinkToSelect",
+    "GetContractName",
+    "GetDocLink",
+    "GetGeneralContractLinkToSelect",
+    "Process",
+    "Recognize",
+    "Report"
+   ],
+   "captions": [
+    "sys-payment1C",
+    "Выбрать",
+    "Обработать выбранные записи",
+    "Отчет по",
+    "Офис оплаты",
+    "Показать отчет по выбранным записям",
+    "Показать отчет по реестру №",
+    "Провести ИЛИ пометить, как удаленые",
+    "Распознать выбранные записи",
+    "Реестр платежей",
+    "Системный пользователь, со счетов которого будут переводиться деньги:",
+    "Удалить",
+    "Удалить выбранные записи"
+   ],
+   "fields": []
+  },
+  "ZENInterface.GKH.ChangeTarifForAbonentList.cls": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [
+    "Change",
+    "OnChangeService",
+    "OnExcludeService",
+    "Search"
+   ],
+   "captions": [
+    "Переключить услуги",
+    "Поиск по Счету",
+    "Поиск по ФИО",
+    "Поиск по ФИО или Счету",
+    "Поиск по адресу",
+    "Создать"
+   ],
+   "fields": [
+    "AbonentType",
+    "SelectionType"
+   ]
+  },
+  "ZENInterface.GKH.ChargeBack.cls": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [
+    "Charge",
+    "Search"
+   ],
+   "captions": [
+    "Выберите список услуг по которым нужно произвести отмену начислений",
+    "Отменить",
+    "Поиск по Счету",
+    "Поиск по ФИО",
+    "Поиск по ФИО или Счету",
+    "Поиск по адресу",
+    "Создать",
+    "перейти к просмотру журнала ошибок"
+   ],
+   "fields": [
+    "AbonentType",
+    "SelectionType"
+   ]
+  },
+  "ZENInterface.GKH.CheckCharges.cls": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [
+    "Check"
+   ],
+   "captions": [
+    "Проверить"
+   ],
+   "fields": []
+  },
+  "ZENInterface.System.OperationLogRecordList.cls": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [
+    "CheckList",
+    "Execute"
+   ],
+   "captions": [
+    "Выбрать",
+    "Лог ошибок"
+   ],
+   "fields": []
+  },
+  "daemonstatus.csp": {
+   "status": 200,
+   "title": "Служебные задачи",
+   "serverMethods": [],
+   "captions": [],
+   "fields": []
+  },
+  "stoppedcontractlist.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": []
+  },
+  "GIS/ReportAccountPaymentDoc.csp": {
+   "status": 200,
+   "title": "Реестр ГИС ЖКХ",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "dreport",
+    "tomonth",
+    "toyear"
+   ]
+  },
+  "GIS/ReportMeter.csp": {
+   "status": 200,
+   "title": "Реестр ГИС ЖКХ",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "Apartment",
+    "House",
+    "dreport",
+    "tomonth",
+    "toyear"
+   ]
+  },
+  "GIS/ReportPayment.csp": {
+   "status": 200,
+   "title": "Реестр ГИС ЖКХ",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "dreport",
+    "fromday",
+    "frommonth",
+    "fromyear",
+    "today",
+    "tomonth",
+    "toyear"
+   ]
+  },
+  "GIS/ReportPaymentDoc.csp": {
+   "status": 200,
+   "title": "Реестр ГИС ЖКХ",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "dreport",
+    "tomonth",
+    "toyear"
+   ]
+  },
+  "GIS/ReportService.csp": {
+   "status": 200,
+   "title": "Реестр ГИС ЖКХ",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "dreport",
+    "tomonth",
+    "toyear"
+   ]
+  },
+  "ZENInterface.List.cls": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [
+    "CheckList",
+    "Execute"
+   ],
+   "captions": [
+    "Выбрать",
+    "Копировать",
+    "Связка услуг",
+    "Создать",
+    "Удалить"
+   ],
+   "fields": []
+  },
+  "BookKeeping/BookKeepingDocListMain.csp": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "fromday",
+    "frommonth",
+    "fromyear",
+    "today",
+    "tomonth",
+    "toyear",
+    "typeDoc"
+   ]
+  },
+  "BookKeeping/CounterEdit.csp": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "act",
+    "bill",
+    "do",
+    "invoice",
+    "year"
+   ]
+  },
+  "BookKeeping/DocsReport.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "dreport",
+    "month"
+   ]
+  },
+  "Reports/BookKeepingDocs.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "Provider",
+    "fromday",
+    "frommonth",
+    "fromyear",
+    "today",
+    "tomonth",
+    "toyear"
+   ]
+  },
+  "Reports/PrintDocsMain.csp": {
+   "status": 200,
+   "title": "Печать документов",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "DV",
+    "DVText",
+    "Provider",
+    "dreport",
+    "recloseall",
+    "sepAbonent",
+    "sepAct",
+    "today",
+    "tomonth",
+    "toyear",
+    "withoutImg"
+   ]
+  },
+  "BookKeeping/CashOrderBackToExternal.csp": {
+   "status": 200,
+   "title": "Счет",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "amount",
+    "cashorder",
+    "city",
+    "contract",
+    "country",
+    "flat",
+    "house",
+    "office",
+    "region",
+    "street",
+    "tocity",
+    "tocontract",
+    "tocountry",
+    "toflat",
+    "tohouse",
+    "toregion",
+    "tostreet"
+   ]
+  },
+  "BookKeeping/CashOrderListNew.csp": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "act",
+    "fromday",
+    "frommonth",
+    "fromyear",
+    "today",
+    "tomonth",
+    "toyear"
+   ]
+  },
+  "BookKeeping/CashOrderReestr.csp": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "CashOrderType",
+    "act",
+    "fromday",
+    "frommonth",
+    "fromyear",
+    "today",
+    "tomonth",
+    "toyear"
+   ]
+  },
+  "ZENInterface.BookKeeping.MoneyTransfer.cls": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [
+    "InitSelect",
+    "Search",
+    "Transfer"
+   ],
+   "captions": [
+    "Куда зачислить",
+    "Откуда списать",
+    "Перевести",
+    "Поиск по Счету",
+    "Поиск по ФИО",
+    "Поиск по ФИО или Счету",
+    "Поиск по адресу",
+    "Создать",
+    "перейти к просмотру журнала ошибок"
+   ],
+   "fields": [
+    "AbonentType",
+    "SelectionType"
+   ]
+  },
+  "ZENInterface.Cashier.ClaimCharge.cls": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [
+    "Action",
+    "OnAfterAction",
+    "calculateSumm",
+    "chargeChange",
+    "selectContract"
+   ],
+   "captions": [
+    "Вернуть абоненту",
+    "Выбрать",
+    "Да",
+    "Дата начисления:",
+    "Договор:",
+    "Единица измерения:",
+    "Количество:",
+    "Комментарий:",
+    "Нет",
+    "Отобразить календарь.",
+    "Снять с абонента",
+    "Сумма:",
+    "Текущая",
+    "Тип начисления:",
+    "Цена за единицу:"
+   ],
+   "fields": [
+    "DCharge"
+   ]
+  },
+  "ZENInterface.Cashier.ClaimChargeBack.cls": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [
+    "Action",
+    "CancelAction",
+    "OnAfterAction",
+    "chargeChange",
+    "selectContract",
+    "tableRefresh"
+   ],
+   "captions": [
+    "Выбрать",
+    "Да",
+    "Дата начисления",
+    "Договор:",
+    "Журнал операций",
+    "Комментарий:",
+    "Нет",
+    "Отметить всё на странице",
+    "Отобразить календарь.",
+    "По:",
+    "Показать все начисления",
+    "Провести корректировку",
+    "С:",
+    "Сбросить всё",
+    "Тип корректировки:",
+    "Установить"
+   ],
+   "fields": []
+  },
+  "ZENInterface.Cashier.RestCorrect.cls": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [
+    "Action",
+    "OnAfterAction",
+    "chargeChange",
+    "selectContract"
+   ],
+   "captions": [
+    "Вернуть абоненту",
+    "Выбрать",
+    "Да",
+    "Дата операции:",
+    "Договор:",
+    "Направление платежа:",
+    "Нет",
+    "Основание операции:",
+    "Отобразить календарь.",
+    "Снять с абонента",
+    "Сумма:",
+    "Текущая"
+   ],
+   "fields": [
+    "BackPay",
+    "DCharge"
+   ]
+  },
+  "Address/AddressList.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "EDIT",
+    "Filter",
+    "edit",
+    "link",
+    "topId",
+    "view"
+   ]
+  },
+  "Address/CityList.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "EDIT",
+    "Filter",
+    "edit",
+    "link",
+    "topId",
+    "view"
+   ]
+  },
+  "Address/CityTypeList.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "EDIT",
+    "Filter",
+    "edit",
+    "link",
+    "topId",
+    "view"
+   ]
+  },
+  "Address/CountryList.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "EDIT",
+    "Filter",
+    "edit",
+    "link",
+    "topId",
+    "view"
+   ]
+  },
+  "Address/DistList.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "EDIT",
+    "Filter",
+    "edit",
+    "link",
+    "topId",
+    "view"
+   ]
+  },
+  "Address/HousesList.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "EDIT",
+    "Filter",
+    "edit",
+    "link",
+    "topId",
+    "view"
+   ]
+  },
+  "Address/RegionList.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "EDIT",
+    "Filter",
+    "edit",
+    "link",
+    "topId",
+    "view"
+   ]
+  },
+  "Address/RegionTypeList.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "EDIT",
+    "Filter",
+    "edit",
+    "link",
+    "topId",
+    "view"
+   ]
+  },
+  "Address/StreetList.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "EDIT",
+    "Filter",
+    "edit",
+    "link",
+    "topId",
+    "view"
+   ]
+  },
+  "Address/StreetTypeList.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "EDIT",
+    "Filter",
+    "edit",
+    "link",
+    "topId",
+    "view"
+   ]
+  },
+  "BookKeeping/BillTemplateList.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "EDIT",
+    "Filter",
+    "edit",
+    "link",
+    "topId",
+    "view"
+   ]
+  },
+  "Contract/ContractKeyGuideList.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "EDIT",
+    "Filter",
+    "edit",
+    "link",
+    "topId",
+    "view"
+   ]
+  },
+  "Contract/GeneralContractList.csp": {
+   "status": 200,
+   "title": "Операторы услуг",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "CSV",
+    "EXCEL",
+    "Filter",
+    "edit",
+    "link",
+    "topId",
+    "view"
+   ]
+  },
+  "Contract/Tarif/ServiceList.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "CSV",
+    "EDIT",
+    "EXCEL",
+    "Filter",
+    "edit",
+    "link",
+    "topId",
+    "view"
+   ]
+  },
+  "Contract/Tarif/TarifList.csp": {
+   "status": 200,
+   "title": "Список тарифов",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "Service",
+    "topId"
+   ]
+  },
+  "GKH.Hard.Viewer.cls": {
+   "status": 200,
+   "title": "G",
+   "serverMethods": [],
+   "captions": [],
+   "fields": []
+  },
+  "Reference/Abonent/AbonList.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "EDIT",
+    "Filter",
+    "edit",
+    "link",
+    "topId",
+    "view"
+   ]
+  },
+  "Reference/Abonent/AbonentKeyGuideList.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "EDIT",
+    "Filter",
+    "edit",
+    "link",
+    "topId",
+    "view"
+   ]
+  },
+  "Reference/Account/AccountList.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "CSV",
+    "EDIT",
+    "EXCEL",
+    "Filter",
+    "edit",
+    "link",
+    "topId",
+    "view"
+   ]
+  },
+  "Reference/Appointment/AppointmentList.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "EDIT",
+    "Filter",
+    "edit",
+    "link",
+    "topId",
+    "view"
+   ]
+  },
+  "Reference/Bank/BankBranchList.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "EDIT",
+    "Filter",
+    "edit",
+    "link",
+    "topId",
+    "view"
+   ]
+  },
+  "Reference/Bank/BankList.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "EDIT",
+    "Filter",
+    "edit",
+    "link",
+    "view"
+   ]
+  },
+  "Reference/Bank/RKCList.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "EDIT",
+    "Filter",
+    "edit",
+    "link",
+    "topId",
+    "view"
+   ]
+  },
+  "Reference/Bank/TreasureList.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "EDIT",
+    "Filter",
+    "edit",
+    "link",
+    "topId",
+    "view"
+   ]
+  },
+  "Reference/BillAddressType/BillAddressTypeList.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "EDIT",
+    "Filter",
+    "edit",
+    "link",
+    "topId",
+    "view"
+   ]
+  },
+  "Reference/Conformity/ChargeTypeLinkList.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "EDIT",
+    "Filter",
+    "edit",
+    "link",
+    "topId",
+    "view"
+   ]
+  },
+  "Reference/Conformity/ChargeTypeList.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "CSV",
+    "EDIT",
+    "EXCEL",
+    "Filter",
+    "edit",
+    "link",
+    "topId",
+    "view"
+   ]
+  },
+  "Reference/Conformity/ConformityRecordList.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "EDIT",
+    "Filter",
+    "edit",
+    "link",
+    "topId",
+    "view"
+   ]
+  },
+  "Reference/Conformity/ConformityTableList.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "EDIT",
+    "Filter",
+    "edit",
+    "link",
+    "topId",
+    "view"
+   ]
+  },
+  "Reference/Conformity/GAAPList.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "EDIT",
+    "Filter",
+    "edit",
+    "link",
+    "topId",
+    "view"
+   ]
+  },
+  "Reference/DateOfFacilitation/DateOfFacilitationList.csp": {
+   "status": 404,
+   "title": "",
+   "serverMethods": [],
+   "captions": [],
+   "fields": []
+  },
+  "Reference/Human/HumanList.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "EDIT",
+    "Filter",
+    "attach",
+    "edit",
+    "link",
+    "topId",
+    "view"
+   ]
+  },
+  "Reference/MethodOfSettlements/MethodOfSettlementsList.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "EDIT",
+    "Filter",
+    "topId"
+   ]
+  },
+  "Reference/OrgReason/OrgReasonList.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "EDIT",
+    "Filter",
+    "edit",
+    "link",
+    "topId",
+    "view"
+   ]
+  },
+  "Reference/Organization/OrgKeyGuideList.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "EDIT",
+    "Filter",
+    "edit",
+    "link",
+    "topId",
+    "view"
+   ]
+  },
+  "Reference/Organization/OrgList.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "EDIT",
+    "Filter",
+    "edit",
+    "link",
+    "topId",
+    "view"
+   ]
+  },
+  "Reference/OrganizationType/OrganizationTypeList.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "EDIT",
+    "Filter",
+    "edit",
+    "link",
+    "topId",
+    "view"
+   ]
+  },
+  "Reference/TarifGroup/TarifGroupList.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "EDIT",
+    "Filter",
+    "edit",
+    "link",
+    "topId",
+    "view"
+   ]
+  },
+  "ZENInterface.GKH.Hard.MeterApartmentList.cls": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [
+    "CheckList",
+    "DeleteNorms",
+    "Execute",
+    "Export"
+   ],
+   "captions": [
+    "AddWhere",
+    "AddressId",
+    "AutoFilter",
+    "AutoGenerateConfig",
+    "ContractId",
+    "EditInNewWindow",
+    "Mode",
+    "PageCode",
+    "SaveAndRestoreState",
+    "SaveStateId",
+    "ServiceId",
+    "TransferparamList",
+    "ValueList",
+    "Выбрать",
+    "Копировать",
+    "Создать",
+    "Список квартирных счетчиков",
+    "Удалить",
+    "Удалить нормативы",
+    "Экспорт"
+   ],
+   "fields": []
+  },
+  "ZENInterface.GKH.Hard.MeterHouseList.cls": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [
+    "CheckList",
+    "DeleteNorms",
+    "Execute",
+    "Export"
+   ],
+   "captions": [
+    "Выбрать",
+    "Копировать",
+    "Создать",
+    "Список домовых счетчиков",
+    "Удалить",
+    "Удалить нормативы",
+    "Экспорт"
+   ],
+   "fields": []
+  },
+  "ZENInterface.GKH.Housing.ApartmentList.cls": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [
+    "CheckList",
+    "Execute",
+    "Export"
+   ],
+   "captions": [
+    "Выбрать",
+    "Квартиры и помещения",
+    "Копировать",
+    "Создать",
+    "Сохранить в Excel",
+    "Сохранить в Excel все квартиры",
+    "Сохранить в Excel по услугам",
+    "Удалить"
+   ],
+   "fields": []
+  },
+  "ZENInterface.GKH.Housing.HouseList.cls": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [
+    "CheckList",
+    "Execute",
+    "Export"
+   ],
+   "captions": [
+    "Выбрать",
+    "Дома",
+    "Копировать",
+    "Создать",
+    "Сохранить в Excel",
+    "Удалить"
+   ],
+   "fields": []
+  },
+  "ZENInterface.GKH.Krsk.ContractNormList.cls": {
+   "status": 200,
+   "title": "",
+   "serverMethods": [
+    "CheckList",
+    "Execute",
+    "Export"
+   ],
+   "captions": [
+    "Contract",
+    "Выбрать",
+    "Копировать",
+    "Нормы потребления по заказам",
+    "Создать",
+    "Сохранить в Excel",
+    "Удалить"
+   ],
+   "fields": []
+  },
+  "Reference/Office/OfficeList.csp": {
+   "status": 200,
+   "title": "Предварительный просмотр",
+   "serverMethods": [],
+   "captions": [],
+   "fields": [
+    "EDIT",
+    "Filter",
+    "edit",
+    "link",
+    "topId",
+    "view"
+   ]
+  }
+ }
+}

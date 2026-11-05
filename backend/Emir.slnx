@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Emir.Api/Emir.Api.csproj" />
+  <Project Path="Emir.Tests/Emir.Tests.csproj" />
+</Solution>
