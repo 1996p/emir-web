@@ -17,6 +17,7 @@ from decimal import Decimal
 from html.parser import HTMLParser
 
 root = sys.argv[1]
+SNAPSHOT_DATE = os.environ.get('EMIR_SNAPSHOT_DATE', '2026-11-05')
 raw = os.path.join(root, 'raw')
 normalized = os.path.join(root, 'normalized')
 load = os.path.join(root, 'load')
@@ -344,6 +345,10 @@ prices_by_period = collections.defaultdict(lambda: collections.defaultdict(colle
 for op in jsonl(os.path.join(normalized, 'operations.jsonl')):
     abonent = op['abonent']
     if abonent not in account_of:
+        continue
+    # Срез на момент карточек: операции позже него в балансах ещё не учтены и в историю не идут.
+    if op['at'][:10] > SNAPSHOT_DATE:
+        report['операция позже среза, не перенесена'] += 1
         continue
     service_id = line_by_contract.get((abonent, op['contract'])) or line_by_service.get((abonent, op['service']))
     if service_id is None:

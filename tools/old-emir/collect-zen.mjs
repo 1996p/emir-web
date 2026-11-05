@@ -10,7 +10,7 @@ const only = process.argv.slice(3);
 const raw = join(root, 'raw');
 mkdirSync(raw, { recursive: true, mode: 0o700 });
 const LIMIT = 500000;
-const WAIT_MS = 280000;
+const WAIT_MS = Number(process.env.EMIR_WAIT_MS ?? 280000);
 // Поисковые формы и приём оплаты не списки; КЛАДР общедоступен и огромен; журнал ошибок для учёта не нужен.
 const skip = /^Поиск$|^Прием оплаты|Кладр|^Ошибки$/;
 
