@@ -11,6 +11,8 @@ const raw = join(root, 'raw');
 mkdirSync(raw, { recursive: true, mode: 0o700 });
 const PAUSE_MS = 250;
 const PER_PAGE = 300;
+// Для списков с выбором дат: EMIR_LIST_PARAMS="fromyear=2000&frommonth=1&fromday=1".
+const EXTRA = process.env.EMIR_LIST_PARAMS ? `&${process.env.EMIR_LIST_PARAMS}` : '';
 
 const items = readFileSync(join(root, 'inventory.jsonl'), 'utf8').trim().split('\n').map((line) => JSON.parse(line))
   .filter((item) => item.kind === 'query' && (only.length === 0 || only.some((part) => item.path.includes(part))));
@@ -24,11 +26,21 @@ const readPage = (url) => page.evaluate(`(async () => {
   // Заголовок бывает и в th, и в обычных ячейках со ссылками сортировки.
   const isHead = (row) => row.querySelector('th') || row.querySelector('a[href*=_ORDER]');
   const tables = [...doc.querySelectorAll('table')];
-  const table = tables.filter((t) => [...t.rows].some(isHead)).sort((a, b) => b.rows.length - a.rows.length)[0];
+  // Таблица с выбором дат тоже бывает с заголовком: таблицы с полями формы не берутся.
+  const plain = tables.filter((t) => !t.querySelector('select, input:not([type=hidden])') && !t.querySelector('table'));
+  const marked = plain.filter((t) => [...t.rows].some(isHead)).sort((a, b) => b.rows.length - a.rows.length)[0];
+  const largest = plain.sort((a, b) => b.rows.length - a.rows.length)[0];
+  // Без явной шапки: строка заголовка это первая строка с полным числом ячеек, всё выше неё название таблицы.
+  const table = marked && (!largest || marked.rows.length * 2 > largest.rows.length) ? marked : largest;
+  const width = table ? Math.max(...[...table.rows].map((r) => r.cells.length)) : 0;
+  // Шапка такой таблицы узнаётся по стрелке сортировки, данные это строки с полным числом ячеек ниже неё.
+  const arrowRow = table && table !== marked ? [...table.rows].findIndex((r) => /[↑↓]/.test(r.textContent)) : -1;
   const rows = [];
   let head = [];
-  if (table) for (const row of table.rows) {
-    if (isHead(row)) { if (!head.length) head = [...row.cells].map((c) => __clean(c.textContent)); continue; }
+  if (table) for (const [index, row] of [...table.rows].entries()) {
+    if (arrowRow >= 0 && index < arrowRow) continue;
+    if (isHead(row) || index === arrowRow) { if (!head.length) head = [...row.cells].map((c) => __clean(c.textContent)); continue; }
+    if (table !== marked && row.cells.length !== width) continue;
     rows.push({ data: { ...row.dataset }, cells: [...row.cells].map((c) => __clean(c.textContent)), links: [...row.querySelectorAll('a[href]')].map((a) => [__clean(a.textContent), a.getAttribute('href')]) });
   }
   return JSON.stringify({ status: reply.status, pages: Number((reply.text.match(/Выберите страницу \\(1 - (\\d+)\\)/) || [])[1] || 1), head, rows });
@@ -50,7 +62,7 @@ for (const item of items) {
   let errors = 0;
   while (pageNumber <= pages) {
     const url = item.query
-      ? `${item.url}${separator}${item.query}_ONPAGE=${PER_PAGE}&${item.query}_PAGE=${pageNumber}`
+      ? `${item.url}${separator}${item.query}_ONPAGE=${PER_PAGE}&${item.query}_PAGE=${pageNumber}${EXTRA}`
       : item.url;
     let reply;
     try {

@@ -12,6 +12,16 @@ public class ChargeEngineTests
         ChargeEngine.Calculate(new ChargeInput(scheme, price, month, area, residents, serviceNorm, tariffNorm, contractNorm, houseNorm, usage, share, season, loss, houseArea, meter));
 
     [Fact]
+    public void CurrentPenalty_StartsOnEleventhOfSecondMonth_LikeOldSystemJournals()
+    {
+        // Начисление за апрель 2022: первая пеня в журнале старой системы 11 июня, 10 июня её ещё нет.
+        var settings = PenaltyEngine.Current;
+        var due = PenaltyEngine.DueDate("2022-04", settings.PayDayNextMonth);
+        Assert.Equal(0m, PenaltyEngine.FractionFor(new DateOnly(2022, 6, 10).DayNumber - due.DayNumber, settings));
+        Assert.Equal(1m / 300m, PenaltyEngine.FractionFor(new DateOnly(2022, 6, 11).DayNumber - due.DayNumber, settings));
+    }
+
+    [Fact]
     public void NormHouse_RoundsVolumeToFourDigitsBeforePrice_LikeOldSystem()
     {
         // 33,33 м² × 0,01725 = 0,5749425 Гкал -> 0,5749; × 3128,09 ₽ = 1798,34 ₽. Без округления вышло бы 1798,47 ₽.

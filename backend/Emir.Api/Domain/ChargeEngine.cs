@@ -121,8 +121,11 @@ public record OutstandingDebt(string Period, long Amount);
 /// </summary>
 public static class PenaltyEngine
 {
+    // Просрочка считается от 11-го числа следующего месяца (оплата до 10-го включительно): так пени
+    // совпадают с журналами старой системы точнее всего, первая пеня за апрель приходится на 11 июня.
+    // В её настройках при этом указано 15 дней на оплату.
     public static readonly PenaltySettings Current = new(
-        "2017-07", 15,
+        "2017-07", 11,
         [new(0, 0m), new(31, 1m / 300m), new(91, 1m / 130m)],
         new (string Date, decimal Rate)[]
         {

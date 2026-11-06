@@ -92,6 +92,13 @@ def parse_card(path):
     card['name'] = found.group(1) if found else ''
     found = re.search(r'white-space:nowrap;" >([^<]+)<', page)
     card['address'] = re.sub(r'\s+', ' ', found.group(1)).strip() if found else ''
+    # Заметка, документ о собственности и согласие на передачу персональных данных.
+    found = re.search(r'name="\$V_Info"[^>]*>([^<]*)</textarea>', page)
+    card['note'] = found.group(1).strip() if found else ''
+    found = re.search(r'name="\$V_Document"[^>]*>([^<]*)</textarea>', page)
+    card['ownership_document'] = found.group(1).strip() if found else ''
+    checked = [re.search(r'value="([^"]*)"', item.group(0)) for item in re.finditer(r'<input[^>]*name="PersonalInfoPermission"[^>]*>', page) if 'checked' in item.group(0)]
+    card['consent'] = checked[0].group(1) if checked and checked[0] else ''
     in_services = False
     labels = {'ID', 'Организация', 'Адрес', 'ФИО', 'Проживающие', 'Категория дома', 'Дополнительная информация'}
     for row in rows:
