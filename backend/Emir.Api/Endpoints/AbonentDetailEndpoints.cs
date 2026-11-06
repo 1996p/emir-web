@@ -7,8 +7,11 @@ namespace Emir.Api.Endpoints;
 
 public record AbonentFactDto(string FromPeriod, decimal Area, int Residents, string Who, string When, string? Reason);
 public record ResidentDto(int Id, string Name, string? FromDate, string? ToDate);
-public record AbonentDetailsDto(string? Note, bool? Consent, string? ConsentWhen, string? OwnershipDocument, string? Phone, string OpenPeriod, bool Reopened, List<AbonentFactDto> Facts, List<ResidentDto> Residents);
+public record AbonentDetailsDto(string? Note, bool? Consent, string? ConsentWhen, string? OwnershipDocument, string? Phone, string OpenPeriod, bool Reopened, List<AbonentFactDto> Facts, List<ResidentDto> Residents, decimal? HouseHeatNorm);
 public record SetNoteRequest(string? Note);
+public record SetHeatNormRequest(decimal? Norm, string Reason);
+public record SetMeterUnitRequest(string? Unit);
+public record SetHouseMeterRequest(string? HouseMeterId);
 public record SetContactRequest(string? Phone);
 public record SetLegalRequest(bool? Consent, string? OwnershipDocument);
 public record SetFactRequest(string FromPeriod, decimal Area, int Residents, string Reason);
@@ -31,8 +34,22 @@ public static class AbonentDetailEndpoints
             var work = await Periods.Work(db);
             return new AbonentDetailsDto(abonent.Note, abonent.Consent, abonent.ConsentAtUtc?.ToLocalTime().ToString("dd.MM.yyyy HH:mm"), abonent.OwnershipDocument, abonent.Phone, work.Period, work.ReopenedAtUtc is not null,
                 facts.OrderByDescending(fact => fact.FromPeriod, StringComparer.Ordinal).Select(fact => new AbonentFactDto(fact.FromPeriod, fact.Area, fact.Residents, fact.Who, fact.AtUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm"), fact.Reason)).ToList(),
-                residents.Select(resident => new ResidentDto(resident.Id, resident.Name, resident.FromDate?.ToString("dd.MM.yyyy"), resident.ToDate?.ToString("dd.MM.yyyy"))).ToList());
+                residents.Select(resident => new ResidentDto(resident.Id, resident.Name, resident.FromDate?.ToString("dd.MM.yyyy"), resident.ToDate?.ToString("dd.MM.yyyy"))).ToList(), abonent.HouseHeatNorm);
         });
+
+        // Норма теплопотребления дома (Гкал/м²) для тарифов «по норме дома»: объём = площадь × норма.
+        // История не ведётся: новое значение учтётся при следующем начислении открытого месяца
+        group.MapPost("/heat-norm", async (string id, SetHeatNormRequest request, EmirDb db, ClaimsPrincipal user) =>
+        {
+            if (string.IsNullOrWhiteSpace(request.Reason)) throw new ApiError(422, "Укажите причину");
+            if (request.Norm is { } norm && (norm <= 0 || norm > 10 || norm != Math.Round(norm, 6))) throw new ApiError(422, "Норматив указан неверно: число больше нуля, не больше 6 знаков после запятой");
+            var abonent = await db.GetAbonent(id);
+            var old = abonent.HouseHeatNorm;
+            abonent.HouseHeatNorm = request.Norm;
+            db.AddJournal(id, "Норма теплопотребления", user.Who(), $"{old?.ToString("0.######") ?? "нет"}, теперь {request.Norm?.ToString("0.######") ?? "нет"} Гкал/м²", request.Reason.Trim());
+            await db.SaveChangesAsync();
+            return Results.NoContent();
+        }).Roles(Roles.Service, Roles.Accountant, Roles.Admin);
 
         // Заметка рабочая: её пишут все, кто работает с абонентом, включая кассу
         group.MapPost("/note", async (string id, SetNoteRequest request, EmirDb db, ClaimsPrincipal user) =>
@@ -110,6 +127,45 @@ public static class AbonentDetailEndpoints
             db.AddJournal(id, "Площадь и жильцы", user.Who(), $"С {request.FromPeriod}: {request.Area:0.####} м², жильцов {request.Residents}", request.Reason.Trim());
             await db.SaveChangesAsync();
             await transaction.CommitAsync();
+            return Results.NoContent();
+        }).Roles(Roles.Service, Roles.Accountant, Roles.Admin);
+
+        // Единица показаний квартирного счётчика. Если показание открытого месяца уже внесено, оно пересчитывается в новой единице
+        group.MapPost("/services/{serviceId}/meter-unit", async (string id, string serviceId, SetMeterUnitRequest request, EmirDb db, ClaimsPrincipal user) =>
+        {
+            var unit = MeterUnits.Parse(request.Unit);
+            await using var transaction = await db.BeginMoneyTransaction();
+            var abonent = await db.GetAbonent(id);
+            var line = abonent.Services.FirstOrDefault(item => item.ServiceId == serviceId) ?? throw new ApiError(404, "Услуга не найдена");
+            if (line.MeterNumber is null) throw new ApiError(422, $"У услуги «{line.Name}» нет счётчика");
+            if (line.MeterUnit == unit) return Results.NoContent();
+            var old = line.MeterUnit;
+            line.MeterUnit = unit;
+            var period = await Periods.WorkPeriod(db);
+            var reading = await db.PeriodReadings.FirstOrDefaultAsync(item => item.AbonentId == id && item.ServiceId == serviceId && item.Period == period);
+            if (reading is not null)
+            {
+                // Пересчёт меняет долг: проводка в денежный журнал идёт как операция с показанием
+                await db.BeginOperation("reading", user.Who(), line.MeterNumber);
+                Billing.ApplyReading(db, abonent, line, reading.Value);
+            }
+            db.AddJournal(id, "Единица счётчика", user.Who(), $"{line.Name}, счётчик {line.MeterNumber}: {old ?? "единицы тарифа"}, теперь {unit ?? "единицы тарифа"}");
+            await db.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return Results.NoContent();
+        }).Roles(Roles.Service, Roles.Accountant, Roles.Admin);
+
+        // Привязка услуги к общедомовому счётчику: нужна тарифам «по общедомовому счётчику»
+        group.MapPost("/services/{serviceId}/house-meter", async (string id, string serviceId, SetHouseMeterRequest request, EmirDb db, ClaimsPrincipal user) =>
+        {
+            var abonent = await db.GetAbonent(id);
+            var line = abonent.Services.FirstOrDefault(item => item.ServiceId == serviceId) ?? throw new ApiError(404, "Услуга не найдена");
+            var meterId = string.IsNullOrWhiteSpace(request.HouseMeterId) ? null : request.HouseMeterId;
+            var meter = meterId is null ? null : await db.HouseMeters.FirstOrDefaultAsync(item => item.Id == meterId) ?? throw new ApiError(404, "Общедомовой счётчик не найден");
+            if (line.HouseMeterId == meterId) return Results.NoContent();
+            line.HouseMeterId = meterId;
+            db.AddJournal(id, "Общедомовой счётчик услуги", user.Who(), $"{line.Name}: {(meter is null ? "отвязана от счётчика" : $"{meter.Place}, {meter.Street}, № {meter.Number}")}");
+            await db.SaveChangesAsync();
             return Results.NoContent();
         }).Roles(Roles.Service, Roles.Accountant, Roles.Admin);
 

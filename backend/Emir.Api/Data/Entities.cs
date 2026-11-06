@@ -74,6 +74,8 @@ public class ServiceLine
     public decimal? MeterLastReading { get; set; }
     public string? MeterVerifiedUntil { get; set; }
     public decimal MeterAverage { get; set; } = 5;
+    /// <summary>Единица показаний квартирного счётчика (Гкал, ГДж, кВт·ч…). Null: показания в единицах тарифа, без перевода.</summary>
+    public string? MeterUnit { get; set; }
     /// <summary>Тариф открытого месяца. История лежит в ServiceTerm.</summary>
     public string? TariffId { get; set; }
     /// <summary>Норматив по заказу: число или помесячно, «01=1#02=2».</summary>

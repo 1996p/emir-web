@@ -25,8 +25,12 @@ public static class Billing
             .OrderByDescending(price => price.FromPeriod).Select(price => (decimal?)price.Price).FirstOrDefault();
     }
 
-    public static long ChargeFor(decimal? price, decimal fromValue, decimal toValue) =>
-        price is { } value ? (long)Math.Round((toValue - fromValue) * value * 100m, MidpointRounding.AwayFromZero) : 0;
+    /// <summary>Расход по счётчику в единицах тарифа: разница показаний, переведённая в Гкал, если у счётчика задана единица.</summary>
+    public static decimal UsageOf(ServiceLine line, decimal fromValue, decimal toValue) =>
+        Math.Round((toValue - fromValue) * MeterUnits.Factor(line.MeterUnit), 4, MidpointRounding.AwayFromZero);
+
+    public static long ChargeFor(decimal? price, decimal usage) =>
+        price is { } value ? (long)Math.Round(usage * value * 100m, MidpointRounding.AwayFromZero) : 0;
 
     /// <summary>
     /// Учитывает показание за открытый период. Повторный ввод пересчитывает только разницу,
@@ -46,7 +50,7 @@ public static class Billing
         if (value < start) throw new ApiError(422, $"Показание {value:0.####} меньше предыдущего {start:0.####}. Для исправления используйте корректировку");
 
         // Всегда от начала месяца: повторный ввод добавит в долг только разницу, а округление не накопится
-        var charge = ChargeFor(MeterPrice(db, line, period), start, value);
+        var charge = ChargeFor(MeterPrice(db, line, period), UsageOf(line, start, value));
         if (reading is null)
         {
             reading = new PeriodReading { AbonentId = line.AbonentId, ServiceId = line.ServiceId, Period = period, StartValue = start, Value = value };

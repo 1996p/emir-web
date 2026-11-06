@@ -20,7 +20,9 @@ public record ChargeInput(
     bool HeatingSeason = true,
     decimal? HouseLoss = null,
     decimal? HouseArea = null,
-    HouseMeterData? HouseMeter = null);
+    HouseMeterData? HouseMeter = null,
+    // Категория поставщика в старом ЕМИР: юрлица (ЮЛ, Category=1) округляют объём до 3 знаков, физлица (ФЛ, Category=0) до 4
+    bool IsOrg = false);
 
 /// <summary>Volume — объём Q, Amount — сумма M в копейках, Error — почему посчитать нельзя.</summary>
 public record ChargeResult(decimal Volume, long Amount, string? Error = null)
@@ -45,30 +47,32 @@ public static class ChargeEngine
 
         ChargeResult Need(string what) => ChargeResult.Fail($"Нет данных: {what}");
         ChargeResult Result(decimal volume) => new(volume, Money(volume, input.Price));
+        // Старый ЕМИР (AbstractScheme.Round): объём округляется ДО умножения на цену — 3 знака для юрлиц, 4 для физлиц
+        int scale = input.IsOrg ? 3 : 4;
+        ChargeResult RResult(decimal volume) => Result(Math.Round(volume, scale, MidpointRounding.AwayFromZero));
 
         switch (input.Scheme)
         {
-            case "Norm": return serviceNorm is { } n1 ? Result(n1 * input.Residents) : Need("норма по услуге");
-            case "NormTarif": return tariffNorm is { } n2 ? Result(n2 * input.Residents) : Need("норматив по тарифу");
-            case "ServiceNorm": return serviceNorm is { } n3 ? Result(n3) : Need("норма по услуге");
+            case "Norm": return serviceNorm is { } n1 ? RResult(n1 * input.Residents) : Need("норма по услуге");
+            case "NormTarif": return tariffNorm is { } n2 ? RResult(n2 * input.Residents) : Need("норматив по тарифу");
+            case "ServiceNorm": return serviceNorm is { } n3 ? RResult(n3) : Need("норма по услуге");
             case "AreaKrsk": return Result(contractNorm ?? input.Area);
             case "ContractNorm": return contractNorm is { } n4 ? Result(n4) : Need("норматив по заказу");
             case "MonthlyAmount": return contractNorm is { } n5 ? Result(n5) : Need("норматив по заказу на этот месяц");
-            case "AreaKrskNorm": return serviceNorm is { } n6 && contractNorm is { } c6 ? Result(n6 * c6) : Need("норма по услуге и норматив по заказу");
-            case "NormTarifContract": return tariffNorm is { } n7 && contractNorm is { } c7 ? Result(c7 * n7) : Need("норматив по тарифу и норматив по заказу");
+            case "AreaKrskNorm": return serviceNorm is { } n6 && contractNorm is { } c6 ? RResult(n6 * c6) : Need("норма по услуге и норматив по заказу");
+            case "NormTarifContract": return tariffNorm is { } n7 && contractNorm is { } c7 ? RResult(c7 * n7) : Need("норматив по тарифу и норматив по заказу");
             case "Area":
             case "HeatHouseNorm": return Result(input.Area);
             case "HeatHouseNormKrsk": return contractNorm is { } n8 ? Result(n8) : Need("норматив по заказу");
             case "HeatLost":
                 return contractNorm is { } n9 && input.YearSharePercent is { } share ? Result(n9 * share / 100m) : Need("норматив по заказу и процент месяца");
-            // Старая система округляет объём до 4 знаков и только потом умножает на цену: проверено на её начислениях за 2026 год.
-            case "NormHouse": return input.HouseHeatNorm is { } h ? Result(Math.Round(input.Area * h, 4, MidpointRounding.AwayFromZero)) : Need("норма теплопотребления дома");
+            case "NormHouse": return input.HouseHeatNorm is { } h ? RResult(input.Area * h) : Need("норма теплопотребления дома");
             case "AreaNormTarif":
             case "AreaNormTarifMonthly":
-                return tariffNorm is { } n10 ? Result(input.Area * n10) : Need("норматив по тарифу");
+                return tariffNorm is { } n10 ? RResult(input.Area * n10) : Need("норматив по тарифу");
             case "AreaNormTarifSeasonal":
                 if (!input.HeatingSeason) return new ChargeResult(0, 0);
-                return tariffNorm is { } n11 ? Result(input.Area * n11) : Need("норматив по тарифу");
+                return tariffNorm is { } n11 ? RResult(input.Area * n11) : Need("норматив по тарифу");
             case "MonthlyQuantityHouse":
                 if (input.HouseLoss is not { } loss || input.HouseArea is not { } houseArea || houseArea <= 0) return Need("потери тепла и площадь дома");
                 return Result(loss * input.Area / houseArea);
@@ -77,7 +81,7 @@ public static class ChargeEngine
             case "MeterHouse":
                 if (input.HouseMeter is not { } m1) return Need("общедомовой счётчик");
                 var restArea = m1.TotalArea - m1.IndividualArea;
-                return restArea <= 0 ? Need("площадь дома без индивидуальных счётчиков") : Result(Math.Round((m1.Usage - m1.IndividualUsage) * input.Area / restArea, 4, MidpointRounding.AwayFromZero));
+                return restArea <= 0 ? Need("площадь дома без индивидуальных счётчиков") : RResult((m1.Usage - m1.IndividualUsage) * input.Area / restArea);
             case "HouseMeterLeftover":
                 if (input.HouseMeter is not { } m2) return Need("общедомовой счётчик");
                 var restPeople = m2.TotalResidents - m2.IndividualResidents;

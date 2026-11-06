@@ -207,6 +207,18 @@ public sealed class AbonentCardTests : IDisposable
     }
 
     [Fact]
+    public async Task HeatNorm_UpdatesAndValidates()
+    {
+        var oper = await Login();
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await oper.PostAsJsonAsync("/api/abonents/a2/heat-norm", new { norm = 0.01875m, reason = "" })).StatusCode);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await oper.PostAsJsonAsync("/api/abonents/a2/heat-norm", new { norm = -1m, reason = "Акт" })).StatusCode);
+        (await oper.PostAsJsonAsync("/api/abonents/a2/heat-norm", new { norm = 0.01875m, reason = "Акт" })).EnsureSuccessStatusCode();
+        Assert.Equal(0.01875m, (await oper.GetFromJsonAsync<JsonElement>("/api/abonents/a2/details")).GetProperty("houseHeatNorm").GetDecimal());
+        var cashier = await Login("kassa1");
+        Assert.Equal(HttpStatusCode.Forbidden, (await cashier.PostAsJsonAsync("/api/abonents/a2/heat-norm", new { norm = 0.02m, reason = "Акт" })).StatusCode);
+    }
+
+    [Fact]
     public async Task Contact_Updates()
     {
         var oper = await Login();

@@ -6,8 +6,9 @@ using Microsoft.EntityFrameworkCore;
 namespace Emir.Api.Endpoints;
 
 /// <summary>Tariff: цена открытого месяца в копейках, может быть дробной.</summary>
-public record MeterDto(string Number, decimal LastReading, decimal Tariff, string VerifiedUntil);
-public record ServiceLineDto(string Id, string Name, string State, string TariffName, decimal? Price, string ChargeStatus, long Debt, MeterDto? Meter);
+/// Unit: единица показаний; null — в единицах тарифа.
+public record MeterDto(string Number, decimal LastReading, decimal Tariff, string VerifiedUntil, string? Unit);
+public record ServiceLineDto(string Id, string Name, string State, string TariffName, decimal? Price, string ChargeStatus, long Debt, MeterDto? Meter, string? HouseMeterId = null, string? TariffId = null);
 public record AbonentDto(string Id, string Kind, string Name, string ShortName, string Place, string Street, string? Flat, string Account, string? Phone, string? Inn, int Residents, decimal Area, long Credit, List<ServiceLineDto> Services);
 public record PaymentDto(string Id, string AbonentId, string Date, string Source, string Cashier, long Amount, string Status);
 public record JournalDto(string Id, string? AbonentId, string When, string Action, string Who, string Details, string? Reason);
@@ -23,7 +24,7 @@ public static class AbonentEndpoints
         abonent.Id, abonent.Kind, abonent.Name, abonent.ShortName, abonent.Place, abonent.Street, abonent.Flat, abonent.Account, abonent.Phone, abonent.Inn, abonent.Residents, abonent.Area, abonent.Credit,
         abonent.Services.OrderBy(line => line.Position).Select(line => new ServiceLineDto(
             line.ServiceId, line.Name, line.State, line.TariffName, line.TariffId is null ? null : TariffHistory.PriceOn(prices, line.TariffId, period)?.Price, line.ChargeStatus, line.Debt,
-            line.MeterNumber is null ? null : new MeterDto(line.MeterNumber, line.MeterLastReading ?? 0, (line.TariffId is null ? 0 : TariffHistory.PriceOn(prices, line.TariffId, period)?.Price ?? 0) * 100m, line.MeterVerifiedUntil ?? ""))).ToList());
+            line.MeterNumber is null ? null : new MeterDto(line.MeterNumber, line.MeterLastReading ?? 0, (line.TariffId is null ? 0 : TariffHistory.PriceOn(prices, line.TariffId, period)?.Price ?? 0) * 100m, line.MeterVerifiedUntil ?? "", line.MeterUnit), line.HouseMeterId, line.TariffId)).ToList());
 
     public static PaymentDto ToDto(this Payment payment) => new(payment.Id, payment.AbonentId, payment.AtUtc.ToLocalTime().ToString("dd.MM.yyyy"), payment.Source, payment.Cashier, payment.Amount, payment.Status);
 

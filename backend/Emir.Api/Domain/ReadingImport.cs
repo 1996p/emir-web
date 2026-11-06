@@ -128,7 +128,7 @@ public static class ReadingImport
             if (usage < 0) { Add("lower", start, usage); continue; }
             if (existing?.Value == value) { Add("same", start, usage); continue; }
 
-            var charge = Billing.ChargeFor(PriceOf(target), start, value) - (existing?.AppliedAmount ?? 0);
+            var charge = Billing.ChargeFor(PriceOf(target), Billing.UsageOf(target, start, value)) - (existing?.AppliedAmount ?? 0);
             var state = usage > target.MeterAverage * HighFactor ? "high" : "ok";
             Add(state, start, usage, charge);
             targets.Add((abonent, target, value, state));

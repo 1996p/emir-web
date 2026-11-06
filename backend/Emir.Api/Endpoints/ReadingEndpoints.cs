@@ -30,10 +30,41 @@ public static class ReadingEndpoints
                 {
                     var previous = readings.Where(item => item.HouseMeterId == meter.Id && string.CompareOrdinal(item.Period, period) < 0).OrderByDescending(item => item.Period).FirstOrDefault();
                     var current = readings.FirstOrDefault(item => item.HouseMeterId == meter.Id && item.Period == period);
-                    return new { meter.Id, meter.Place, meter.Street, meter.Number, meter.Unit, Previous = previous?.Value, Value = current?.Value, Lines = lines.GetValueOrDefault(meter.Id) };
+                    return new { meter.Id, meter.Place, meter.Street, meter.Number, meter.Unit, meter.UnitFactor, Previous = previous?.Value, Value = current?.Value, Lines = lines.GetValueOrDefault(meter.Id) };
                 }),
             };
         });
+
+        group.MapPost("/house-meters/new", async (SaveHouseMeterRequest request, EmirDb db, ClaimsPrincipal user) =>
+        {
+            var meter = new HouseMeter { Id = "hm-" + Guid.NewGuid().ToString("N")[..12], Street = "" };
+            var details = ApplyMeter(meter, request);
+            db.HouseMeters.Add(meter);
+            db.AddJournal(null, "Новый общедомовой счётчик", user.Who(), details);
+            await db.SaveChangesAsync();
+            return Results.Created($"/api/readings/house-meters/{meter.Id}", new { meter.Id });
+        }).Roles(Roles.Service, Roles.Accountant, Roles.Admin);
+
+        // Адрес, номер и единица показаний. Единицу нельзя сменить, если по счётчику уже начислен открытый месяц
+        group.MapPost("/house-meters/{id}/edit", async (string id, SaveHouseMeterRequest request, EmirDb db, ClaimsPrincipal user) =>
+        {
+            var meter = await db.HouseMeters.FirstOrDefaultAsync(item => item.Id == id) ?? throw new ApiError(404, "Счётчик не найден");
+            var before = DescribeMeter(meter);
+            var oldUnit = meter.Unit;
+            ApplyMeter(meter, request);
+            if (meter.Unit != oldUnit)
+            {
+                var period = await Periods.WorkPeriod(db);
+                var charged = await db.ServiceLines.Where(line => line.HouseMeterId == id)
+                    .Join(db.ChargeEntries.Where(entry => entry.Period == period), line => new { line.AbonentId, line.ServiceId }, entry => new { entry.AbonentId, entry.ServiceId }, (line, entry) => entry).AnyAsync();
+                if (charged) throw new ApiError(409, "По этому счётчику уже есть начисления месяца. Сначала отмените их, потом меняйте единицу");
+            }
+            var after = DescribeMeter(meter);
+            if (before == after) return Results.NoContent();
+            db.AddJournal(null, "Общедомовой счётчик изменён", user.Who(), $"Было: {before}. Стало: {after}");
+            await db.SaveChangesAsync();
+            return Results.NoContent();
+        }).Roles(Roles.Service, Roles.Accountant, Roles.Admin);
 
         group.MapPost("/house-meters/{id}", async (string id, HouseMeterReadingRequest request, EmirDb db, ClaimsPrincipal user) =>
         {
@@ -117,6 +148,25 @@ public static class ReadingEndpoints
             return Results.NoContent();
         }).Roles(Roles.Cashier, Roles.Service, Roles.Admin);
     }
+
+    private static string DescribeMeter(HouseMeter meter) => $"{meter.Place}, {meter.Street}, № {(meter.Number == "" ? "—" : meter.Number)}, {meter.Unit}";
+
+    private static string ApplyMeter(HouseMeter meter, SaveHouseMeterRequest request)
+    {
+        var street = request.Street?.Trim();
+        if (string.IsNullOrEmpty(street) || street.Length > 200) throw new ApiError(422, "Укажите улицу и дом");
+        var place = request.Place?.Trim() ?? "";
+        var number = request.Number?.Trim() ?? "";
+        if (place.Length > 200 || number.Length > 100) throw new ApiError(422, "Слишком длинное значение");
+        var unit = MeterUnits.Parse(request.Unit) ?? MeterUnits.Gcal;
+        meter.Place = place;
+        meter.Street = street;
+        meter.Number = number;
+        meter.Unit = unit;
+        meter.UnitFactor = MeterUnits.Factor(unit);
+        return DescribeMeter(meter);
+    }
 }
 
 public record HouseMeterReadingRequest(decimal Value);
+public record SaveHouseMeterRequest(string? Place, string Street, string? Number, string? Unit);

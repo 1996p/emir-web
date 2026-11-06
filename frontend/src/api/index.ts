@@ -99,6 +99,9 @@ export const api = {
     setNote: (id: string, note: string | null) => mutate<void>(`/abonents/${encodeURIComponent(id)}/note`, { note }),
     setContact: (id: string, phone: string | null) => mutate<void>(`/abonents/${encodeURIComponent(id)}/contact`, { phone }),
     setLegal: (id: string, consent: boolean | null, ownershipDocument: string | null) => mutate<void>(`/abonents/${encodeURIComponent(id)}/legal`, { consent, ownershipDocument }),
+    setHeatNorm: (id: string, norm: number | null, reason: string) => mutate<void>(`/abonents/${encodeURIComponent(id)}/heat-norm`, { norm, reason }),
+    setMeterUnit: (id: string, serviceId: string, unit: string | null) => mutate<void>(`/abonents/${encodeURIComponent(id)}/services/${encodeURIComponent(serviceId)}/meter-unit`, { unit }),
+    setHouseMeter: (id: string, serviceId: string, houseMeterId: string | null) => mutate<void>(`/abonents/${encodeURIComponent(id)}/services/${encodeURIComponent(serviceId)}/house-meter`, { houseMeterId }),
     setFact: (id: string, body: { fromPeriod: string; area: number; residents: number; reason: string }) => mutate<void>(`/abonents/${encodeURIComponent(id)}/facts`, body),
     addResident: (id: string, name: string, fromDate: string | null) => mutate<void>(`/abonents/${encodeURIComponent(id)}/residents`, { name, fromDate }),
     endResident: (id: string, residentId: number, toDate: string) => mutate<void>(`/abonents/${encodeURIComponent(id)}/residents/${residentId}/end`, { toDate }),
@@ -117,6 +120,8 @@ export const api = {
   },
   readings: {
     houseMeters: () => get<HouseMeters>('/readings/house-meters'),
+    createHouseMeter: (body: HouseMeterBody) => mutate<{ id: string }>('/readings/house-meters/new', body),
+    editHouseMeter: (id: string, body: HouseMeterBody) => mutate<void>(`/readings/house-meters/${encodeURIComponent(id)}/edit`, body),
     saveHouseMeter: (id: string, value: number) => mutate<void>(`/readings/house-meters/${encodeURIComponent(id)}`, { value }),
     importFile: async (file: File, columns: Record<string, string>, options: { apply?: boolean; includeHigh?: boolean; expected?: number }) => {
       const form = new FormData();
@@ -208,12 +213,17 @@ export const api = {
   },
   tariffs: {
     list: () => get<TariffsView>('/tariffs'),
+    create: (body: SaveTariffBody) => mutate<{ id: string }>('/tariffs', body),
+    update: (id: string, body: SaveTariffBody) => mutate<void>(`/tariffs/${encodeURIComponent(id)}`, body),
     setPrice: (id: string, body: { fromPeriod: string; price: number; reason: string }) => mutate<void>(`/tariffs/${encodeURIComponent(id)}/prices`, body),
     cancelPrice: (id: string, fromPeriod: string, reason: string) => mutate<void>(`/tariffs/${encodeURIComponent(id)}/prices/${encodeURIComponent(fromPeriod)}/cancel`, { reason }),
   },
   directories: {
     groups: () => get<DirectoryGroup[]>('/directories/groups'),
     table: (name: string) => get<DirectoryTable>(`/directories/table?${q({ name })}`),
+    addRow: (name: string, row: string[], reason: string) => mutate<void>('/directories/rows', { name, row, reason }),
+    editRow: (name: string, index: number, expected: string[], row: string[], reason: string) => mutate<void>(`/directories/rows/${index}`, { name, expected, row, reason }),
+    deleteRow: (name: string, index: number, expected: string[], reason: string) => mutate<void>(`/directories/rows/${index}/delete`, { name, expected, reason }),
     viewPassport: (account: string) => mutate<{ value: string }>(`/directories/people/${encodeURIComponent(account)}/passport`),
   },
   admin: {
@@ -275,6 +285,7 @@ export interface HouseMeterRow {
   street: string;
   number: string;
   unit: string;
+  unitFactor: number;
   previous: number | null;
   value: number | null;
   lines: number;
@@ -284,3 +295,25 @@ export interface HouseMeters {
   period: string;
   rows: HouseMeterRow[];
 }
+
+export interface SaveTariffBody {
+  name: string;
+  scheme: string;
+  unit: string | null;
+  serviceNorm: string | null;
+  tariffNorm: string | null;
+  penaltyEnabled: boolean;
+  reason: string;
+  price?: number | null;
+  fromPeriod?: string | null;
+}
+
+export interface HouseMeterBody { place: string; street: string; number: string; unit: string }
+
+/** Единицы показаний тепловых счётчиков. Основная — Гкал, остальные переводятся в Гкал. */
+export const METER_UNITS: Array<{ value: string; label: string }> = [
+  { value: 'Гкал', label: 'Гкал' },
+  { value: 'ГДж', label: 'ГДж (1 Гкал = 4,1868 ГДж)' },
+  { value: 'МВт·ч', label: 'МВт·ч (1 Гкал = 1,163 МВт·ч)' },
+  { value: 'кВт·ч', label: 'кВт·ч (1 Гкал = 1163 кВт·ч)' },
+];

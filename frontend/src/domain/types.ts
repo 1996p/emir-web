@@ -11,6 +11,8 @@ export interface Meter {
   lastReading: number;
   tariff: Kopecks;
   verifiedUntil: string;
+  /** Единица показаний; null — в единицах тарифа */
+  unit?: string | null;
 }
 
 export interface ServiceLine {
@@ -22,6 +24,8 @@ export interface ServiceLine {
   chargeStatus: string;
   debt: Kopecks;
   meter?: Meter;
+  houseMeterId?: string | null;
+  tariffId?: string | null;
 }
 
 export interface Abonent {
@@ -161,6 +165,10 @@ export interface TariffItem {
   currentPrice: number | null;
   lines: number;
   prices: TariffPriceItem[];
+  unit?: string | null;
+  serviceNorm: string | null;
+  tariffNorm: string | null;
+  penaltyEnabled: boolean;
 }
 
 export interface TariffsView {
@@ -380,6 +388,8 @@ export interface AbonentDetails {
   reopened: boolean;
   facts: Array<{ fromPeriod: string; area: number; residents: number; who: string; when: string; reason: string | null }>;
   residents: Array<{ id: number; name: string; fromDate: string | null; toDate: string | null }>;
+  /** Норма теплопотребления дома, Гкал/м² */
+  houseHeatNorm: number | null;
 }
 
 export interface BenefitCategory {
@@ -572,6 +582,8 @@ export interface DirectoryTable {
   rows: string[][];
   sensitive?: boolean;
   placeholder?: boolean;
+  /** Строки можно добавлять, менять и удалять */
+  editable?: boolean;
 }
 
 export interface AdminSection {

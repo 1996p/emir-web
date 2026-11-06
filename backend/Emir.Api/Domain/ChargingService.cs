@@ -77,13 +77,13 @@ public static class ChargingService
                 if (tariff.Scheme == "MeterApartment")
                 {
                     var reading = readings.FirstOrDefault(item => item.AbonentId == line.AbonentId && item.ServiceId == line.ServiceId);
-                    usage = reading is null ? null : reading.Value - reading.StartValue;
+                    usage = reading is null ? null : Billing.UsageOf(line, reading.StartValue, reading.Value);
                 }
 
                 var snapshot = snapshots?.FirstOrDefault(item => item.AbonentId == line.AbonentId && item.ServiceId == line.ServiceId);
                 var result = ChargeEngine.Calculate(new ChargeInput(
                     tariff.Scheme, price, MonthOf(period), fact?.Area ?? snapshot?.Area ?? abonent.Area, fact?.Residents ?? snapshot?.Residents ?? abonent.Residents,
-                    HouseHeatNorm: abonent.HouseHeatNorm, HouseMeter: tariff.Scheme == "MeterHouse" && line.HouseMeterId is not null ? HouseDataOf(line.HouseMeterId) : null, ServiceNorm: tariff.ServiceNorm, TariffNorm: tariff.TariffNorm, ContractNorm: snapshot is null ? line.ContractNorm : snapshot.ContractNorm, MeterUsage: usage));
+                    HouseHeatNorm: abonent.HouseHeatNorm, HouseMeter: tariff.Scheme == "MeterHouse" && line.HouseMeterId is not null ? HouseDataOf(line.HouseMeterId) : null, ServiceNorm: tariff.ServiceNorm, TariffNorm: tariff.TariffNorm, ContractNorm: snapshot is null ? line.ContractNorm : snapshot.ContractNorm, MeterUsage: usage, IsOrg: abonent.Kind == "org"));
                 // Начисление по счётчику уже добавлено в долг при вводе показания
                 plan.Add(new PlannedCharge(abonent, line, tariff, price, result, tariff.Scheme == "MeterApartment"));
             }

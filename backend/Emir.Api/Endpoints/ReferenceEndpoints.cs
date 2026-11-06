@@ -5,7 +5,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Emir.Api.Endpoints;
 
-public record DirectoryTableDto(List<string> Columns, List<List<string>> Rows, bool Sensitive = false, bool Placeholder = false);
+public record DirectoryTableDto(List<string> Columns, List<List<string>> Rows, bool Sensitive = false, bool Placeholder = false, bool Editable = false);
+/// <summary>Expected: строка, какой её видел пользователь. Если её уже изменили, правка отклоняется.</summary>
+public record DirectoryRowRequest(string Name, List<string>? Row, List<string>? Expected, string? Reason);
 public record AdminSectionDto(string Id, string Group, string Title, string Description, List<string> Columns, List<List<string>> Rows, int? Badge = null);
 public record TodayTaskDto(string Title, string Details, string Value, bool Warn, string To);
 public record TodayActionDto(string Label, string To);
@@ -38,9 +40,17 @@ public static class ReferenceEndpoints
                     var stored = await db.ReferenceTables.FirstOrDefaultAsync(item => item.Name == name);
                     return stored is null
                         ? new DirectoryTableDto(["ID", "Название", "Описание"], [], Placeholder: true)
-                        : new DirectoryTableDto(System.Text.Json.JsonSerializer.Deserialize<List<string>>(stored.ColumnsJson) ?? [], System.Text.Json.JsonSerializer.Deserialize<List<List<string>>>(stored.RowsJson) ?? [], stored.Sensitive);
+                        : new DirectoryTableDto(System.Text.Json.JsonSerializer.Deserialize<List<string>>(stored.ColumnsJson) ?? [], System.Text.Json.JsonSerializer.Deserialize<List<List<string>>>(stored.RowsJson) ?? [], stored.Sensitive, Editable: true);
             }
         }).Roles(Roles.Service, Roles.Accountant, Roles.Admin);
+
+        // Справочники старой системы хранятся таблицей целиком. Строку правят по номеру, сверяя с тем, что видел пользователь
+        api.MapPost("/directories/rows", (DirectoryRowRequest request, EmirDb db, ClaimsPrincipal user) =>
+            EditRow(db, user, request, null, "add")).Roles(Roles.Service, Roles.Accountant, Roles.Admin);
+        api.MapPost("/directories/rows/{index:int}", (int index, DirectoryRowRequest request, EmirDb db, ClaimsPrincipal user) =>
+            EditRow(db, user, request, index, "edit")).Roles(Roles.Service, Roles.Accountant, Roles.Admin);
+        api.MapPost("/directories/rows/{index:int}/delete", (int index, DirectoryRowRequest request, EmirDb db, ClaimsPrincipal user) =>
+            EditRow(db, user, request, index, "delete")).Roles(Roles.Service, Roles.Accountant, Roles.Admin);
 
         // Каждый просмотр паспорта попадает в журнал, даже если данных нет
         api.MapPost("/directories/people/{account}/passport", async (string account, EmirDb db, ClaimsPrincipal user) =>
@@ -98,4 +108,63 @@ public static class ReferenceEndpoints
         Roles.Accountant => "Бухгалтер",
         _ => "Администратор",
     };
+
+    private const int MaxCell = 1000;
+
+    private static async Task<IResult> EditRow(EmirDb db, ClaimsPrincipal user, DirectoryRowRequest request, int? index, string action)
+    {
+        var reason = request.Reason?.Trim();
+        if (string.IsNullOrEmpty(reason)) throw new ApiError(422, "Укажите причину");
+        // Таблица хранится целиком, поэтому две одновременные правки не должны затереть друг друга
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        var table = await db.ReferenceTables.FromSqlInterpolated($"SELECT * FROM \"ReferenceTables\" WHERE \"Name\" = {request.Name} FOR UPDATE").FirstOrDefaultAsync()
+            ?? throw new ApiError(404, "Справочник не найден или его нельзя менять");
+        if (table.Sensitive && !user.IsInRole(Roles.Admin)) throw new ApiError(403, "Справочник с персональными данными меняет только администратор");
+        var columns = System.Text.Json.JsonSerializer.Deserialize<List<string>>(table.ColumnsJson) ?? [];
+        var rows = System.Text.Json.JsonSerializer.Deserialize<List<List<string>>>(table.RowsJson) ?? [];
+
+        List<string> Clean(List<string>? row)
+        {
+            var cells = (row ?? []).Select(cell => (cell ?? "").Trim()).ToList();
+            if (cells.Count != columns.Count) throw new ApiError(422, $"Нужно {columns.Count} полей, пришло {cells.Count}");
+            if (cells.All(cell => cell == "")) throw new ApiError(422, "Заполните хотя бы одно поле");
+            if (cells.Any(cell => cell.Length > MaxCell)) throw new ApiError(422, $"Поле длиннее {MaxCell} символов");
+            return cells;
+        }
+        string Text(List<string> row) => string.Join("; ", columns.Zip(row).Where(pair => pair.Second != "").Select(pair => $"{pair.First}: {pair.Second}"));
+
+        string details;
+        if (index is null)
+        {
+            var row = Clean(request.Row);
+            rows.Add(row);
+            details = $"Добавлено: {Text(row)}";
+        }
+        else
+        {
+            if (index < 0 || index >= rows.Count) throw new ApiError(404, "Запись не найдена");
+            if (request.Expected is null || !rows[index.Value].SequenceEqual(request.Expected)) throw new ApiError(409, "Запись уже изменил кто-то другой. Обновите страницу");
+            var old = rows[index.Value];
+            if (action == "delete")
+            {
+                rows.RemoveAt(index.Value);
+                details = $"Удалено: {Text(old)}";
+            }
+            else
+            {
+                var row = Clean(request.Row);
+                rows[index.Value] = row;
+                var changes = columns.Select((column, i) => (column, before: i < old.Count ? old[i] : "", after: row[i])).Where(item => item.before != item.after).Select(item => $"{item.column}: «{item.before}» → «{item.after}»").ToList();
+                if (changes.Count == 0) return Results.NoContent();
+                details = string.Join("; ", changes);
+            }
+        }
+
+        table.RowsJson = System.Text.Json.JsonSerializer.Serialize(rows);
+        table.RowCount = rows.Count;
+        db.AddJournal(null, $"Справочник «{table.Name}»", user.Who(), details, reason);
+        await db.SaveChangesAsync();
+        await transaction.CommitAsync();
+        return Results.NoContent();
+    }
 }

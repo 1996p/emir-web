@@ -1000,6 +1000,9 @@ namespace Emir.Api.Migrations
                     b.Property<string>("MeterNumber")
                         .HasColumnType("text");
 
+                    b.Property<string>("MeterUnit")
+                        .HasColumnType("text");
+
                     b.Property<string>("MeterVerifiedUntil")
                         .HasColumnType("text");
 

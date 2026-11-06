@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api, errorText } from '@/api';
+import { api, errorText, useApi, METER_UNITS } from '@/api';
 import { formatPeriod, nextPeriod, parsePrice } from '@/domain/tariffs';
 import type { Abonent, AbonentDetails as Details } from '@/domain/types';
 import { useRole } from '@/layout/role';
@@ -139,9 +139,79 @@ function ContactSection({ abonent, details, canEdit }: { abonent: Abonent; detai
         {(id) => <SelectInput id={id} disabled={!canEdit} value={consent} onChange={(event) => setConsent(event.target.value)}><option value="">Не указано</option><option value="false">Нет</option><option value="true">Да</option></SelectInput>}
       </Field>
       <Field label="Документ о праве собственности на отапливаемое помещение">{(id) => <TextArea id={id} rows={3} readOnly={!canEdit} value={document} onChange={(event) => setDocument(event.target.value)} />}</Field>
-      <p className="small muted">Категория дома и норма теплопотребления появятся вместе с данными о домах.</p>
       {view}
       {canEdit && <Button size="full" onClick={() => void save()}>Сохранить</Button>}
+    </Section>
+  );
+}
+
+const formatNorm = (value: number | null) => (value === null ? 'не задана' : `${value.toLocaleString('ru-RU', { maximumFractionDigits: 6 })} Гкал/м²`);
+
+/** Норма теплопотребления дома: по ней тариф «по норме дома» считает объём = площадь × норма. */
+function HeatNormSection({ abonent, details, canEdit }: { abonent: Abonent; details: Details; canEdit: boolean }) {
+  const [current, setCurrent] = useState(details.houseHeatNorm);
+  const [norm, setNorm] = useState(details.houseHeatNorm === null ? '' : String(details.houseHeatNorm).replace('.', ','));
+  const [reason, setReason] = useState('');
+  const { run, view } = useAction();
+  const text = norm.trim().replace(',', '.');
+  const parsed = text === '' ? null : /^\d+(\.\d{1,6})?$/.test(text) && Number(text) > 0 ? Number(text) : undefined;
+  const valid = parsed !== undefined && reason.trim() !== '';
+  const volume = current === null ? null : Math.round(abonent.area * current * 10000) / 10000;
+
+  useEffect(() => {
+    setCurrent(details.houseHeatNorm);
+    setNorm(details.houseHeatNorm === null ? '' : String(details.houseHeatNorm).replace('.', ','));
+  }, [details.houseHeatNorm, abonent.id]);
+
+  const save = () => run(() => api.abonents.setHeatNorm(abonent.id, parsed ?? null, reason.trim()), 'Норматив сохранён. Нажмите «Начислить», чтобы пересчитать открытый месяц.')
+    .then((ok) => { if (ok) { setCurrent(parsed ?? null); setReason(''); } });
+
+  return (
+    <Section title="Норматив потребления">
+      <p className="small muted" style={{ lineHeight: 1.45 }}>
+        Сейчас: {formatNorm(current)}{volume !== null ? ` · за месяц ${abonent.area} м² × норма = ${volume.toLocaleString('ru-RU')} Гкал` : ''}.
+        Действует для тарифа по норме дома, учитывается при следующем начислении.
+      </p>
+      {canEdit && (
+        <>
+          <Field label="Норма теплопотребления, Гкал/м²" hint="Пусто — норма не задана">{(id) => <TextInput id={id} mono inputMode="decimal" placeholder="0,01875" value={norm} onChange={(event) => setNorm(event.target.value)} />}</Field>
+          <Field label="Причина">{(id) => <TextInput id={id} placeholder="Например, постановление о нормативах" value={reason} onChange={(event) => setReason(event.target.value)} />}</Field>
+          {parsed === undefined && norm.trim() !== '' && <Notice tone="warn">Введите число больше нуля, до 6 знаков после запятой.</Notice>}
+          {view}
+          <Button size="full" disabled={!valid} onClick={() => void save()}>Сохранить норматив</Button>
+        </>
+      )}
+    </Section>
+  );
+}
+
+/** Единицы показаний квартирных счётчиков и привязка услуг к общедомовому счётчику. */
+function MetersSection({ abonent, canEdit }: { abonent: Abonent; canEdit: boolean }) {
+  const { run, view } = useAction();
+  const { data: houseMeters } = useApi(() => api.readings.houseMeters(), []);
+  const lines = abonent.services.filter((line) => line.id !== 'penalty');
+  const withMeter = lines.filter((line) => line.meter);
+
+  return (
+    <Section title="Счётчики">
+      {withMeter.length === 0 && <p className="small muted">Квартирных счётчиков нет.</p>}
+      {withMeter.map((line) => (
+        <Field key={line.id} label={`${line.name}, счётчик ${line.meter!.number}: единица показаний`} hint="Показания в ГДж, МВт·ч и кВт·ч переводятся в Гкал. «В единицах тарифа» — без перевода (например, вода в м³)">{(id) => (
+          <SelectInput id={id} disabled={!canEdit} value={line.meter!.unit ?? ''} onChange={(event) => void run(() => api.abonents.setMeterUnit(abonent.id, line.id, event.target.value || null), 'Единица сохранена. Внесённое показание месяца пересчитано.')}>
+            <option value="">В единицах тарифа</option>
+            {METER_UNITS.map((unit) => <option key={unit.value} value={unit.value}>{unit.label}</option>)}
+          </SelectInput>
+        )}</Field>
+      ))}
+      {lines.map((line) => (
+        <Field key={`house-${line.id}`} label={`${line.name}: общедомовой счётчик`} hint="Нужен для тарифа «по общедомовому счётчику»">{(id) => (
+          <SelectInput id={id} disabled={!canEdit || !houseMeters} value={line.houseMeterId ?? ''} onChange={(event) => void run(() => api.abonents.setHouseMeter(abonent.id, line.id, event.target.value || null), 'Привязка сохранена.')}>
+            <option value="">Не привязан</option>
+            {(houseMeters?.rows ?? []).map((meter) => <option key={meter.id} value={meter.id}>{meter.place}, {meter.street}{meter.number ? `, № ${meter.number}` : ''} ({meter.unit})</option>)}
+          </SelectInput>
+        )}</Field>
+      ))}
+      {view}
     </Section>
   );
 }
@@ -154,6 +224,8 @@ export function AbonentDetailsTab({ abonent, details }: { abonent: Abonent; deta
   return (
     <div className="scroll pad" style={{ flex: '1 1 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12, alignItems: 'start', alignContent: 'start' }}>
       <CalculationSection key={`${abonent.id}-${details.openPeriod}-${details.reopened}`} abonent={abonent} details={details} canEdit={canEdit} />
+      <HeatNormSection abonent={abonent} details={details} canEdit={canEdit} />
+      <MetersSection abonent={abonent} canEdit={canEdit} />
       <ResidentsSection abonent={abonent} details={details} canEdit={canEdit} />
       <ContactSection abonent={abonent} details={details} canEdit={canEdit} />
       {canEdit && <AbonentBenefits abonentId={abonent.id} />}
