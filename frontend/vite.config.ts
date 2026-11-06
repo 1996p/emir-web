@@ -12,7 +12,9 @@ export default defineConfig({
     proxy: { '/api': 'http://localhost:5080' },
   },
   // Сборка для показа другим компьютерам сети: тот же переход к API, сам API наружу не открывается.
+  // Сборка для показа: слушает только этот компьютер. Наружу её выводит туннель ngrok, поэтому разрешены его адреса.
   preview: {
     proxy: { '/api': 'http://localhost:5080' },
+    allowedHosts: ['.ngrok-free.app', '.ngrok.app', '.ngrok.io'],
   },
 });

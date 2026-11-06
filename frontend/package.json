@@ -8,7 +8,7 @@
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "show": "vite build && vite preview --host 0.0.0.0 --port 4173 --strictPort"
+    "show": "vite build && vite preview --host 127.0.0.1 --port 4173 --strictPort"
   },
   "dependencies": {
     "react": "18.3.1",
