@@ -213,6 +213,17 @@ for row in house_rows:
     for period, cell in zip(house_periods, row[4:]):
         if re.fullmatch(r'[\d\s]+(?:[.,]\d+)?', cell or ''):
             house_readings_out.append({'meter_id': meter_id, 'period': period, 'value': format(number(cell).quantize(Decimal('0.0001')), 'f').replace('.', ',')})
+resident_history = collections.defaultdict(list)
+_history_file = os.path.join(raw, 'zensplit_История_проживающих_id.jsonl')
+if os.path.exists(_history_file):
+    _history_columns = json.load(open(os.path.join(raw, 'zensplit_История_проживающих_id.state.json'), encoding='utf-8'))['columns']
+    _seen_history = set()
+    for _row in jsonl(_history_file):
+        record = dict(zip(_history_columns, _row['cells']))
+        if record['ID'] in _seen_history or not record.get('Human'):
+            continue
+        _seen_history.add(record['ID'])
+        resident_history[address_key(*parse_address(record['Address']))].append(record)
 abonents_out, services_out, residents_out, beneficiaries_out = [], [], [], []
 seen_benefits, seen_uuids = set(), set()
 tariffs, current_prices = {}, {}
@@ -292,8 +303,17 @@ for card in jsonl(os.path.join(normalized, 'abonents.jsonl')):
     found = residents_by_address.get(home_key, [])
     names = sorted({person.get('FIO', '') for person in found if person.get('FIO')})
     report['повторы проживающих убраны'] += len(found) - len(names)
+    # История проживающих даёт даты въезда и выезда, в том числе тех, кто уже выписан.
+    history = resident_history.get(home_key, [])
+    for record in history:
+        residents_out.append({'account': core, 'name': record['Human'], 'from_date': record['DateCreate'], 'to_date': record['DateDelete']})
+    report['адрес с историей проживающих' if history else 'адрес без истории проживающих'] += 1
+    recorded = {record['Human'].lower() for record in history if not record['DateDelete']}
     for person_name in names:
+        if person_name.lower() in recorded:
+            continue
         residents_out.append({'account': core, 'name': person_name})
+        report['проживающий без даты въезда'] += 1
         # В списке льготников нет адреса: связь только через совпадение ФИО с проживающим.
         for benefit in benefits.get(person_name.lower(), []):
             if benefit.get('Status') != 'Активен':

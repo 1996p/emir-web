@@ -12,7 +12,7 @@ const CAP = Number(process.env.EMIR_SPLIT_CAP ?? LIMIT);
 const ALPHABET = process.env.EMIR_SPLIT_ALPHABET ?? '0123456789-';
 const MAX_DEPTH = Number(process.env.EMIR_SPLIT_DEPTH ?? 10);
 const items = readFileSync(join(root, 'inventory.jsonl'), 'utf8').trim().split('\n').map((line) => JSON.parse(line));
-const slug = 'zensplit_' + name.replace(/[^A-Za-zА-Яа-яЁё0-9]+/g, '_');
+const slug = 'zensplit_' + name.replace(/[^A-Za-zА-Яа-яЁё0-9]+/g, '_') + (process.env.EMIR_SPLIT_TAG ? '_' + process.env.EMIR_SPLIT_TAG : '');
 const dataFile = join(root, 'raw', `${slug}.jsonl`);
 const stateFile = join(root, 'raw', `${slug}.state.json`);
 const state = existsSync(stateFile) ? JSON.parse(readFileSync(stateFile, 'utf8')) : { done: [], rows: 0, capped: [] };
