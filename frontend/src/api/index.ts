@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type DependencyList } from 'react';
+import { useCallback, useEffect, useRef, useState, type DependencyList } from 'react';
 import type {
   Abonent, AdminSection, ChargeEntry, ChargePreview, ChargeRunResult, CorrectionType, CreatePaymentRequest, CreatePaymentResult, CurrentUser, DirectoryGroup, DirectoryTable, ExchangeBatch, HouseProgress,
   JournalRecord, Kopecks, PaymentRecord, PeriodSetting, PeriodStep, ReadingRow, RegisterAbonentRequest, ReportDefinition, ReportQuery, ReportResult, ShiftInfo, TodayView,
@@ -20,7 +20,8 @@ export function setUnauthorizedHandler(handler: () => void) {
   onUnauthorized = handler;
 }
 
-// Сколько запросов к серверу сейчас в пути: по этому числу показывается индикатор загрузки.
+// Сколько экранов ждут первых данных: индикатор нужен только тогда, когда показывать ещё нечего.
+// Фоновые обновления уже открытого экрана его не включают, иначе он ложится поверх данных.
 let pending = 0;
 const loadingListeners = new Set<() => void>();
 function setPending(delta: number) {
@@ -34,15 +35,6 @@ export function subscribeLoading(listener: () => void) {
 export const getPendingRequests = () => pending;
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  setPending(1);
-  try {
-    return await send<T>(path, init);
-  } finally {
-    setPending(-1);
-  }
-}
-
-async function send<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
   try {
     response = await fetch(`/api${path}`, { credentials: 'same-origin', ...init });
@@ -251,15 +243,19 @@ export interface ApiState<T> {
 /** Загружает данные и перезагружает их после изменений через api. */
 export function useApi<T>(load: () => Promise<T>, deps: DependencyList): ApiState<T> {
   const [state, setState] = useState<ApiState<T>>({ data: null, error: null, loading: true });
+  const hasData = useRef(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const run = useCallback(load, deps);
 
   useEffect(() => {
     let alive = true;
     const fetchData = () => {
+      let first = !hasData.current;
+      if (first) setPending(1);
+      const done = () => { if (first) { first = false; setPending(-1); } };
       run().then(
-        (data) => { if (alive) setState({ data, error: null, loading: false }); },
-        (error: unknown) => { if (alive) setState((current) => ({ data: current.data, error: errorText(error), loading: false })); },
+        (data) => { done(); hasData.current = true; if (alive) setState({ data, error: null, loading: false }); },
+        (error: unknown) => { done(); if (alive) setState((current) => ({ data: current.data, error: errorText(error), loading: false })); },
       );
     };
     fetchData();

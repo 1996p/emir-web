@@ -1,7 +1,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { getPendingRequests, subscribeLoading } from '@/api';
 
-/** Батарея отопления, которая прогревается, пока идут запросы к серверу. Появляется не сразу, чтобы не мигать на быстрых ответах. */
+/** Батарея отопления, которая прогревается, пока экран ждёт первых данных. Появляется не сразу, чтобы не мигать на быстрых ответах. */
 export function HeatLoader() {
   const pending = useSyncExternalStore(subscribeLoading, getPendingRequests);
   const [visible, setVisible] = useState(false);
@@ -23,7 +23,6 @@ export function HeatLoader() {
         <path className="heat-wave" d="M14 12 q-3 -3 0 -6 q3 -3 0 -6" />
         <path className="heat-wave heat-wave-2" d="M24 12 q-3 -3 0 -6 q3 -3 0 -6" />
         <path className="heat-wave heat-wave-3" d="M34 12 q-3 -3 0 -6 q3 -3 0 -6" />
-        <rect className="heat-pipe" x="2" y="33" width="44" height="3" rx="1.5" />
         {[0, 1, 2, 3, 4].map((index) => (
           <rect key={index} className={`heat-section heat-section-${index}`} x={7 + index * 7.5} y="14" width="6" height="22" rx="3" />
         ))}

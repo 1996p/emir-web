@@ -230,7 +230,6 @@ button:disabled { cursor: not-allowed; }
 }
 .heat-loader-icon { width: 72px; height: 60px; overflow: visible; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.heat-pipe { fill: var(--field); }
 .heat-section { fill: var(--tint-strong); stroke: var(--brand); stroke-width: 1; animation: heat-section 1.6s ease-in-out infinite; }
 .heat-section-1 { animation-delay: .15s; }
 .heat-section-2 { animation-delay: .3s; }
