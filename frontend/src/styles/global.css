@@ -228,26 +228,36 @@ button:disabled { cursor: not-allowed; }
   background: var(--surface); border: 1px solid var(--line); border-radius: 24px;
   box-shadow: 0 12px 36px rgba(22, 32, 43, .18);
 }
-.heat-loader-icon { width: 72px; height: 60px; overflow: visible; }
+.heat-loader-icon { width: 84px; height: 67px; overflow: visible; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.heat-section { fill: var(--tint-strong); stroke: var(--brand); stroke-width: 1; animation: heat-section 1.6s ease-in-out infinite; }
-.heat-section-1 { animation-delay: .15s; }
-.heat-section-2 { animation-delay: .3s; }
-.heat-section-3 { animation-delay: .45s; }
-.heat-section-4 { animation-delay: .6s; }
-.heat-wave { fill: none; stroke: #e0662b; stroke-width: 1.6; stroke-linecap: round; opacity: 0; animation: heat-wave 1.6s ease-out infinite; }
-.heat-wave-2 { animation-delay: .35s; }
-.heat-wave-3 { animation-delay: .7s; }
+.heat-metal { fill: #7d8a96; }
+.heat-metal-dark { fill: #56626d; }
+.heat-section rect { fill: url(#heat-cold); stroke: var(--brand); stroke-width: 1.2; animation: heat-section 2s ease-in-out infinite; }
+.heat-section line { stroke: rgba(11, 92, 173, .35); stroke-width: 1; animation: heat-rib 2s ease-in-out infinite; }
+.heat-section-1 > * { animation-delay: .12s; }
+.heat-section-2 > * { animation-delay: .24s; }
+.heat-section-3 > * { animation-delay: .36s; }
+.heat-section-4 > * { animation-delay: .48s; }
+.heat-section-5 > * { animation-delay: .6s; }
+.heat-section-6 > * { animation-delay: .72s; }
+.heat-wave { fill: none; stroke: #e0662b; stroke-width: 2; stroke-linecap: round; opacity: 0; animation: heat-wave 2s ease-out infinite; }
+.heat-wave-1 { animation-delay: .5s; }
+.heat-wave-2 { animation-delay: 1s; }
+.heat-wave-3 { animation-delay: .25s; }
 @keyframes heat-section {
-  0%, 100% { fill: var(--tint-strong); stroke: var(--brand); }
-  45% { fill: #ffb27a; stroke: #e0662b; }
+  0%, 100% { fill: #cfe2f5; stroke: var(--brand); }
+  45% { fill: #ffb27a; stroke: #c4521d; }
+}
+@keyframes heat-rib {
+  0%, 100% { stroke: rgba(11, 92, 173, .35); }
+  45% { stroke: rgba(196, 82, 29, .45); }
 }
 @keyframes heat-wave {
-  0% { opacity: 0; transform: translateY(4px); }
+  0% { opacity: 0; transform: translateY(6px); }
   40% { opacity: .9; }
-  100% { opacity: 0; transform: translateY(-6px); }
+  100% { opacity: 0; transform: translateY(-10px); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .heat-section, .heat-wave { animation: none; }
+  .heat-section rect, .heat-section line, .heat-wave { animation: none; }
   .heat-wave { opacity: .7; }
 }
