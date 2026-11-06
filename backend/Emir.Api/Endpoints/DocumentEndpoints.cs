@@ -9,7 +9,7 @@ namespace Emir.Api.Endpoints;
 public record DocumentRowDto(int Id, string Kind, string KindName, string Number, int Revision, string Period, string PeriodTitle, string Date, string AbonentId, string Abonent, long Total, string Status, bool Stale, string? Reason);
 public record DocumentsDto(string Period, string Title, List<CheckMonthDto> Months, bool CanGenerate, string? CannotGenerate, List<DocumentRowDto> Documents);
 public record PrintDocumentDto(int Id, string Kind, string Status, JsonElement Data);
-public record ProfileRequest(string Name, string Inn, string? Kpp, string Address, string? BankName, string? Bik, string? CorrAccount, string? Account, string? Director, string? ChiefAccountant, decimal? VatRate);
+public record ProfileRequest(string Name, string Inn, string? Kpp, string Address, string? BankName, string? Bik, string? CorrAccount, string? Account, string? Director, string? ChiefAccountant, decimal? VatRate, int HeatSeasonStartMonth = 10, int HeatSeasonEndMonth = 4);
 public record GenerateRequest(string Period);
 public record ReissueRequest(string Reason);
 public record ReissueStaleRequest(string Period, string Reason);
@@ -91,7 +91,7 @@ public static class DocumentEndpoints
         }).Roles(Roles.Accountant, Roles.Admin);
 
         group.MapGet("/profile", async (EmirDb db) => await db.OrganizationProfiles.FirstOrDefaultAsync() is { } profile
-            ? new ProfileRequest(profile.Name, profile.Inn, profile.Kpp, profile.Address, profile.BankName, profile.Bik, profile.CorrAccount, profile.Account, profile.Director, profile.ChiefAccountant, profile.VatRate)
+            ? new ProfileRequest(profile.Name, profile.Inn, profile.Kpp, profile.Address, profile.BankName, profile.Bik, profile.CorrAccount, profile.Account, profile.Director, profile.ChiefAccountant, profile.VatRate, profile.HeatSeasonStartMonth, profile.HeatSeasonEndMonth)
             : new ProfileRequest("", "", null, "", null, null, null, null, null, null, null));
 
         group.MapPost("/profile", async (ProfileRequest request, EmirDb db, ClaimsPrincipal user) =>
@@ -114,6 +114,8 @@ public static class DocumentEndpoints
             profile.Director = Blank(request.Director);
             profile.ChiefAccountant = Blank(request.ChiefAccountant);
             profile.VatRate = request.VatRate;
+            profile.HeatSeasonStartMonth = request.HeatSeasonStartMonth;
+            profile.HeatSeasonEndMonth = request.HeatSeasonEndMonth;
             DocumentService.Validate(profile);
             db.AddJournal(null, "Реквизиты организации", user.Who(), $"{profile.Name}, ИНН {profile.Inn}, НДС {(profile.VatRate is { } rate ? $"{rate:0.##} %" : "нет")}");
             await db.SaveChangesAsync();

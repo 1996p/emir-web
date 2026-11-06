@@ -5,8 +5,10 @@ namespace Emir.Api.Domain;
 
 public record PlannedCharge(Abonent Abonent, ServiceLine Line, Tariff? Tariff, decimal? Price, ChargeResult Result, bool AlreadyInDebt);
 public record ChargeIssue(string Abonent, string Service, string Problem);
-public record ServicePreview(string Service, int Abonents, long Previous, long Current);
-public record ChargePreview(int Abonents, int Lines, long Total, List<ServicePreview> Services, List<ChargeIssue> Issues);
+/// <summary>Previous — начислено в прошлом месяце; Already — уже проведено за открытый месяц (счётчики, прошлый запуск); Current — что даст расчёт сейчас.</summary>
+public record ServicePreview(string Service, int Abonents, long Previous, long Already, long Current);
+/// <summary>Already — уже проведено за открытый месяц; Total — что даст расчёт сейчас. Разница Total − Already добавится к долгу при проведении.</summary>
+public record ChargePreview(int Abonents, int Lines, long Total, long Already, List<ServicePreview> Services, List<ChargeIssue> Issues);
 public record ChargeRunResult(int Abonents, int Lines, long Total, List<ChargeIssue> Issues);
 
 /// <summary>Расчёт и проведение начислений за открытый месяц.</summary>
@@ -30,6 +32,8 @@ public static class ChargingService
     {
         var prices = await db.TariffPrices.ToListAsync();
         var terms = await db.ServiceTerms.ToListAsync();
+        var profile = await db.OrganizationProfiles.FirstOrDefaultAsync();
+        var heatingSeason = ChargeEngine.InHeatingSeason(MonthOf(period), profile?.HeatSeasonStartMonth ?? 10, profile?.HeatSeasonEndMonth ?? 4);
         var facts = await db.AbonentFacts.ToListAsync();
         var tariffs = await db.Tariffs.ToDictionaryAsync(tariff => tariff.Id);
         var readings = await db.PeriodReadings.Where(reading => reading.Period == period).ToListAsync();
@@ -83,7 +87,7 @@ public static class ChargingService
                 var snapshot = snapshots?.FirstOrDefault(item => item.AbonentId == line.AbonentId && item.ServiceId == line.ServiceId);
                 var result = ChargeEngine.Calculate(new ChargeInput(
                     tariff.Scheme, price, MonthOf(period), fact?.Area ?? snapshot?.Area ?? abonent.Area, fact?.Residents ?? snapshot?.Residents ?? abonent.Residents,
-                    HouseHeatNorm: abonent.HouseHeatNorm, HouseMeter: tariff.Scheme == "MeterHouse" && line.HouseMeterId is not null ? HouseDataOf(line.HouseMeterId) : null, ServiceNorm: tariff.ServiceNorm, TariffNorm: tariff.TariffNorm, ContractNorm: snapshot is null ? line.ContractNorm : snapshot.ContractNorm, MeterUsage: usage, IsOrg: abonent.Kind == "org"));
+                    HouseHeatNorm: abonent.HouseHeatNorm, HouseMeter: tariff.Scheme == "MeterHouse" && line.HouseMeterId is not null ? HouseDataOf(line.HouseMeterId) : null, ServiceNorm: tariff.ServiceNorm, TariffNorm: tariff.TariffNorm, ContractNorm: snapshot is null ? line.ContractNorm : snapshot.ContractNorm, MeterUsage: usage, HeatingSeason: heatingSeason, IsOrg: abonent.Kind == "org"));
                 // Начисление по счётчику уже добавлено в долг при вводе показания
                 plan.Add(new PlannedCharge(abonent, line, tariff, price, result, tariff.Scheme == "MeterApartment"));
             }
@@ -101,15 +105,20 @@ public static class ChargingService
         var plan = await Plan(db, abonents, open);
         var previousPeriod = PreviousPeriod(open);
         var previous = await db.ChargeEntries.Where(entry => entry.Period == previousPeriod).ToListAsync();
+        // Уже проведённые за открытый месяц начисления (счётчики ставятся в долг при вводе показания, либо расчёт уже запускали)
+        var already = await db.ChargeEntries.Where(entry => entry.Period == open && entry.ServiceId != "penalty").ToListAsync();
         var valid = plan.Where(item => item.Result.Error is null).ToList();
 
         var services = valid.GroupBy(item => item.Line.Name).OrderBy(group => group.Key).Select(group =>
         {
             var ids = group.Select(item => item.Line.ServiceId).ToHashSet();
-            return new ServicePreview(group.Key, group.Select(item => item.Abonent.Id).Distinct().Count(), previous.Where(entry => ids.Contains(entry.ServiceId)).Sum(entry => entry.Amount), group.Sum(item => item.Result.Amount));
+            return new ServicePreview(group.Key, group.Select(item => item.Abonent.Id).Distinct().Count(),
+                previous.Where(entry => ids.Contains(entry.ServiceId)).Sum(entry => entry.Amount),
+                already.Where(entry => ids.Contains(entry.ServiceId)).Sum(entry => entry.Amount),
+                group.Sum(item => item.Result.Amount));
         }).ToList();
 
-        return new ChargePreview(valid.Select(item => item.Abonent.Id).Distinct().Count(), valid.Count, valid.Sum(item => item.Result.Amount), services, IssuesOf(plan));
+        return new ChargePreview(valid.Select(item => item.Abonent.Id).Distinct().Count(), valid.Count, valid.Sum(item => item.Result.Amount), already.Sum(entry => entry.Amount), services, IssuesOf(plan));
     }
 
     /// <summary>Повторный запуск сначала отменяет начисления месяца, поэтому сумма не удваивается.</summary>

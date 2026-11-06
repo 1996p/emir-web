@@ -8,6 +8,7 @@ import type { Beneficiary, BenefitCategory, BenefitImportLine } from '@/domain/t
 import type { AbonentDetails, LedgerRow, ManagedUser, Role } from '@/domain/types';
 import type { DocumentCounter, DocumentRow, DocumentsView, OrganizationProfile, PrintDocument } from '@/domain/types';
 import type { ChecksView, ClosedMonth, CurrentMonth, ReclosePreview, ServiceTermItem, TariffsView } from '@/domain/types';
+import type { HeatNormsView } from '@/domain/types';
 
 export class ApiError extends Error {
   constructor(public readonly status: number, message: string) {
@@ -125,6 +126,8 @@ export const api = {
     createHouseMeter: (body: HouseMeterBody) => mutate<{ id: string }>('/readings/house-meters/new', body),
     editHouseMeter: (id: string, body: HouseMeterBody) => mutate<void>(`/readings/house-meters/${encodeURIComponent(id)}/edit`, body),
     saveHouseMeter: (id: string, value: number) => mutate<void>(`/readings/house-meters/${encodeURIComponent(id)}`, { value }),
+    linkCandidates: (id: string) => get<HouseMeterCandidates>(`/readings/house-meters/${encodeURIComponent(id)}/candidates`),
+    linkLines: (id: string, keys: string[], link: boolean, reason: string) => mutate<{ changed: number }>(`/readings/house-meters/${encodeURIComponent(id)}/link`, { keys, link, reason }),
     importFile: async (file: File, columns: Record<string, string>, options: { apply?: boolean; includeHigh?: boolean; expected?: number }) => {
       const form = new FormData();
       form.append('file', file);
@@ -220,6 +223,10 @@ export const api = {
     setPrice: (id: string, body: { fromPeriod: string; price: number; reason: string }) => mutate<void>(`/tariffs/${encodeURIComponent(id)}/prices`, body),
     cancelPrice: (id: string, fromPeriod: string, reason: string) => mutate<void>(`/tariffs/${encodeURIComponent(id)}/prices/${encodeURIComponent(fromPeriod)}/cancel`, { reason }),
   },
+  heatNorms: {
+    list: () => get<HeatNormsView>('/heat-norms'),
+    apply: (body: { category: string; norm: number; reason: string }) => mutate<{ category: string; norm: number; total: number; changed: number }>('/heat-norms/apply', body),
+  },
   directories: {
     groups: () => get<DirectoryGroup[]>('/directories/groups'),
     table: (name: string) => get<DirectoryTable>(`/directories/table?${q({ name })}`),
@@ -296,6 +303,21 @@ export interface HouseMeterRow {
 export interface HouseMeters {
   period: string;
   rows: HouseMeterRow[];
+}
+
+export interface LinkCandidate {
+  key: string;
+  abonent: string;
+  flat: string;
+  service: string;
+  linkedToId: string | null;
+  linkedToName: string | null;
+}
+
+export interface HouseMeterCandidates {
+  meter: string;
+  chargedThisMonth: boolean;
+  candidates: LinkCandidate[];
 }
 
 export interface SaveTariffBody {

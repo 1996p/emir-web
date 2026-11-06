@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { api, errorText, useApi } from '@/api';
 import { useRole } from '@/layout/role';
 import { BeneficiariesDirectory, CategoriesDirectory } from './BenefitsDirectory';
+import { HeatNormsDirectory } from './HeatNormsDirectory';
 import { TariffsDirectory } from './TariffsDirectory';
 import { AccordionNav, Button, DataTable, Field, Notice, TextInput, type Column } from '@/ui';
 
@@ -42,7 +43,7 @@ export function DirectoriesPage() {
   const current = table?.rows[rowIndex] ?? table?.rows[0];
   const columns: Column<Row>[] = (table?.columns ?? []).map((header, index) => ({ key: header, header, render: (row) => row.cells[index] }));
 
-  const isTariffs = name === 'Тарифы' || name === 'Льготники' || name === 'Категории льготников';
+  const isTariffs = name === 'Тарифы' || name === 'Льготники' || name === 'Категории льготников' || name === 'Нормы теплопотребления';
   const canEdit = role === 'admin' || ((role === 'service' || role === 'accountant') && !table?.sensitive);
 
   const showPassport = async () => {
@@ -77,6 +78,7 @@ export function DirectoriesPage() {
         {name === 'Тарифы' ? <TariffsDirectory filter={rowFilter} /> : null}
         {name === 'Льготники' ? <BeneficiariesDirectory filter={rowFilter} /> : null}
         {name === 'Категории льготников' ? <CategoriesDirectory filter={rowFilter} /> : null}
+        {name === 'Нормы теплопотребления' ? <HeatNormsDirectory filter={rowFilter} /> : null}
         {!isTariffs && table?.placeholder && <div style={{ padding: '8px 16px' }}><Notice>В старой системе этот справочник пуст или не переносился.</Notice></div>}
         {!isTariffs && <div className="split">
           <div className="main">

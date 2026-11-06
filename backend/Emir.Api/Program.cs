@@ -207,6 +207,7 @@ api.MapDocuments();
 api.MapUsers();
 api.MapAbonentDetails();
 api.MapBenefits();
+api.MapHeatNorms();
 
 app.Run();
 

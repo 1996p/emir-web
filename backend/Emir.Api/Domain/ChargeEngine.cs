@@ -94,6 +94,10 @@ public static class ChargeEngine
     public static long Money(decimal volume, decimal priceRubles) =>
         (long)Math.Round(volume * priceRubles * 100m, MidpointRounding.AwayFromZero);
 
+    /// <summary>Месяц входит в отопительный сезон [start..end] включительно. Сезон может переходить через год (10..4 = окт–апр).</summary>
+    public static bool InHeatingSeason(int month, int start, int end) =>
+        start <= end ? month >= start && month <= end : month >= start || month <= end;
+
     /// <summary>Норма либо числом, либо помесячно: «01=1,5#02=2#12=3». Месяца нет в списке — нормы нет.</summary>
     public static decimal? NormFor(string? norm, int month)
     {

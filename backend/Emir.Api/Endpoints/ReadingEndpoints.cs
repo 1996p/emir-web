@@ -84,6 +84,65 @@ public static class ReadingEndpoints
             return Results.NoContent();
         }).Roles(Roles.Service, Roles.Accountant, Roles.Admin);
 
+        // Какие квартирные услуги можно привязать к этому счётчику: услуги схемы MeterHouse по его адресу плюс уже привязанные к нему
+        group.MapGet("/house-meters/{id}/candidates", async (string id, EmirDb db) =>
+        {
+            var meter = await db.HouseMeters.FirstOrDefaultAsync(item => item.Id == id) ?? throw new ApiError(404, "Счётчик не найден");
+            var period = await Periods.WorkPeriod(db);
+            var meters = await db.HouseMeters.ToDictionaryAsync(item => item.Id);
+            var tariffs = await db.Tariffs.ToDictionaryAsync(item => item.Id);
+            var abonents = await db.Abonents.Include(abonent => abonent.Services).ToListAsync();
+            var charged = await db.ServiceLines.Where(line => line.HouseMeterId == id)
+                .Join(db.ChargeEntries.Where(entry => entry.Period == period), line => new { line.AbonentId, line.ServiceId }, entry => new { entry.AbonentId, entry.ServiceId }, (line, entry) => entry).AnyAsync();
+
+            var candidates = abonents.SelectMany(abonent => abonent.Services.Select(line => (abonent, line)))
+                // Адрес дома у абонента часто с суффиксом квартиры («ул. Пархоменко 1-1»), у счётчика — без него («ул. Пархоменко 1»)
+                .Where(pair => pair.line.HouseMeterId == id
+                    || (pair.abonent.Place == meter.Place
+                        && (pair.abonent.Street == meter.Street || pair.abonent.Street.StartsWith(meter.Street + "-", StringComparison.Ordinal))
+                        && pair.line.TariffId is not null && tariffs.TryGetValue(pair.line.TariffId, out var tariff) && tariff.Scheme == "MeterHouse"))
+                .OrderBy(pair => pair.abonent.Flat, StringComparer.CurrentCulture).ThenBy(pair => pair.line.Name)
+                .Select(pair => new LinkCandidateDto(
+                    $"{pair.abonent.Id}:{pair.line.ServiceId}", pair.abonent.ShortName, pair.abonent.Flat ?? "—", pair.line.Name,
+                    pair.line.HouseMeterId,
+                    pair.line.HouseMeterId is { } linked && linked != id && meters.TryGetValue(linked, out var other) ? DescribeMeter(other) : null))
+                .ToList();
+            return new HouseMeterCandidatesDto(DescribeMeter(meter), charged, candidates);
+        }).Roles(Roles.Service, Roles.Accountant, Roles.Admin);
+
+        // Массовая привязка/отвязка квартирных услуг к общедомовому счётчику. Меняет деление расхода, поэтому закрыта при начислениях месяца
+        group.MapPost("/house-meters/{id}/link", async (string id, LinkLinesRequest request, EmirDb db, ClaimsPrincipal user) =>
+        {
+            if (string.IsNullOrWhiteSpace(request.Reason)) throw new ApiError(422, "Укажите основание");
+            if (request.Keys.Count == 0) throw new ApiError(422, "Не выбрано ни одной услуги");
+            var meter = await db.HouseMeters.FirstOrDefaultAsync(item => item.Id == id) ?? throw new ApiError(404, "Счётчик не найден");
+            var period = await Periods.WorkPeriod(db);
+
+            await using var transaction = await db.BeginMoneyTransaction();
+            var charged = await db.ServiceLines.Where(line => line.HouseMeterId == id)
+                .Join(db.ChargeEntries.Where(entry => entry.Period == period), line => new { line.AbonentId, line.ServiceId }, entry => new { entry.AbonentId, entry.ServiceId }, (line, entry) => entry).AnyAsync();
+            if (charged) throw new ApiError(409, "По этому счётчику уже есть начисления месяца. Сначала отмените их, потом меняйте привязку");
+
+            var wanted = request.Keys.Select(key => key.Split(':', 2)).Where(parts => parts.Length == 2).Select(parts => (AbonentId: parts[0], ServiceId: parts[1])).ToList();
+            var changed = 0;
+            foreach (var (abonentId, serviceId) in wanted)
+            {
+                var line = await db.ServiceLines.FirstOrDefaultAsync(item => item.AbonentId == abonentId && item.ServiceId == serviceId);
+                if (line is null) continue;
+                var target = request.Link ? id : null;
+                if (line.HouseMeterId == target) continue;
+                line.HouseMeterId = target;
+                line.ChargeStatus = "Ждёт начисления";
+                changed++;
+            }
+            if (changed == 0) throw new ApiError(409, request.Link ? "Выбранные услуги уже привязаны к этому счётчику" : "Выбранные услуги и так не привязаны");
+            db.AddJournal(null, request.Link ? "Привязка к общедомовому счётчику" : "Отвязка от общедомового счётчика", user.Who(),
+                $"{DescribeMeter(meter)}: {(request.Link ? "привязано" : "отвязано")} услуг: {changed}", request.Reason.Trim());
+            await db.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return new { Changed = changed };
+        }).Roles(Roles.Accountant, Roles.Admin);
+
         group.MapGet("/houses", async (EmirDb db) =>
         {
             var abonents = await db.Abonents.Include(abonent => abonent.Services).ToListAsync();
@@ -170,3 +229,7 @@ public static class ReadingEndpoints
 
 public record HouseMeterReadingRequest(decimal Value);
 public record SaveHouseMeterRequest(string? Place, string Street, string? Number, string? Unit);
+/// <summary>LinkedToId — счётчик, к которому услуга привязана сейчас (null — ни к какому); LinkedToName — его описание, если это другой счётчик.</summary>
+public record LinkCandidateDto(string Key, string Abonent, string Flat, string Service, string? LinkedToId, string? LinkedToName);
+public record HouseMeterCandidatesDto(string Meter, bool ChargedThisMonth, List<LinkCandidateDto> Candidates);
+public record LinkLinesRequest(List<string> Keys, bool Link, string Reason);

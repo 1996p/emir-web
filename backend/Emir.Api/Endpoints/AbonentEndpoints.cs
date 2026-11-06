@@ -62,6 +62,11 @@ public static class AbonentEndpoints
             var name = request.Name?.Trim();
             var address = request.Address?.Trim();
             if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(address)) throw new ApiError(422, "Заполните имя и адрес");
+            if (name.Length is < 2 or > 200) throw new ApiError(422, "Имя должно быть от 2 до 200 символов");
+            if (!name.Any(char.IsLetter)) throw new ApiError(422, "В имени должны быть буквы");
+            if (address.Length is < 3 or > 200) throw new ApiError(422, "Адрес должен быть от 3 до 200 символов");
+            // Адрес дома без буквы (улицы) или без цифры (номера дома) — почти наверняка опечатка или мусор
+            if (!address.Any(char.IsLetter) || !address.Any(char.IsDigit)) throw new ApiError(422, "В адресе укажите улицу и номер дома, например: ул. Молодёжная 1");
 
             var maxAccount = (await db.Abonents.Select(abonent => abonent.Account).ToListAsync()).Select(long.Parse).DefaultIfEmpty(40030000).Max();
             var id = Guid.NewGuid().ToString("N");

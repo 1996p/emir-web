@@ -73,6 +73,30 @@ public class ChargeEngineTests
         Assert.Equal(0, result.Amount);
     }
 
+    [Theory]
+    // Сезон окт–апр (10..4) с переходом через год: зимние месяцы в сезоне, летние — нет.
+    [InlineData(10, 4, 1, true)]
+    [InlineData(10, 4, 4, true)]
+    [InlineData(10, 4, 10, true)]
+    [InlineData(10, 4, 5, false)]
+    [InlineData(10, 4, 7, false)]
+    [InlineData(10, 4, 9, false)]
+    // Сезон без перехода (май–сентябрь).
+    [InlineData(5, 9, 7, true)]
+    [InlineData(5, 9, 4, false)]
+    [InlineData(5, 9, 10, false)]
+    public void InHeatingSeason_HandlesWrapAround(int start, int end, int month, bool expected) =>
+        Assert.Equal(expected, ChargeEngine.InHeatingSeason(month, start, end));
+
+    [Fact]
+    public void SeasonalScheme_InSeason_ChargesLikeAreaNormTarif()
+    {
+        // В сезоне сезонная схема считается как AreaNormTarif: 50 × 2 × 10 ₽ = 1000 ₽.
+        var result = Calc("AreaNormTarifSeasonal", tariffNorm: "2", season: true);
+        Assert.Null(result.Error);
+        Assert.Equal(100000, result.Amount);
+    }
+
     [Fact]
     public void MonthlyNormFormat_UsesCurrentMonth()
     {

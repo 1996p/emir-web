@@ -11,6 +11,8 @@ export function HouseMetersPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   // null — панель закрыта, 'new' — новый счётчик, иначе id изменяемого
   const [editing, setEditing] = useState<string | null>(null);
+  // id счётчика, для которого открыта массовая привязка квартир
+  const [linking, setLinking] = useState<string | null>(null);
 
   useEffect(() => {
     if (data) setValues(Object.fromEntries(data.rows.map((row) => [row.id, row.value === null ? '' : String(row.value)])));
@@ -73,7 +75,10 @@ export function HouseMetersPage() {
                   <td className="right mono">{usage === null ? '—' : usage.toFixed(3)}</td>
                   <td className="right mono">{usage === null ? '—' : (usage * row.unitFactor).toFixed(4)}</td>
                   <td className={`small ${errors[row.id] ? 'warn strong' : 'muted'}`}>{errors[row.id] || (usage !== null && usage < 0 ? 'Меньше предыдущего' : '')}</td>
-                  {canEdit && <td><button type="button" className="link-button" onClick={() => setEditing(editing === row.id ? null : row.id)}>Изменить</button></td>}
+                  {canEdit && <td><div className="row" style={{ gap: 10 }}>
+                    <button type="button" className="link-button" onClick={() => { setEditing(editing === row.id ? null : row.id); setLinking(null); }}>Изменить</button>
+                    <button type="button" className="link-button" onClick={() => { setLinking(linking === row.id ? null : row.id); setEditing(null); }}>Квартиры</button>
+                  </div></td>}
                 </tr>
               );
             })}
@@ -90,7 +95,86 @@ export function HouseMetersPage() {
           </div>
         </aside>
       )}
+      {canEdit && linking !== null && (
+        <aside className="pane pane-right" aria-label="Привязка квартир к счётчику" style={{ width: 400 }}>
+          <div className="scroll stack pad">
+            <LinkPanel key={linking} meterId={linking} onDone={() => setLinking(null)} />
+          </div>
+        </aside>
+      )}
     </div>
+  );
+}
+
+/** Массовая привязка квартирных услуг (схема MeterHouse) к общедомовому счётчику по его адресу. */
+function LinkPanel({ meterId, onDone }: { meterId: string; onDone: () => void }) {
+  const { data, error } = useApi(() => api.readings.linkCandidates(meterId), [meterId]);
+  const [checked, setChecked] = useState<Record<string, boolean>>({});
+  const [reason, setReason] = useState('');
+  const [note, setNote] = useState<string | null>(null);
+  const [failed, setFailed] = useState<string | null>(null);
+
+  const candidates = data?.candidates ?? [];
+  const chosen = candidates.filter((item) => checked[item.key]).map((item) => item.key);
+  const toggle = (key: string) => setChecked((current) => ({ ...current, [key]: !current[key] }));
+
+  const run = async (link: boolean) => {
+    setNote(null);
+    setFailed(null);
+    try {
+      const result = await api.readings.linkLines(meterId, chosen, link, reason.trim());
+      setNote(`${link ? 'Привязано' : 'Отвязано'} услуг: ${result.changed}. Пересчитается при следующем начислении.`);
+      setReason('');
+      setChecked({});
+    } catch (reason_) {
+      setFailed(errorText(reason_));
+    }
+  };
+
+  const selectUnlinked = () => setChecked(Object.fromEntries(candidates.filter((item) => item.linkedToId !== meterId).map((item) => [item.key, true])));
+  const selectLinkedHere = () => setChecked(Object.fromEntries(candidates.filter((item) => item.linkedToId === meterId).map((item) => [item.key, true])));
+
+  return (
+    <>
+      <h2 className="section-title">Квартиры на счётчике</h2>
+      {data && <p className="small muted" style={{ lineHeight: 1.45 }}>{data.meter}</p>}
+      {error && <Notice tone="warn">{error}</Notice>}
+      {data?.chargedThisMonth && <Notice tone="warn">За этот месяц по счётчику уже есть начисления. Привязку сейчас менять нельзя — сначала отмените начисления.</Notice>}
+      {data && candidates.length === 0 && <Notice>По адресу счётчика нет квартирных услуг со схемой «По общедомовому счётчику». Назначьте такой тариф услугам или проверьте адрес.</Notice>}
+      {candidates.length > 0 && (
+        <>
+          <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
+            <button type="button" className="link-button" onClick={selectUnlinked}>Выбрать непривязанные</button>
+            <button type="button" className="link-button" onClick={selectLinkedHere}>Выбрать привязанные сюда</button>
+            <button type="button" className="link-button" onClick={() => setChecked({})}>Снять выбор</button>
+          </div>
+          <div className="stack" style={{ gap: 2 }}>
+            {candidates.map((item) => {
+              const here = item.linkedToId === meterId;
+              const status = here ? 'привязана' : item.linkedToName ? `на счётчике: ${item.linkedToName}` : 'не привязана';
+              return (
+                <label key={item.key} className="row" style={{ gap: 8, alignItems: 'flex-start', padding: '4px 0', borderBottom: '1px solid var(--line-soft)' }}>
+                  <input type="checkbox" checked={!!checked[item.key]} onChange={() => toggle(item.key)} style={{ marginTop: 3 }} />
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span className="strong">кв. {item.flat}</span> · {item.service}
+                    <span className="small muted" style={{ display: 'block' }}>{item.abonent} — <span style={{ color: here ? 'var(--ok, #15803d)' : item.linkedToName ? 'var(--warn, #b45309)' : undefined }}>{status}</span></span>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+          <Field label="Основание">{(id) => <TextInput id={id} placeholder="Например, акт о вводе ОДПУ" value={reason} onChange={(event) => setReason(event.target.value)} />}</Field>
+          {note && <Notice tone="ok">{note}</Notice>}
+          {failed && <Notice tone="warn">{failed}</Notice>}
+          <div className="row" style={{ gap: 8 }}>
+            <Button variant="primary" disabled={chosen.length === 0 || !reason.trim() || data?.chargedThisMonth} onClick={() => void run(true)}>Привязать выбранные</Button>
+            <Button disabled={chosen.length === 0 || !reason.trim() || data?.chargedThisMonth} onClick={() => void run(false)}>Отвязать</Button>
+          </div>
+          <p className="small muted" style={{ lineHeight: 1.45 }}>Расход счётчика делится по площади между привязанными работающими услугами. Закрытые месяцы не пересчитываются.</p>
+        </>
+      )}
+      <Button size="full" onClick={onDone}>Закрыть</Button>
+    </>
   );
 }
 

@@ -42,6 +42,7 @@ public static partial class DocumentService
         CheckDigits(profile.Account, [20], "Расчётный счёт", required: true);
         if (string.IsNullOrWhiteSpace(profile.BankName)) throw new ApiError(422, "Укажите банк");
         if (profile.VatRate is < 0 or > 100) throw new ApiError(422, "Ставка НДС должна быть от 0 до 100");
+        if (profile.HeatSeasonStartMonth is < 1 or > 12 || profile.HeatSeasonEndMonth is < 1 or > 12) throw new ApiError(422, "Месяцы отопительного сезона — от 1 до 12");
     }
 
     private static void CheckDigits(string? value, int[] lengths, string name, bool required = false)

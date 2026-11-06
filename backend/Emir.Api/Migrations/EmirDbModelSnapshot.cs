@@ -597,6 +597,20 @@ namespace Emir.Api.Migrations
                     b.ToTable("ExchangeLines");
                 });
 
+            modelBuilder.Entity("Emir.Api.Data.HeatNormCategory", b =>
+                {
+                    b.Property<string>("Category")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Norm")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("numeric(18,6)");
+
+                    b.HasKey("Category");
+
+                    b.ToTable("HeatNormCategories");
+                });
+
             modelBuilder.Entity("Emir.Api.Data.HouseMeter", b =>
                 {
                     b.Property<string>("Id")
@@ -793,6 +807,12 @@ namespace Emir.Api.Migrations
 
                     b.Property<string>("Director")
                         .HasColumnType("text");
+
+                    b.Property<int>("HeatSeasonEndMonth")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("HeatSeasonStartMonth")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Inn")
                         .IsRequired()

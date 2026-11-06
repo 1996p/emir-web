@@ -283,6 +283,13 @@ public class ExchangeLine
     public required string State { get; set; }
 }
 
+/// <summary>Норма теплопотребления для категории дома, Гкал на м² в месяц. Применяется к HouseHeatNorm всех абонентов этой категории (схема NormHouse).</summary>
+public class HeatNormCategory
+{
+    public required string Category { get; set; }
+    public decimal Norm { get; set; }
+}
+
 /// <summary>Реквизиты организации для документов. Одна запись.</summary>
 public class OrganizationProfile
 {
@@ -299,6 +306,10 @@ public class OrganizationProfile
     public string? ChiefAccountant { get; set; }
     /// <summary>НДС в процентах, входит в сумму начисления. Нет значения: без НДС.</summary>
     public decimal? VatRate { get; set; }
+    /// <summary>Отопительный сезон для сезонных схем: первый месяц (10 = октябрь).</summary>
+    public int HeatSeasonStartMonth { get; set; } = 10;
+    /// <summary>Отопительный сезон: последний месяц включительно (4 = апрель). Сезон переходит через год: окт–апр. Вне сезона сезонные схемы не начисляются.</summary>
+    public int HeatSeasonEndMonth { get; set; } = 4;
 }
 
 public class DocumentCounter

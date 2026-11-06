@@ -144,7 +144,8 @@ function DocumentPanel({ row, canManage, canReissue }: { row: DocumentRow; canMa
   );
 }
 
-const EMPTY: OrganizationProfile = { name: '', inn: '', kpp: null, address: '', bankName: null, bik: null, corrAccount: null, account: null, director: null, chiefAccountant: null, vatRate: null };
+const EMPTY: OrganizationProfile = { name: '', inn: '', kpp: null, address: '', bankName: null, bik: null, corrAccount: null, account: null, director: null, chiefAccountant: null, vatRate: null, heatSeasonStartMonth: 10, heatSeasonEndMonth: 4 };
+const MONTHS = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 const FIELDS: Array<[Exclude<keyof OrganizationProfile, 'vatRate'>, string]> = [['name', 'Название'], ['inn', 'ИНН'], ['kpp', 'КПП'], ['address', 'Адрес'], ['bankName', 'Банк'], ['bik', 'БИК'], ['corrAccount', 'Корр. счёт'], ['account', 'Расчётный счёт'], ['director', 'Руководитель'], ['chiefAccountant', 'Главный бухгалтер']];
 
 function SettingsPanel() {
@@ -180,6 +181,12 @@ function SettingsPanel() {
           <Field key={key} label={label}>{(id) => <TextInput id={id} value={form[key] ?? ''} onChange={(event) => setForm({ ...form, [key]: event.target.value })} />}</Field>
         ))}
         <Field label="НДС, %. Пусто: без НДС" hint="Считается как входящий в сумму начисления.">{(id) => <TextInput id={id} inputMode="decimal" value={vat} onChange={(event) => setVat(event.target.value)} />}</Field>
+        <h2 className="section-title" style={{ marginTop: 8 }}>Отопительный сезон</h2>
+        <p className="small muted" style={{ lineHeight: 1.45 }}>Для сезонных схем начисления. Вне этих месяцев сезонные схемы дают 0. Сезон переходит через год: октябрь — апрель.</p>
+        <div className="row">
+          <Field label="С месяца">{(id) => <SelectInput id={id} value={String(form.heatSeasonStartMonth)} onChange={(event) => setForm({ ...form, heatSeasonStartMonth: Number(event.target.value) })}>{MONTHS.map((name, index) => <option key={index} value={index + 1}>{name}</option>)}</SelectInput>}</Field>
+          <Field label="По месяц включительно">{(id) => <SelectInput id={id} value={String(form.heatSeasonEndMonth)} onChange={(event) => setForm({ ...form, heatSeasonEndMonth: Number(event.target.value) })}>{MONTHS.map((name, index) => <option key={index} value={index + 1}>{name}</option>)}</SelectInput>}</Field>
+        </div>
         {error && <Notice tone="warn">{error}</Notice>}
         {note && <Notice tone="ok">{note}</Notice>}
         <Button variant="primary" size="full" onClick={() => void save()}>Сохранить реквизиты</Button>

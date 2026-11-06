@@ -243,6 +243,57 @@ public sealed class ApiTests : IDisposable
         Assert.Contains("Иванова", await response.Content.ReadAsStringAsync());
     }
 
+    private Emir.Api.Data.EmirDb Db() => new(new DbContextOptionsBuilder<Emir.Api.Data.EmirDb>().UseNpgsql(_factory.ConnectionString).Options);
+
+    [Theory]
+    [InlineData("аыва аы ав", "Раюочаяаяа")]     // адрес без цифры — мусор
+    [InlineData("111", "ул. Южная 7")]            // имя без букв
+    [InlineData("Иванов", "12345")]               // адрес без буквы
+    public async Task Register_RejectsJunk(string name, string address)
+    {
+        var client = await LoginAs("oper1");
+        var response = await client.PostAsJsonAsync("/api/abonents", new { kind = "person", name, address });
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Register_AcceptsRealAddress()
+    {
+        var client = await LoginAs("oper1");
+        var response = await client.PostAsJsonAsync("/api/abonents", new { kind = "person", name = "Петров Пётр", address = "ул. Молодёжная 1" });
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task HeatNorm_Apply_SetsNormForWholeCategory()
+    {
+        var client = await LoginAs("buh1");   // поднимает приложение и создаёт базу теста
+        await using (var db = Db())
+        {
+            foreach (var id in new[] { "a1", "a2" }) (await db.Abonents.FirstAsync(abonent => abonent.Id == id)).HouseCategory = "Кирпич 5эт";
+            await db.SaveChangesAsync();
+        }
+
+        var apply = await client.PostAsJsonAsync("/api/heat-norms/apply", new { category = "Кирпич 5эт", norm = 0.0188m, reason = "приказ 1" });
+        apply.EnsureSuccessStatusCode();
+        var result = await apply.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(2, result.GetProperty("total").GetInt32());
+
+        await using (var db = Db())
+        {
+            Assert.Equal(0.0188m, await db.HeatNormCategories.Where(item => item.Category == "Кирпич 5эт").Select(item => item.Norm).FirstAsync());
+            Assert.All(await db.Abonents.Where(abonent => abonent.HouseCategory == "Кирпич 5эт").ToListAsync(), abonent => Assert.Equal(0.0188m, abonent.HouseHeatNorm));
+        }
+    }
+
+    [Fact]
+    public async Task HeatNorm_Apply_ForbiddenForCashier()
+    {
+        var client = await LoginAs("kassa1");
+        var response = await client.PostAsJsonAsync("/api/heat-norms/apply", new { category = "x", norm = 0.01m, reason = "y" });
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
     [Fact]
     public void Billing_TakeAndGive_KeepCreditAndDebtConsistent()
     {

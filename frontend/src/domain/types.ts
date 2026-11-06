@@ -132,6 +132,7 @@ export interface ServicePreview {
   service: string;
   abonents: number;
   previous: Kopecks;
+  already: Kopecks;
   current: Kopecks;
 }
 
@@ -139,6 +140,7 @@ export interface ChargePreview {
   abonents: number;
   lines: number;
   total: Kopecks;
+  already: Kopecks;
   services: ServicePreview[];
   issues: ChargeIssue[];
 }
@@ -175,6 +177,19 @@ export interface TariffsView {
   openPeriod: string;
   reopened: boolean;
   tariffs: TariffItem[];
+}
+
+export interface HeatNormRow {
+  category: string;
+  abonents: number;
+  withoutNorm: number;
+  norm: number | null;
+  distinct: number[];
+}
+
+export interface HeatNormsView {
+  categories: HeatNormRow[];
+  withoutCategory: number;
 }
 
 export interface ServiceTermItem {
@@ -355,6 +370,8 @@ export interface OrganizationProfile {
   director: string | null;
   chiefAccountant: string | null;
   vatRate: number | null;
+  heatSeasonStartMonth: number;
+  heatSeasonEndMonth: number;
 }
 
 export interface DocumentCounter {

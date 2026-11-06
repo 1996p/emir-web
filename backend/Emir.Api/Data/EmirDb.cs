@@ -37,6 +37,7 @@ public class EmirDb(DbContextOptions<EmirDb> options) : DbContext(options)
     public DbSet<TariffPrice> TariffPrices => Set<TariffPrice>();
     public DbSet<ServiceTerm> ServiceTerms => Set<ServiceTerm>();
     public DbSet<ChargeEntry> ChargeEntries => Set<ChargeEntry>();
+    public DbSet<HeatNormCategory> HeatNormCategories => Set<HeatNormCategory>();
 
     /// <summary>Какая операция сейчас меняет деньги. Без неё сохранить изменение долга или переплаты нельзя.</summary>
     public MoneyOperation? Operation { get; set; }
@@ -97,6 +98,8 @@ public class EmirDb(DbContextOptions<EmirDb> options) : DbContext(options)
     protected override void OnModelCreating(ModelBuilder model)
     {
         model.Entity<Abonent>().Property(item => item.HouseHeatNorm).HasPrecision(18, 6);
+        model.Entity<HeatNormCategory>().HasKey(item => item.Category);
+        model.Entity<HeatNormCategory>().Property(item => item.Norm).HasPrecision(18, 6);
         model.Entity<ReferenceTable>().HasKey(item => item.Name);
         model.Entity<AppUser>().HasIndex(user => user.Login).IsUnique();
         model.Entity<HouseMeterReading>().HasIndex(item => new { item.HouseMeterId, item.Period }).IsUnique();

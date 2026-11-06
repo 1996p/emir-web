@@ -10,11 +10,12 @@ import { ReclosePanel } from './ReclosePanel';
 type Panel = 'step' | 'settings' | 'closed';
 type Tab = 'issues' | 'preview';
 
-const previewColumns = (month: string): Column<ServicePreview>[] => [
+const previewColumns = (month: string, showAlready: boolean): Column<ServicePreview>[] => [
   { key: 'service', header: 'Услуга', render: (row) => <span className="strong">{row.service}</span> },
   { key: 'abonents', header: 'Абонентов', align: 'right', mono: true, render: (row) => row.abonents.toLocaleString('ru-RU') },
   { key: 'previous', header: 'Прошлый месяц, ₽', align: 'right', mono: true, render: (row) => formatMoney(row.previous) },
-  { key: 'current', header: `${month}, ₽`, align: 'right', mono: true, render: (row) => formatMoney(row.current) },
+  ...(showAlready ? [{ key: 'already', header: 'Уже начислено, ₽', align: 'right' as const, mono: true, render: (row: ServicePreview) => row.already === 0 ? '—' : formatMoney(row.already) }] : []),
+  { key: 'current', header: `${month} всего, ₽`, align: 'right', mono: true, render: (row) => formatMoney(row.current) },
 ];
 
 const ISSUE_COLUMNS: Column<ChargeIssue>[] = [
@@ -27,10 +28,14 @@ function ChargePreviewPanel({ month }: { month: string }) {
   const { data: preview, error } = useApi(() => api.period.preview(), []);
   if (error) return <div className="pad"><Notice tone="warn">{error}</Notice></div>;
   if (!preview) return null;
+  const toAdd = preview.total - preview.already;
   return (
     <div className="scroll">
-      <div className="pad"><Notice>Расчёт без записи в базу. Будет начислено <strong>{formatMoney(preview.total)} ₽</strong>, абонентов: {preview.abonents}, строк: {preview.lines}.</Notice></div>
-      <DataTable columns={previewColumns(month)} rows={preview.services} rowKey={(row) => row.service} />
+      <div className="pad"><Notice>
+        Расчёт без записи в базу. За {month} всего получится <strong>{formatMoney(preview.total)} ₽</strong>, абонентов: {preview.abonents}, строк: {preview.lines}.
+        {preview.already > 0 && <> Уже проведено (счётчики, прошлый запуск): <strong>{formatMoney(preview.already)} ₽</strong>. Проведение {toAdd >= 0 ? 'добавит к долгу' : 'уменьшит долг на'} <strong>{formatMoney(Math.abs(toAdd))} ₽</strong>.</>}
+      </Notice></div>
+      <DataTable columns={previewColumns(month, preview.already > 0)} rows={preview.services} rowKey={(row) => row.service} />
       {preview.issues.length > 0 && (
         <>
           <h2 className="section-title pad">Не будет начислено · {preview.issues.length}</h2>
