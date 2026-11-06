@@ -311,7 +311,9 @@ public static class ReportEndpoints
                 {
                     var debt = group.SelectMany(abonent => abonent.Services).Where(line => line.Debt > 0).Sum(line => line.Debt);
                     var credit = group.Sum(abonent => abonent.Credit) - group.SelectMany(abonent => abonent.Services).Where(line => line.Debt < 0).Sum(line => line.Debt);
-                    return new ReportRowDto(group.Key, [debt, credit, Math.Max(0, debt - credit)]);
+                    // К оплате считается по каждому абоненту: переплата одного не гасит долг соседа
+                    var due = group.Sum(abonent => Math.Max(0, abonent.Services.Sum(line => line.Debt) - abonent.Credit));
+                    return new ReportRowDto(group.Key, [debt, credit, due]);
                 }).ToList();
                 return Finish([new("Долг, ₽", "money"), new("Переплата, ₽", "money"), new("К оплате, ₽", "money")], rows);
             }
