@@ -11,4 +11,8 @@ export default defineConfig({
     // Запросы к API идут через тот же адрес, поэтому cookie входа работает без CORS
     proxy: { '/api': 'http://localhost:5080' },
   },
+  // Сборка для показа другим компьютерам сети: тот же переход к API, сам API наружу не открывается.
+  preview: {
+    proxy: { '/api': 'http://localhost:5080' },
+  },
 });

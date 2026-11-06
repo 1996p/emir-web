@@ -1,0 +1,4 @@
+**/bin/
+**/obj/
+.pgdata/
+Emir.Tests/

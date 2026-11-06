@@ -1,0 +1,43 @@
+# ЕМИР одной командой: docker compose up -d --build
+# Сайт: http://localhost:8080. База и сервер наружу не открыты.
+# Открыть сайт для других компьютеров сети: EMIR_BIND=0.0.0.0 docker compose up -d
+# (только в своей сети: в базе персональные данные).
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: emir
+      POSTGRES_PASSWORD: ${EMIR_DB_PASSWORD:-emir-docker-local}
+      POSTGRES_DB: emir
+    volumes:
+      - db:/var/lib/postgresql/data
+      - ${EMIR_DUMPS:-./deploy/dumps}:/dumps:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U emir -d emir"]
+      interval: 5s
+      retries: 20
+
+  api:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Не Production: вход работает по http внутри своей сети. Схема базы обновляется при запуске.
+      ASPNETCORE_ENVIRONMENT: Staging
+      ConnectionStrings__Default: Host=db;Port=5432;Database=emir;Username=emir;Password=${EMIR_DB_PASSWORD:-emir-docker-local}
+    volumes:
+      - keys:/keys
+
+  web:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on: [api]
+    ports:
+      - "${EMIR_BIND:-127.0.0.1}:${EMIR_PORT:-8080}:80"
+
+volumes:
+  db:
+  keys:
