@@ -48,6 +48,7 @@ public static class ReportEndpoints
         "money" => (value / 100m).ToString("0.00", CultureInfo.GetCultureInfo("ru-RU")),
         "percent" => (value / 10m).ToString("0.0", CultureInfo.GetCultureInfo("ru-RU")),
         "volume" => (value / 1000m).ToString("0.000", CultureInfo.GetCultureInfo("ru-RU")),
+        "norm" => (value / 1000000m).ToString("0.00000", CultureInfo.GetCultureInfo("ru-RU")),
         _ => value.ToString(CultureInfo.InvariantCulture),
     };
 
@@ -58,10 +59,12 @@ public static class ReportEndpoints
         if (definition.Kind == "cash") return await BuildCash(db, cut, who, period, from, to);
         if (definition.Kind == "ledger") return await BuildTurnover(db, cut, who, period, from, to);
         if (definition.Kind == "sum") return await BuildSum(db, definition.Id, cut, who, period, from, to);
+        if (definition.Kind == "use") return await BuildUse(db, definition.Id, cut, who, period, from, to);
         return Unavailable();
     }
 
     private static ReportResultDto Unavailable() => new(false, NotConnected, [], [], []);
+    private static ReportResultDto NoData(string what) => new(false, $"Для этого разреза нет данных: {what} не переносились из старой системы.", [], [], []);
 
     /// <summary>Входящий остаток − начислено + оплачено + корректировки = исходящий. Остаток: минус это долг.</summary>
     private static async Task<ReportResultDto> BuildTurnover(EmirDb db, string cut, string who, string period, DateOnly? from, DateOnly? to)
@@ -316,6 +319,136 @@ public static class ReportEndpoints
                     return new ReportRowDto(group.Key, [debt, credit, due]);
                 }).ToList();
                 return Finish([new("Долг, ₽", "money"), new("Переплата, ₽", "money"), new("К оплате, ₽", "money")], rows);
+            }
+            default:
+                return Unavailable();
+        }
+    }
+
+/// <summary>Отчёты по потреблению, домам и жильцам. Объём и площадь в тысячных долях, норма в миллионных.</summary>
+    private static async Task<ReportResultDto> BuildUse(EmirDb db, string reportId, string cut, string who, string period, DateOnly? from, DateOnly? to)
+    {
+        var (start, end) = Range(period, from, to);
+        var months = Months(start, end);
+        var abonents = (await db.Abonents.Include(abonent => abonent.Services).ToListAsync()).Where(abonent => MatchesWho(abonent.Kind, who)).ToDictionary(abonent => abonent.Id);
+        var lines = abonents.Values.SelectMany(abonent => abonent.Services).ToDictionary(line => (line.AbonentId, line.ServiceId));
+        string Label(Abonent abonent) => $"{abonent.Account} · {abonent.ShortName}";
+        string Place(Abonent abonent) => abonent.Place == "" ? "Без населённого пункта" : abonent.Place;
+        static long Thousandths(decimal value) => (long)Math.Round(value * 1000m);
+        bool IsHeat(ChargeEntry entry) => entry.ServiceId != "penalty" && lines.TryGetValue((entry.AbonentId, entry.ServiceId), out var line) && !line.Name.Contains("одоотвед", StringComparison.OrdinalIgnoreCase);
+        bool IsWater(ChargeEntry entry) => lines.TryGetValue((entry.AbonentId, entry.ServiceId), out var line) && line.Name.Contains("одоотвед", StringComparison.OrdinalIgnoreCase);
+        async Task<List<ChargeEntry>> Charges() => (await db.ChargeEntries.Where(entry => months.Contains(entry.Period) && entry.ServiceId != "penalty").ToListAsync()).Where(entry => abonents.ContainsKey(entry.AbonentId)).ToList();
+        ReportResultDto Consumption(IEnumerable<ChargeEntry> charges, Func<ChargeEntry, string> key, bool withArea) =>
+            Finish(withArea
+                ? [new("Абонентов", "count", true), new("Площадь, м²", "volume", true), new("Объём", "volume"), new("Начислено, ₽", "money")]
+                : [new("Абонентов", "count", true), new("Объём", "volume"), new("Начислено, ₽", "money")],
+                charges.GroupBy(key).OrderBy(group => group.Key).Select(group =>
+                {
+                    var ids = group.Select(entry => entry.AbonentId).Distinct().ToList();
+                    List<long> values = [ids.Count];
+                    if (withArea) values.Add(Thousandths(ids.Sum(id => abonents[id].Area)));
+                    values.Add(Thousandths(group.Sum(entry => entry.Volume)));
+                    values.Add(group.Sum(entry => entry.Amount));
+                    return new ReportRowDto(group.Key, values);
+                }).ToList());
+
+        switch (reportId)
+        {
+            case "volume":
+            {
+                var charges = await Charges();
+                return cut switch
+                {
+                    "Услуги" => Consumption(charges, entry => lines[(entry.AbonentId, entry.ServiceId)].Name, false),
+                    "Абоненты" => Consumption(charges, entry => Label(abonents[entry.AbonentId]), false),
+                    "Дома" => Consumption(charges, entry => HouseOf(abonents[entry.AbonentId]), true),
+                    "Населённые пункты" => Consumption(charges, entry => Place(abonents[entry.AbonentId]), true),
+                    "Юрлица" => Consumption(charges.Where(entry => abonents[entry.AbonentId].Kind == "org"), entry => Label(abonents[entry.AbonentId]), false),
+                    "Сельсоветы" => NoData("сельсоветы"),
+                    _ => Unavailable(),
+                };
+            }
+            case "heat":
+            {
+                var charges = (await Charges()).Where(IsHeat).ToList();
+                return cut switch
+                {
+                    "Дома" => Consumption(charges, entry => HouseOf(abonents[entry.AbonentId]), true),
+                    "Квартиры" => Consumption(charges, entry => Label(abonents[entry.AbonentId]), true),
+                    "Тепловые камеры" => NoData("тепловые камеры"),
+                    "Котельные" => NoData("котельные"),
+                    _ => Unavailable(),
+                };
+            }
+            case "water":
+            {
+                var charges = (await Charges()).Where(IsWater).ToList();
+                return cut switch
+                {
+                    "Улицы" => Consumption(charges, entry => HouseOf(abonents[entry.AbonentId]), false),
+                    "Скважины" => NoData("скважины"),
+                    _ => Unavailable(),
+                };
+            }
+            case "houses":
+            {
+                if (cut == "Дома")
+                {
+                    var rows = abonents.Values.GroupBy(HouseOf).OrderBy(group => group.Key).Select(group => new ReportRowDto(group.Key,
+                        [group.Count(), group.Sum(abonent => abonent.Residents), Thousandths(group.Sum(abonent => abonent.Area)), group.SelectMany(abonent => abonent.Services).Where(line => line.Debt > 0).Sum(line => line.Debt)])).ToList();
+                    return Finish([new("Абонентов", "count"), new("Жильцов", "count"), new("Площадь, м²", "volume"), new("Долг, ₽", "money")], rows);
+                }
+                if (cut == "Тарифы")
+                {
+                    // У абонента может быть несколько тарифов: долг берётся только по услугам этого тарифа,
+                    // а число абонентов, жильцов и площадь по тарифам не суммируются в общий итог
+                    var rows = lines.Values.Where(line => line.State == "Работает" && line.ServiceId != "penalty").GroupBy(line => line.TariffName).OrderBy(group => group.Key).Select(group =>
+                    {
+                        var owners = group.Select(line => abonents[line.AbonentId]).DistinctBy(abonent => abonent.Id).ToList();
+                        return new ReportRowDto(group.Key, [owners.Count, owners.Sum(abonent => abonent.Residents), Thousandths(owners.Sum(abonent => abonent.Area)), group.Where(line => line.Debt > 0).Sum(line => line.Debt)]);
+                    }).ToList();
+                    return Finish([new("Абонентов", "count", true), new("Жильцов", "count", true), new("Площадь, м²", "volume", true), new("Долг по услугам тарифа, ₽", "money")], rows);
+                }
+                return Unavailable();
+            }
+            case "residents":
+            {
+                if (cut == "Сельсоветы") return NoData("сельсоветы");
+                if (cut != "Дома") return Unavailable();
+                var first = DateOnly.FromDateTime(start.ToLocalTime());
+                var last = DateOnly.FromDateTime(end.ToLocalTime()).AddDays(-1);
+                var residents = (await db.Residents.ToListAsync()).Where(item => abonents.ContainsKey(item.AbonentId)).ToList();
+                var rows = residents.GroupBy(item => HouseOf(abonents[item.AbonentId])).OrderBy(group => group.Key).Select(group => new ReportRowDto(group.Key,
+                [
+                    group.Count(item => (item.FromDate is null || item.FromDate <= last) && (item.ToDate is null || item.ToDate >= last)),
+                    group.Count(item => item.FromDate is { } date && date >= first && date <= last),
+                    group.Count(item => item.ToDate is { } date && date >= first && date <= last),
+                ])).ToList();
+                return Finish([new("Проживает на конец периода", "count"), new("Въехало", "count"), new("Выбыло", "count")], rows);
+            }
+            case "norms":
+            {
+                List<ReportColumnDto> columns = [new("Абонентов", "count"), new("Жильцов", "count"), new("Площадь, м²", "volume"), new("Норма дома, Гкал/м²", "norm", true)];
+                Func<Abonent, IEnumerable<string>>? keys = cut switch
+                {
+                    "Услуги" => abonent => abonent.Services.Where(line => line.State == "Работает" && line.ServiceId != "penalty").Select(line => line.Name).Distinct(),
+                    "Дома" => abonent => [HouseOf(abonent)],
+                    _ => null,
+                };
+                if (keys is null) return Unavailable();
+                var rows = abonents.Values.SelectMany(abonent => keys(abonent).Select(key => (key, abonent))).GroupBy(pair => pair.key, pair => pair.abonent).OrderBy(group => group.Key).Select(group =>
+                {
+                    var norms = group.Where(abonent => abonent.HouseHeatNorm is not null).Select(abonent => abonent.HouseHeatNorm!.Value).Distinct().ToList();
+                    return new ReportRowDto(group.Key, [group.Count(), group.Sum(abonent => abonent.Residents), Thousandths(group.Sum(abonent => abonent.Area)), norms.Count == 1 ? (long)Math.Round(norms[0] * 1000000m) : 0]);
+                }).ToList();
+                return Finish(columns, rows);
+            }
+            case "categories":
+            {
+                // Названия категорий не переносились: категория показана своей нормой теплопотребления
+                var rows = abonents.Values.GroupBy(abonent => abonent.HouseHeatNorm is { } norm ? $"Норма {norm.ToString("0.00000", CultureInfo.GetCultureInfo("ru-RU"))} Гкал/м²" : "Без категории").OrderBy(group => group.Key).Select(group =>
+                    new ReportRowDto(group.Key, [group.Select(HouseOf).Distinct().Count(), group.Count(), Thousandths(group.Sum(abonent => abonent.Area))])).ToList();
+                return Finish([new("Домов", "count"), new("Абонентов", "count"), new("Площадь, м²", "volume")], rows);
             }
             default:
                 return Unavailable();

@@ -333,6 +333,7 @@ for card in jsonl(os.path.join(normalized, 'abonents.jsonl')):
             beneficiaries_out.append({'account': core, 'full_name': person_name, 'category': benefit.get('Benefit', ''), 'uuid': uuid})
     report['адрес с проживающими' if found else 'адрес без проживающих'] += 1
 
+closed_line_by_number = {}
 # Остатки счетов, которых нет в действующих услугах карточек: долги по закрытым услугам. Без них пропали бы деньги.
 SUFFIX_NAMES = {'В': 'Водоотведение', 'Вюл': 'Водоотведение', 'Т': 'Теплоснабжение', 'Тюл': 'Теплоснабжение'}
 missing = {number_: value for number_, value in accounts_list.items() if number_ not in known_accounts and value != 0}
@@ -353,6 +354,7 @@ for number_, value in sorted(missing.items()):
             seen_accounts.add(core)
             abonent_by_name[norm_address(info.get('ФИО'), info.get('Адрес'))] = core
             report['абонент создан из-за остатка по закрытой услуге'] += 1
+    closed_line_by_number[number_] = (core, f'closed_{slug(suffix)}_{found.group(1)}')
     services_out.append({'account': core, 'service_id': f'closed_{slug(suffix)}_{found.group(1)}', 'name': f"{SUFFIX_NAMES.get(suffix, suffix)} (закрытая услуга)", 'state': CLOSED, 'tariff_id': '', 'debt': rubles(-value)})
     carried += value
     report['закрытая услуга с остатком добавлена'] += 1
@@ -394,6 +396,25 @@ for op in jsonl(os.path.join(normalized, 'operations.jsonl')):
     else:
         kind = 'Перенос' if '->' in op['text'] else ('Выплата' if op['doc'].startswith('Расходный') else 'Касса')
         payments_out.append({'account': account_of[abonent], 'date': op['at'][:10], 'source': kind, 'cashier': op['operator'], 'amount': rubles(-amount)})
+# Операции закрытых услуг: история к строкам, созданным по остаткам этих счетов
+_closed_file = os.path.join(normalized, 'closed_operations.jsonl')
+if os.path.exists(_closed_file):
+    for op in jsonl(_closed_file):
+        if op['at'][:10] > SNAPSHOT_DATE:
+            continue
+        target = closed_line_by_number.get(op['account'].replace('_', ' '), closed_line_by_number.get(op['account']))
+        if target is None:
+            report['операция закрытого счёта без строки'] += 1
+            continue
+        account_core, service_id = target
+        amount = Decimal(op['out']) - Decimal(op['in'])
+        if op['doc'] == 'Абон. плата':
+            entry = charges[(account_core, service_id, op['period'] or op['at'][:7])]
+            entry['amount'] += amount
+        else:
+            payments_out.append({'account': account_core, 'date': op['at'][:10], 'source': 'Перенос' if '->' in op['text'] else ('Выплата' if op['doc'].startswith('Расходный') else 'Касса'), 'cashier': op['operator'], 'amount': rubles(-amount)})
+        report['операция закрытого счёта перенесена'] += 1
+
 write('charges.csv', ['account', 'service_id', 'period', 'amount', 'volume', 'price'], [
     {'account': key[0], 'service_id': key[1], 'period': key[2], 'amount': rubles(value['amount']), 'volume': format(value['volume'].quantize(Decimal('0.0001')), 'f').replace('.', ','), 'price': (value['prices'].most_common(1)[0][0] if value['prices'] else '').replace('.', ',')}
     for key, value in sorted(charges.items()) if value['amount'] != 0])

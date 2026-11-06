@@ -506,7 +506,7 @@ export interface ReportQuery {
 export interface ReportColumn {
   title: string;
   /** count: целое, money: копейки, percent: десятые доли процента, volume: тысячные доли (Гкал, м³) */
-  type: 'count' | 'money' | 'percent' | 'volume';
+  type: 'count' | 'money' | 'percent' | 'volume' | 'norm';
   noTotal?: boolean;
 }
 

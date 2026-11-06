@@ -118,6 +118,26 @@ def parse_card(path):
     return card
 
 
+def parse_closed():
+    """Журналы закрытых услуг: файлы «номер_cardID_journal», операции пишутся отдельно с номером счёта."""
+    folder = os.path.join(cards, 'closed')
+    count = 0
+    with open(os.path.join(out_dir, 'closed_operations.jsonl'), 'w', encoding='utf-8') as output:
+        os.chmod(output.name, 0o600)
+        for path in sorted(glob.glob(os.path.join(folder, '*_journal.html.gz'))):
+            name = os.path.basename(path)
+            found = re.match(r'(RUB\.[^_]+(?:_[^_]+)*?)_card(\d+)_journal', name)
+            if not found:
+                continue
+            operations, _ = parse_journal(path)
+            for op in operations:
+                op['account'] = found.group(1)
+                op['abonent'] = found.group(2)
+                output.write(json.dumps(op, ensure_ascii=False) + '\n')
+                count += 1
+    print(count, 'операций закрытых услуг')
+
+
 def main():
     ids = sorted({os.path.basename(path).split('_')[0] for path in glob.glob(os.path.join(cards, '*_card.html.gz'))}, key=int)
     report = collections.Counter()
@@ -186,3 +206,4 @@ def main():
 
 
 main()
+parse_closed()
