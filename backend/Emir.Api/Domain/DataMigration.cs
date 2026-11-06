@@ -162,6 +162,28 @@ public static partial class DataMigration
         return tables.Count;
     }
 
+    private static string? Text(string value) => value.Trim() == "" ? null : value.Trim();
+
+    /// <summary>Обновляет у существующих абонентов сельсовет, котельную, камеру, категорию и материал стен по abonents.csv. Деньги не трогает.</summary>
+    public static async Task<(int Updated, int Missing)> UpdateAbonentAttributes(EmirDb db, string file)
+    {
+        var ctx = new Context(Path.GetDirectoryName(file)!);
+        var abonents = await db.Abonents.ToDictionaryAsync(abonent => abonent.Account);
+        int updated = 0, missing = 0;
+        foreach (var row in ctx.Read(Path.GetFileName(file), ["account"]))
+        {
+            if (!abonents.TryGetValue(row["account"], out var abonent)) { missing++; continue; }
+            abonent.District = Text(row["district"]);
+            abonent.Boiler = Text(row["boiler"]);
+            abonent.HeatChamber = Text(row["heat_chamber"]);
+            abonent.HouseCategory = Text(row["house_category"]);
+            abonent.WallMaterial = Text(row["wall_material"]);
+            updated++;
+        }
+        await db.SaveChangesAsync();
+        return (updated, missing);
+    }
+
     public record ReferenceFile(string Name, List<string> Columns, List<List<string>> Rows, bool Sensitive);
 
     public static async Task<MigrationReport> Run(EmirDb db, string folder, string startPeriod, bool apply)
@@ -222,7 +244,7 @@ public static partial class DataMigration
             var abonent = new Abonent
             {
                 Id = Guid.NewGuid().ToString("N"), Kind = kind, Name = row["name"], ShortName = row["short_name"] == "" ? row["name"] : row["short_name"], Place = row["place"], Street = row["street"],
-                Flat = row["flat"] == "" ? null : row["flat"], Account = account, Phone = row["phone"] == "" ? null : row["phone"], Inn = row["inn"] == "" ? null : row["inn"], HouseHeatNorm = houseHeatNorm, Area = area, Residents = (int)residents, Credit = credit,
+                Flat = row["flat"] == "" ? null : row["flat"], Account = account, Phone = row["phone"] == "" ? null : row["phone"], Inn = row["inn"] == "" ? null : row["inn"], HouseHeatNorm = houseHeatNorm, District = Text(row["district"]), Boiler = Text(row["boiler"]), HeatChamber = Text(row["heat_chamber"]), HouseCategory = Text(row["house_category"]), WallMaterial = Text(row["wall_material"]), Area = area, Residents = (int)residents, Credit = credit,
                 Note = row["note"] == "" ? null : row["note"], Consent = consent, ConsentAtUtc = consent is null ? null : now, OwnershipDocument = row["ownership_document"] == "" ? null : row["ownership_document"],
             };
             abonents[account] = abonent;

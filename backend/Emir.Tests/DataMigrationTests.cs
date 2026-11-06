@@ -267,6 +267,25 @@ public sealed class DataMigrationTests : IDisposable
     }
 
     [Fact]
+    public async Task AbonentAttributes_LoadAndUpdate_WithoutTouchingMoney()
+    {
+        Write("abonents.csv", "account;kind;name;street;area;district;boiler;heat_chamber;house_category;wall_material\n100;ФЛ;Иванов;ул. 1;50;Первый сельсовет;Котельная 1;ТК-1;1-этажные;кирпич\n200;ЮЛ;ООО;ул. 2;10;;;;;\n");
+        Assert.True((await Run()).Ok);
+        await using (var db = Db())
+        {
+            var person = await db.Abonents.SingleAsync(item => item.Account == "100");
+            Assert.Equal(("Первый сельсовет", "Котельная 1", "ТК-1", "1-этажные", "кирпич"), (person.District, person.Boiler, person.HeatChamber, person.HouseCategory, person.WallMaterial));
+            Assert.Null((await db.Abonents.SingleAsync(item => item.Account == "200")).District);
+        }
+        Write("update.csv", "account;district;boiler\n200;Второй сельсовет;Котельная 2\n999;Нет такого;\n");
+        await using (var db = Db()) Assert.Equal((1, 1), await DataMigration.UpdateAbonentAttributes(db, Path.Combine(_folder, "update.csv")));
+        await using var check = Db();
+        var org = await check.Abonents.SingleAsync(item => item.Account == "200");
+        Assert.Equal(("Второй сельсовет", "Котельная 2"), (org.District, org.Boiler));
+        Assert.Equal(100050 + 20000 + 1000, await check.ServiceLines.SumAsync(line => line.Debt));
+    }
+
+    [Fact]
     public async Task Windows1251Files_AreRead()
     {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);

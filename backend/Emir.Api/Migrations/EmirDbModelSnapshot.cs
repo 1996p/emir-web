@@ -35,6 +35,9 @@ namespace Emir.Api.Migrations
                         .HasPrecision(18, 4)
                         .HasColumnType("numeric(18,4)");
 
+                    b.Property<string>("Boiler")
+                        .HasColumnType("text");
+
                     b.Property<bool?>("Consent")
                         .HasColumnType("boolean");
 
@@ -44,7 +47,16 @@ namespace Emir.Api.Migrations
                     b.Property<long>("Credit")
                         .HasColumnType("bigint");
 
+                    b.Property<string>("District")
+                        .HasColumnType("text");
+
                     b.Property<string>("Flat")
+                        .HasColumnType("text");
+
+                    b.Property<string>("HeatChamber")
+                        .HasColumnType("text");
+
+                    b.Property<string>("HouseCategory")
                         .HasColumnType("text");
 
                     b.Property<decimal?>("HouseHeatNorm")
@@ -84,6 +96,9 @@ namespace Emir.Api.Migrations
 
                     b.Property<string>("Street")
                         .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("WallMaterial")
                         .HasColumnType("text");
 
                     b.HasKey("Id");

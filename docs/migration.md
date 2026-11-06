@@ -62,7 +62,9 @@ CSV с первой строкой из названий колонок, раз�
 
 ### abonents.csv, обязательный
 
-**account**, **kind** (`ФЛ` или `ЮЛ`), **name**, **street**, short_name, place, flat, phone, inn, area, residents, house_heat_norm, credit, note, consent (`да`, `нет` или пусто), ownership_document
+**account**, **kind** (`ФЛ` или `ЮЛ`), **name**, **street**, short_name, place, flat, phone, inn, area, residents, house_heat_norm, district, boiler, heat_chamber, house_category, wall_material, credit, note, consent (`да`, `нет` или пусто), ownership_document
+
+`district`, `boiler`, `heat_chamber`, `house_category`, `wall_material` это сельсовет, котельная, тепловая камера, категория дома и материал стен для отчётов. В уже заполненной базе их можно обновить командой `update-abonent-attributes abonents.csv`, деньги она не трогает.
 
 `house_heat_norm` это норма теплопотребления категории дома в Гкал на м² в месяц. Без неё схема `NormHouse` не начислит.
 

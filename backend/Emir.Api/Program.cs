@@ -64,6 +64,14 @@ using (var scope = app.Services.CreateScope())
         Console.WriteLine("Миграции применены");
         return;
     }
+    if (command == "update-abonent-attributes")
+    {
+        var file = args.SkipWhile(arg => arg != "update-abonent-attributes").Skip(1).FirstOrDefault();
+        if (file is null) { Console.Error.WriteLine("Использование: dotnet Emir.Api.dll update-abonent-attributes <abonents.csv>"); Environment.ExitCode = 1; return; }
+        var (updated, missing) = await DataMigration.UpdateAbonentAttributes(db, file);
+        Console.WriteLine($"Обновлено абонентов: {updated}, не найдено по ЛС: {missing}");
+        return;
+    }
     if (command == "import-references")
     {
         var file = args.SkipWhile(arg => arg != "import-references").Skip(1).FirstOrDefault();

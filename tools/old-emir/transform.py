@@ -184,6 +184,14 @@ for row in zen('Льготники'):
 
 # Норматив по заказу: число или помесячно «1=0.5#2=0.5#...», в этом же виде его понимает новый расчёт.
 contract_norms = {row['Contract']: row['Value'] for row in zen('Нормы_потребления_по_заказу') if row.get('Value')}
+# Данные дома (котельная, тепловая камера, категория, материал стен) и сельсовет населённого пункта
+house_info = {}
+for row in zen('Данные_о_домах'):
+    house_info[address_key(row.get('City'), row.get('Street'), row.get('Num'), '')] = row
+district_of = {}
+for row in csp('Address_CityList'):
+    if row.get('Наименование'):
+        district_of[plain(row['Наименование'])] = row.get('Сельсовет', '')
 # Категория дома для абонентов, которых нет в списке с площадью.
 house_categories = {}
 for row in zen('Данные_о_домах'):
@@ -266,6 +274,11 @@ for card in jsonl(os.path.join(normalized, 'abonents.jsonl')):
         'phone': phones[0] if phones else '', 'area': list_row.get('Отапливаемая пл-дь', ''), 'residents': list_row.get('Кол-во прож.', ''),
         'house_heat_norm': norm.replace('.', ',') if norm and norm.startswith('.') is False else ('0' + norm.replace('.', ',') if norm else ''),
         'note': fields.get('Дополнительная информация', ''),
+        'district': district_of.get(plain(place_key), ''),
+        'boiler': house_info.get(address_key(place_key, street_key, house_key, ''), {}).get('BoilerName', ''),
+        'heat_chamber': house_info.get(address_key(place_key, street_key, house_key, ''), {}).get('BoilerRoomName', ''),
+        'house_category': house_info.get(address_key(place_key, street_key, house_key, ''), {}).get('HouseCategory', '') or list_row.get('Категория', ''),
+        'wall_material': house_info.get(address_key(place_key, street_key, house_key, ''), {}).get('WallMaterial', '') or list_row.get('Материал стен', ''),
     })
     abonent_by_name[norm_address(name, full_address)] = core
     used = set()
@@ -435,7 +448,7 @@ for tariff_id in tariffs:
 
 write('tariffs.csv', ['id', 'name', 'scheme', 'unit'], list(tariffs.values()))
 write('tariff_prices.csv', ['tariff_id', 'from_period', 'price'], price_rows)
-write('abonents.csv', ['account', 'kind', 'name', 'short_name', 'place', 'street', 'flat', 'phone', 'inn', 'area', 'residents', 'house_heat_norm', 'credit', 'note', 'consent', 'ownership_document'], abonents_out)
+write('abonents.csv', ['account', 'kind', 'name', 'short_name', 'place', 'street', 'flat', 'phone', 'inn', 'area', 'residents', 'house_heat_norm', 'district', 'boiler', 'heat_chamber', 'house_category', 'wall_material', 'credit', 'note', 'consent', 'ownership_document'], abonents_out)
 write('services.csv', ['account', 'service_id', 'name', 'state', 'tariff_id', 'debt', 'contract_norm', 'meter_number', 'meter_last_reading', 'meter_verified_until', 'meter_average', 'house_meter_id'], services_out)
 write('house_meters.csv', ['id', 'place', 'street', 'number', 'unit', 'unit_factor'], house_meters_out)
 write('house_meter_readings.csv', ['meter_id', 'period', 'value'], house_readings_out)

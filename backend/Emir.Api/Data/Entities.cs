@@ -38,6 +38,12 @@ public class Abonent
     public string? Inn { get; set; }
     public int Residents { get; set; }
     public decimal Area { get; set; }
+    /// <summary>Сельсовет, котельная, тепловая камера, категория дома и материал стен: из справочников старой системы, для отчётов и отбора.</summary>
+    public string? District { get; set; }
+    public string? Boiler { get; set; }
+    public string? HeatChamber { get; set; }
+    public string? HouseCategory { get; set; }
+    public string? WallMaterial { get; set; }
     /// <summary>Норма теплопотребления категории дома, Гкал на м² в месяц. Нужна схеме NormHouse.</summary>
     public decimal? HouseHeatNorm { get; set; }
     /// <summary>Переплата в копейках.</summary>
