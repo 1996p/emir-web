@@ -32,6 +32,15 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     options.Events.OnRedirectToAccessDenied = context => { context.Response.StatusCode = 403; return Task.CompletedTask; };
 });
 builder.Services.AddAuthorization();
+// Ответы API сжимаются: список абонентов весит мегабайты и медленно идёт по сети и через туннели.
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.BrotliCompressionProvider>();
+    options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.GzipCompressionProvider>();
+});
+builder.Services.Configure<Microsoft.AspNetCore.ResponseCompression.BrotliCompressionProviderOptions>(options => options.Level = System.IO.Compression.CompressionLevel.Fastest);
+builder.Services.Configure<Microsoft.AspNetCore.ResponseCompression.GzipCompressionProviderOptions>(options => options.Level = System.IO.Compression.CompressionLevel.Fastest);
 
 builder.Services.AddRateLimiter(options =>
 {
@@ -123,6 +132,8 @@ using (var scope = app.Services.CreateScope())
         if (!string.IsNullOrEmpty(demoPassword)) Seed.Run(db, demoPassword);
     }
 }
+
+app.UseResponseCompression();
 
 app.Use(async (context, next) =>
 {

@@ -20,7 +20,29 @@ export function setUnauthorizedHandler(handler: () => void) {
   onUnauthorized = handler;
 }
 
+// Сколько запросов к серверу сейчас в пути: по этому числу показывается индикатор загрузки.
+let pending = 0;
+const loadingListeners = new Set<() => void>();
+function setPending(delta: number) {
+  pending += delta;
+  loadingListeners.forEach((listener) => listener());
+}
+export function subscribeLoading(listener: () => void) {
+  loadingListeners.add(listener);
+  return () => { loadingListeners.delete(listener); };
+}
+export const getPendingRequests = () => pending;
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  setPending(1);
+  try {
+    return await send<T>(path, init);
+  } finally {
+    setPending(-1);
+  }
+}
+
+async function send<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
   try {
     response = await fetch(`/api${path}`, { credentials: 'same-origin', ...init });

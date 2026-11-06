@@ -4,6 +4,7 @@ import { api, useApi } from '@/api';
 import { ForcedPasswordChange } from '@/pages/AccountPage';
 import { LoginPage } from '@/pages/LoginPage';
 import { CommandPalette } from './CommandPalette';
+import { HeatLoader } from './HeatLoader';
 import { NAV, ROLE_LABEL, useSession } from './role';
 
 export function AppShell() {
@@ -60,6 +61,7 @@ function SignedInShell() {
         {allowed ? <Outlet /> : <main className="main muted" style={{ alignItems: 'center', justifyContent: 'center', fontSize: 15 }}>Этот раздел недоступен для вашей роли.</main>}
       </div>
       {paletteOpen && <CommandPalette onClose={() => setPaletteOpen(false)} />}
+      <HeatLoader />
     </div>
   );
 }
