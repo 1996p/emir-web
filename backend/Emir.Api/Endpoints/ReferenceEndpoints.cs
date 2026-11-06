@@ -35,7 +35,10 @@ public static class ReferenceEndpoints
                 case "Квартирные счётчики":
                     return new DirectoryTableDto(["Номер", "Адрес", "Услуга", "Показание"], abonents.SelectMany(abonent => abonent.Services.Where(line => line.MeterNumber is not null).Select(line => new List<string> { line.MeterNumber!, Address(abonent), line.Name, (line.MeterLastReading ?? 0).ToString("0.####") })).ToList());
                 default:
-                    return new DirectoryTableDto(["ID", "Название", "Описание"], [], Placeholder: true);
+                    var stored = await db.ReferenceTables.FirstOrDefaultAsync(item => item.Name == name);
+                    return stored is null
+                        ? new DirectoryTableDto(["ID", "Название", "Описание"], [], Placeholder: true)
+                        : new DirectoryTableDto(System.Text.Json.JsonSerializer.Deserialize<List<string>>(stored.ColumnsJson) ?? [], System.Text.Json.JsonSerializer.Deserialize<List<List<string>>>(stored.RowsJson) ?? [], stored.Sensitive);
             }
         }).Roles(Roles.Service, Roles.Accountant, Roles.Admin);
 

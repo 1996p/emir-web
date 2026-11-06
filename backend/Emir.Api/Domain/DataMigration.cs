@@ -144,6 +144,26 @@ public static partial class DataMigration
         _ => null,
     };
 
+    /// <summary>Заменяет справочники старой системы из references.json. Деньги не трогает, поэтому можно в рабочей базе.</summary>
+    public static async Task<int> ImportReferences(EmirDb db, string file)
+    {
+        using var stream = File.OpenRead(file);
+        var tables = await System.Text.Json.JsonSerializer.DeserializeAsync<List<ReferenceFile>>(stream, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? [];
+        // Русский текст хранится как есть, а не кодами \uXXXX: так база меньше в несколько раз
+        var plain = new System.Text.Json.JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+        db.ReferenceTables.RemoveRange(db.ReferenceTables);
+        foreach (var table in tables)
+            db.ReferenceTables.Add(new ReferenceTable
+            {
+                Name = table.Name, ColumnsJson = System.Text.Json.JsonSerializer.Serialize(table.Columns, plain), RowsJson = System.Text.Json.JsonSerializer.Serialize(table.Rows, plain),
+                RowCount = table.Rows.Count, Sensitive = table.Sensitive, LoadedAtUtc = DateTime.UtcNow,
+            });
+        await db.SaveChangesAsync();
+        return tables.Count;
+    }
+
+    public record ReferenceFile(string Name, List<string> Columns, List<List<string>> Rows, bool Sensitive);
+
     public static async Task<MigrationReport> Run(EmirDb db, string folder, string startPeriod, bool apply)
     {
         var ctx = new Context(folder);

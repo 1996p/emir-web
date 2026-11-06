@@ -26,6 +26,7 @@ public class EmirDb(DbContextOptions<EmirDb> options) : DbContext(options)
     public DbSet<AbonentFact> AbonentFacts => Set<AbonentFact>();
     public DbSet<Resident> Residents => Set<Resident>();
     public DbSet<HouseMeter> HouseMeters => Set<HouseMeter>();
+    public DbSet<ReferenceTable> ReferenceTables => Set<ReferenceTable>();
     public DbSet<HouseMeterReading> HouseMeterReadings => Set<HouseMeterReading>();
     public DbSet<LedgerEntry> LedgerEntries => Set<LedgerEntry>();
     public DbSet<OrganizationProfile> OrganizationProfiles => Set<OrganizationProfile>();
@@ -96,6 +97,7 @@ public class EmirDb(DbContextOptions<EmirDb> options) : DbContext(options)
     protected override void OnModelCreating(ModelBuilder model)
     {
         model.Entity<Abonent>().Property(item => item.HouseHeatNorm).HasPrecision(18, 6);
+        model.Entity<ReferenceTable>().HasKey(item => item.Name);
         model.Entity<AppUser>().HasIndex(user => user.Login).IsUnique();
         model.Entity<HouseMeterReading>().HasIndex(item => new { item.HouseMeterId, item.Period }).IsUnique();
         model.Entity<HouseMeter>().Property(item => item.UnitFactor).HasPrecision(18, 8);

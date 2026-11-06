@@ -253,6 +253,20 @@ public sealed class DataMigrationTests : IDisposable
     }
 
     [Fact]
+    public async Task ImportReferences_ReplacesTables_AndKeepsMoneyUntouched()
+    {
+        Assert.True((await Run()).Ok);
+        Write("references.json", "[{\"name\":\"Котельные\",\"columns\":[\"ID\",\"Название\"],\"rows\":[[\"1\",\"Центральная\"],[\"2\",\"Северная\"]],\"sensitive\":false}]");
+        await using (var db = Db()) Assert.Equal(1, await DataMigration.ImportReferences(db, Path.Combine(_folder, "references.json")));
+        await using (var db = Db()) Assert.Equal(1, await DataMigration.ImportReferences(db, Path.Combine(_folder, "references.json")));
+        await using var check = Db();
+        var table = await check.ReferenceTables.SingleAsync();
+        Assert.Equal(2, table.RowCount);
+        Assert.Contains("Северная", table.RowsJson);
+        Assert.Equal(100050 + 20000 + 1000, await check.ServiceLines.SumAsync(line => line.Debt));
+    }
+
+    [Fact]
     public async Task Windows1251Files_AreRead()
     {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);

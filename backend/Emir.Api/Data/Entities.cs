@@ -157,6 +157,20 @@ public class HouseMeterReading
     public DateTime AtUtc { get; set; }
 }
 
+/// <summary>Справочник старой системы, перенесённый как есть: только для просмотра.</summary>
+public class ReferenceTable
+{
+    public required string Name { get; set; }
+    /// <summary>JSON: список названий колонок.</summary>
+    public required string ColumnsJson { get; set; }
+    /// <summary>JSON: список строк, каждая строка это список значений.</summary>
+    public required string RowsJson { get; set; }
+    public int RowCount { get; set; }
+    /// <summary>Есть персональные данные.</summary>
+    public bool Sensitive { get; set; }
+    public DateTime LoadedAtUtc { get; set; }
+}
+
 public class PeriodReading
 {
     public int Id { get; set; }

@@ -64,6 +64,13 @@ using (var scope = app.Services.CreateScope())
         Console.WriteLine("Миграции применены");
         return;
     }
+    if (command == "import-references")
+    {
+        var file = args.SkipWhile(arg => arg != "import-references").Skip(1).FirstOrDefault();
+        if (file is null) { Console.Error.WriteLine("Использование: dotnet Emir.Api.dll import-references <references.json>"); Environment.ExitCode = 1; return; }
+        Console.WriteLine($"Справочников загружено: {await DataMigration.ImportReferences(db, file)}");
+        return;
+    }
     if (command == "create-admin")
     {
         var values = args.SkipWhile(arg => arg != "create-admin").Skip(1).ToArray();

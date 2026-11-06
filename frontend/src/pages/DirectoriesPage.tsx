@@ -32,9 +32,12 @@ export function DirectoriesPage() {
     return (groups ?? []).map((group) => ({ name: group.name, items: group.items.filter((item) => !normalized || item.toLowerCase().includes(normalized)) })).filter((group) => group.items.length > 0);
   }, [groups, search]);
 
-  const rows: Row[] = (table?.rows ?? [])
+  const matched: Row[] = (table?.rows ?? [])
     .map((cells, index) => ({ key: String(index), cells }))
     .filter((row) => !rowFilter.trim() || row.cells.join(' ').toLowerCase().includes(rowFilter.trim().toLowerCase()));
+  // Большие справочники (десятки тысяч строк) показываются частью, остальное находится фильтром
+  const ROW_LIMIT = 500;
+  const rows = matched.slice(0, ROW_LIMIT);
   const current = table?.rows[rowIndex] ?? table?.rows[0];
   const columns: Column<Row>[] = (table?.columns ?? []).map((header, index) => ({ key: header, header, render: (row) => row.cells[index] }));
 
@@ -71,9 +74,10 @@ export function DirectoriesPage() {
         {name === 'Тарифы' ? <TariffsDirectory filter={rowFilter} /> : null}
         {name === 'Льготники' ? <BeneficiariesDirectory filter={rowFilter} /> : null}
         {name === 'Категории льготников' ? <CategoriesDirectory filter={rowFilter} /> : null}
-        {!isTariffs && table?.placeholder && <div style={{ padding: '8px 16px' }}><Notice>Этот справочник появится после переноса данных из старой системы.</Notice></div>}
+        {!isTariffs && table?.placeholder && <div style={{ padding: '8px 16px' }}><Notice>В старой системе этот справочник пуст или не переносился.</Notice></div>}
         {!isTariffs && <div className="split">
           <div className="main">
+            {!table?.placeholder && matched.length > ROW_LIMIT && <div style={{ padding: '8px 16px' }}><Notice>Показаны первые {ROW_LIMIT} из {matched.length.toLocaleString('ru-RU')} записей. Уточните фильтр, чтобы найти нужную.</Notice></div>}
             {!table?.placeholder && <DataTable columns={columns} rows={rows} rowKey={(row) => row.key} onRowClick={(row) => { setRowIndex(Number(row.key)); setPassport(null); }} isSelected={(row) => Number(row.key) === rowIndex} empty={<span className="muted">Записей нет.</span>} />}
           </div>
           {!table?.placeholder && current && (
@@ -87,7 +91,7 @@ export function DirectoriesPage() {
                     {passport ? <div>{passport}</div> : <Button size="full" style={{ height: 36 }} onClick={() => void showPassport()}>Показать, запись в журнал</Button>}
                   </div>
                 )}
-                <p className="small muted">Справочники пока только для чтения. Абонентов можно менять в разделе «Абоненты».</p>
+                <p className="small muted">Справочники перенесены из старой системы и пока только для чтения. Абонентов можно менять в разделе «Абоненты».</p>
               </div>
             </aside>
           )}

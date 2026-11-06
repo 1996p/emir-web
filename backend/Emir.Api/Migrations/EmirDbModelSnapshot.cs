@@ -897,6 +897,33 @@ namespace Emir.Api.Migrations
                     b.ToTable("PeriodSteps");
                 });
 
+            modelBuilder.Entity("Emir.Api.Data.ReferenceTable", b =>
+                {
+                    b.Property<string>("Name")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ColumnsJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("LoadedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("RowCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RowsJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("Sensitive")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Name");
+
+                    b.ToTable("ReferenceTables");
+                });
+
             modelBuilder.Entity("Emir.Api.Data.Resident", b =>
                 {
                     b.Property<int>("Id")
