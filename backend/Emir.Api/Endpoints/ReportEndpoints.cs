@@ -12,7 +12,7 @@ public record ReportResultDto(bool Available, string? Message, List<ReportColumn
 
 public static class ReportEndpoints
 {
-    private const string NotConnected = "Этот отчёт появится после переноса данных из старой системы.";
+    private const string NotConnected = "Этот отчёт ещё не сделан. Данные для него перенесены, отчёт будет добавлен.";
 
     public static void MapReports(this RouteGroupBuilder api)
     {
@@ -47,6 +47,7 @@ public static class ReportEndpoints
     {
         "money" => (value / 100m).ToString("0.00", CultureInfo.GetCultureInfo("ru-RU")),
         "percent" => (value / 10m).ToString("0.0", CultureInfo.GetCultureInfo("ru-RU")),
+        "volume" => (value / 1000m).ToString("0.000", CultureInfo.GetCultureInfo("ru-RU")),
         _ => value.ToString(CultureInfo.InvariantCulture),
     };
 
@@ -56,6 +57,7 @@ public static class ReportEndpoints
         if (definition.Kind == "debt") return await BuildDebt(db, cut, who);
         if (definition.Kind == "cash") return await BuildCash(db, cut, who, period, from, to);
         if (definition.Kind == "ledger") return await BuildTurnover(db, cut, who, period, from, to);
+        if (definition.Kind == "sum") return await BuildSum(db, definition.Id, cut, who, period, from, to);
         return Unavailable();
     }
 
@@ -117,7 +119,7 @@ public static class ReportEndpoints
                 break;
             case "Дома":
                 columns = [new("Абонентов", "count"), .. money];
-                rows = abonents.Where(abonent => abonent.Services.Any(line => line.Debt > 0)).GroupBy(abonent => abonent.Street).OrderBy(house => house.Key)
+                rows = abonents.Where(abonent => abonent.Services.Any(line => line.Debt > 0)).GroupBy(HouseOf).OrderBy(house => house.Key)
                     .Select(house =>
                     {
                         var lines = house.SelectMany(abonent => abonent.Services).ToList();
@@ -139,7 +141,7 @@ public static class ReportEndpoints
     {
         var (start, end) = Range(period, from, to);
         var persons = await db.Abonents.Select(abonent => new { abonent.Id, abonent.Kind }).ToDictionaryAsync(abonent => abonent.Id, abonent => abonent.Kind);
-        var payments = (await db.Payments.Where(payment => payment.Status == "Проведена" && payment.AtUtc >= start && payment.AtUtc < end).ToListAsync())
+        var payments = (await db.Payments.Where(payment => (payment.Status == "Проведена" || payment.Status == "Перенесён") && payment.AtUtc >= start && payment.AtUtc < end).ToListAsync())
             .Where(payment => persons.TryGetValue(payment.AbonentId, out var kind) && MatchesWho(kind, who)).ToList();
 
         Func<Payment, string>? key = cut switch
@@ -159,6 +161,170 @@ public static class ReportEndpoints
             return new ReportRowDto(group.Key, [group.Count(), total - noncash, noncash, total]);
         }).ToList();
         return Finish(columns, rows);
+    }
+
+    /// <summary>Месяцы начисления, которые пересекаются с выбранным периодом отчёта.</summary>
+    private static HashSet<string> Months(DateTime start, DateTime end)
+    {
+        var months = new HashSet<string>();
+        var first = new DateTime(start.ToLocalTime().Year, start.ToLocalTime().Month, 1);
+        for (var month = first; month < end.ToLocalTime(); month = month.AddMonths(1)) months.Add(month.ToString("yyyy-MM"));
+        return months;
+    }
+
+    /// <summary>Отчёты по начислениям и состоянию счетов. Суммы в копейках, объём в тысячных долях.</summary>
+    private static async Task<ReportResultDto> BuildSum(EmirDb db, string reportId, string cut, string who, string period, DateOnly? from, DateOnly? to)
+    {
+        var (start, end) = Range(period, from, to);
+        var months = Months(start, end);
+        var abonents = (await db.Abonents.Include(abonent => abonent.Services).ToListAsync()).Where(abonent => MatchesWho(abonent.Kind, who)).ToDictionary(abonent => abonent.Id);
+        var lines = abonents.Values.SelectMany(abonent => abonent.Services).ToDictionary(line => (line.AbonentId, line.ServiceId));
+        string Label(Abonent abonent) => $"{abonent.Account} · {abonent.ShortName}";
+        string ServiceName(string abonentId, string serviceId) => serviceId == "penalty" ? "Пени" : lines.TryGetValue((abonentId, serviceId), out var line) ? line.Name : serviceId;
+        string House(Abonent abonent) => HouseOf(abonent);
+
+        async Task<List<ChargeEntry>> Charges()
+        {
+            var list = await db.ChargeEntries.Where(entry => months.Contains(entry.Period)).ToListAsync();
+            return list.Where(entry => abonents.ContainsKey(entry.AbonentId)).ToList();
+        }
+        async Task<List<Payment>> Payments()
+        {
+            var list = await db.Payments.Where(payment => (payment.Status == "Проведена" || payment.Status == "Перенесён") && payment.AtUtc >= start && payment.AtUtc < end).ToListAsync();
+            return list.Where(payment => abonents.ContainsKey(payment.AbonentId)).ToList();
+        }
+        static long Volume(IEnumerable<ChargeEntry> entries) => (long)Math.Round(entries.Sum(entry => entry.Volume) * 1000m);
+
+        switch (reportId)
+        {
+            case "charges":
+            {
+                var charges = await Charges();
+                Func<ChargeEntry, string>? key = cut switch
+                {
+                    "Услуги" => entry => ServiceName(entry.AbonentId, entry.ServiceId),
+                    "Абоненты" => entry => Label(abonents[entry.AbonentId]),
+                    _ => null,
+                };
+                if (key is null) return Unavailable();
+                var rows = charges.GroupBy(key).OrderBy(group => group.Key)
+                    .Select(group => new ReportRowDto(group.Key, [group.Select(entry => entry.AbonentId).Distinct().Count(), Volume(group), group.Sum(entry => entry.Amount)])).ToList();
+                return Finish([new("Абонентов", "count", true), new("Объём", "volume"), new("Начислено, ₽", "money")], rows);
+            }
+            case "tariffs":
+            {
+                var charges = (await Charges()).Where(entry => entry.ServiceId != "penalty").ToList();
+                var tariffs = await db.Tariffs.ToDictionaryAsync(tariff => tariff.Id, tariff => tariff.Name);
+                string TariffName(ChargeEntry entry)
+                {
+                    var id = entry.TariffId ?? (lines.TryGetValue((entry.AbonentId, entry.ServiceId), out var line) ? line.TariffId : null);
+                    return id is not null && tariffs.TryGetValue(id, out var name) ? name : "Без тарифа";
+                }
+                var rows = charges.GroupBy(TariffName).OrderBy(group => group.Key)
+                    .Select(group => new ReportRowDto(group.Key, [group.Select(entry => entry.AbonentId).Distinct().Count(), Volume(group), group.Sum(entry => entry.Amount)])).ToList();
+                return Finish([new("Абонентов", "count", true), new("Объём", "volume"), new("Начислено, ₽", "money")], rows);
+            }
+            case "balance":
+            {
+                // Состояние на сейчас: долг по услугам и переплата абонента
+                Func<ServiceLine, string>? key = cut switch
+                {
+                    "Услуги" => line => line.ServiceId == "penalty" ? "Пени" : line.Name,
+                    "Сельсоветы" => line => abonents[line.AbonentId].Place == "" ? "Без населённого пункта" : abonents[line.AbonentId].Place,
+                    _ => null,
+                };
+                if (key is null) return Unavailable();
+                var rows = lines.Values.GroupBy(key).OrderBy(group => group.Key).Select(group =>
+                {
+                    var debt = group.Where(line => line.Debt > 0).Sum(line => line.Debt);
+                    var credit = -group.Where(line => line.Debt < 0).Sum(line => line.Debt);
+                    return new ReportRowDto(group.Key, [group.Select(line => line.AbonentId).Distinct().Count(), debt, credit, debt - credit]);
+                }).ToList();
+                if (cut == "Сельсоветы")
+                {
+                    // Переплата лежит у абонента, а не у услуги: добавляется по населённому пункту
+                    foreach (var place in abonents.Values.Where(abonent => abonent.Credit > 0).GroupBy(abonent => abonent.Place == "" ? "Без населённого пункта" : abonent.Place))
+                    {
+                        var index = rows.FindIndex(row => row.Name == place.Key);
+                        var credit = place.Sum(abonent => abonent.Credit);
+                        if (index < 0) rows.Add(new ReportRowDto(place.Key, [place.Count(), 0, credit, -credit]));
+                        else rows[index] = rows[index] with { Values = [rows[index].Values[0], rows[index].Values[1], rows[index].Values[2] + credit, rows[index].Values[3] - credit] };
+                    }
+                }
+                else
+                {
+                    var credit = abonents.Values.Sum(abonent => abonent.Credit);
+                    if (credit > 0) rows.Add(new ReportRowDto("Переплата абонентов", [abonents.Values.Count(abonent => abonent.Credit > 0), 0, credit, -credit]));
+                }
+                return Finish([new("Абонентов", "count", true), new("Долг, ₽", "money"), new("Переплата, ₽", "money"), new("Итого к оплате, ₽", "money")], rows.OrderBy(row => row.Name).ToList());
+            }
+            case "monthly":
+            {
+                var charges = await Charges();
+                var payments = await Payments();
+                Func<ChargeEntry, string>? chargeKey = cut switch
+                {
+                    "Услуги" => entry => ServiceName(entry.AbonentId, entry.ServiceId),
+                    "Месяцы" => entry => entry.Period,
+                    _ => null,
+                };
+                if (chargeKey is null) return Unavailable();
+                var names = charges.Select(chargeKey).ToHashSet();
+                if (cut == "Месяцы") foreach (var payment in payments) names.Add(payment.AtUtc.ToLocalTime().ToString("yyyy-MM"));
+                var rows = names.OrderBy(name => name).Select(name =>
+                {
+                    var charged = charges.Where(entry => chargeKey(entry) == name).Sum(entry => entry.Amount);
+                    var paid = cut == "Месяцы" ? payments.Where(payment => payment.AtUtc.ToLocalTime().ToString("yyyy-MM") == name).Sum(payment => payment.Amount) : 0;
+                    return new ReportRowDto(name, [charged, paid]);
+                }).ToList();
+                if (cut == "Услуги") rows.Add(new ReportRowDto("Оплаты (без разбивки по услугам)", [0, payments.Sum(payment => payment.Amount)]));
+                return Finish([new("Начислено, ₽", "money"), new("Оплачено, ₽", "money")], rows);
+            }
+            case "print-charges":
+            {
+                var charges = await Charges();
+                Func<ChargeEntry, string>? key = cut switch
+                {
+                    "Абоненты" => entry => Label(abonents[entry.AbonentId]),
+                    "Дома" => entry => House(abonents[entry.AbonentId]),
+                    _ => null,
+                };
+                if (key is null) return Unavailable();
+                var rows = charges.GroupBy(key).OrderBy(group => group.Key).Select(group =>
+                {
+                    var penalty = group.Where(entry => entry.ServiceId == "penalty").Sum(entry => entry.Amount);
+                    var total = group.Sum(entry => entry.Amount);
+                    return new ReportRowDto(group.Key, [total - penalty, penalty, total]);
+                }).ToList();
+                return Finish([new("Начислено за услуги, ₽", "money"), new("Пени, ₽", "money"), new("Всего, ₽", "money")], rows);
+            }
+            case "print-state":
+            {
+                Func<Abonent, string>? key = cut switch
+                {
+                    "Абоненты" => Label,
+                    "Дома" => House,
+                    _ => null,
+                };
+                if (key is null) return Unavailable();
+                var rows = abonents.Values.GroupBy(key).OrderBy(group => group.Key).Select(group =>
+                {
+                    var debt = group.SelectMany(abonent => abonent.Services).Where(line => line.Debt > 0).Sum(line => line.Debt);
+                    var credit = group.Sum(abonent => abonent.Credit) - group.SelectMany(abonent => abonent.Services).Where(line => line.Debt < 0).Sum(line => line.Debt);
+                    return new ReportRowDto(group.Key, [debt, credit, Math.Max(0, debt - credit)]);
+                }).ToList();
+                return Finish([new("Долг, ₽", "money"), new("Переплата, ₽", "money"), new("К оплате, ₽", "money")], rows);
+            }
+            default:
+                return Unavailable();
+        }
+    }
+
+    /// <summary>Дом без квартиры: в адресе после дома через дефис идёт номер квартиры.</summary>
+    private static string HouseOf(Abonent abonent)
+    {
+        var street = System.Text.RegularExpressions.Regex.Replace(abonent.Street, @"-[^\s-]*$", "");
+        return abonent.Place == "" ? street : $"{abonent.Place}, {street}";
     }
 
     private static ReportResultDto Finish(List<ReportColumnDto> columns, List<ReportRowDto> rows)

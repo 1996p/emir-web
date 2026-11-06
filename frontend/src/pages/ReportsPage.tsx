@@ -12,6 +12,7 @@ function formatCell(value: number | null | undefined, column: ReportColumn): str
   if (value === null || value === undefined) return '—';
   if (column.type === 'money') return (value < 0 ? '−' : '') + formatMoney(value);
   if (column.type === 'percent') return (value / 10).toLocaleString('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  if (column.type === 'volume') return (value / 1000).toLocaleString('ru-RU', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
   return value.toLocaleString('ru-RU');
 }
 
