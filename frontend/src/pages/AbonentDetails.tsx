@@ -185,26 +185,65 @@ function HeatNormSection({ abonent, details, canEdit }: { abonent: Abonent; deta
   );
 }
 
-/** Единицы показаний квартирных счётчиков и привязка услуг к общедомовому счётчику. */
+/** Квартирный счётчик одной услуги: установка, замена, снятие и единица показаний. */
+function ApartmentMeter({ abonent, line, canEdit, run }: { abonent: Abonent; line: Abonent['services'][number]; canEdit: boolean; run: ReturnType<typeof useAction>['run'] }) {
+  const [open, setOpen] = useState(false);
+  const [number, setNumber] = useState('');
+  const [reading, setReading] = useState('');
+  const [verified, setVerified] = useState('');
+  const [unit, setUnit] = useState('');
+  const meter = line.meter;
+  const parsedReading = reading.trim() === '' ? 0 : parsePrice(reading);
+  const valid = number.trim() !== '' && parsedReading !== null;
+
+  const save = () => run(() => api.abonents.setMeter(abonent.id, line.id, { number: number.trim(), lastReading: parsedReading ?? 0, verifiedUntil: verified.trim() || null, unit: unit || null, average: null }), meter ? 'Счётчик заменён.' : 'Счётчик установлен.')
+    .then((ok) => { if (ok) { setOpen(false); setNumber(''); setReading(''); setVerified(''); setUnit(''); } });
+
+  return (
+    <div className="stack" style={{ gap: 6, borderBottom: '1px solid var(--line-soft)', paddingBottom: 8 }}>
+      <div className="between"><span className="strong">{line.name}</span>
+        {meter ? <span className="small muted mono">счётчик {meter.number}, показание {meter.lastReading}</span> : <span className="small muted">нет счётчика</span>}
+      </div>
+      {meter && (
+        <Field label="Единица показаний" hint="ГДж, МВт·ч, кВт·ч переводятся в Гкал. «В единицах тарифа» — без перевода (вода в м³)">{(id) => (
+          <SelectInput id={id} disabled={!canEdit} value={meter.unit ?? ''} onChange={(event) => void run(() => api.abonents.setMeterUnit(abonent.id, line.id, event.target.value || null), 'Единица сохранена, показание месяца пересчитано.')}>
+            <option value="">В единицах тарифа</option>
+            {METER_UNITS.map((u) => <option key={u.value} value={u.value}>{u.label}</option>)}
+          </SelectInput>
+        )}</Field>
+      )}
+      {canEdit && !open && (
+        <div className="row">
+          <Button size="sm" onClick={() => setOpen(true)}>{meter ? 'Заменить счётчик' : 'Установить счётчик'}</Button>
+          {meter && <Button size="sm" onClick={() => void run(() => api.abonents.removeMeter(abonent.id, line.id), 'Счётчик снят.')}>Снять</Button>}
+        </div>
+      )}
+      {canEdit && open && (
+        <div className="stack" style={{ gap: 6 }}>
+          <Field label="Номер счётчика">{(id) => <TextInput id={id} mono value={number} onChange={(event) => setNumber(event.target.value)} />}</Field>
+          <Field label="Начальное показание">{(id) => <TextInput id={id} mono inputMode="decimal" placeholder="0" value={reading} onChange={(event) => setReading(event.target.value)} />}</Field>
+          <Field label="Поверка до" hint="Например, 05.2029">{(id) => <TextInput id={id} value={verified} onChange={(event) => setVerified(event.target.value)} />}</Field>
+          <Field label="Единица показаний">{(id) => <SelectInput id={id} value={unit} onChange={(event) => setUnit(event.target.value)}><option value="">В единицах тарифа</option>{METER_UNITS.map((u) => <option key={u.value} value={u.value}>{u.label}</option>)}</SelectInput>}</Field>
+          <div className="row"><Button variant="primary" size="sm" disabled={!valid} onClick={() => void save()}>Сохранить</Button><Button size="sm" onClick={() => setOpen(false)}>Отмена</Button></div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Счётчики абонента: квартирные (установка/замена/единица) и привязка к общедомовому. */
 function MetersSection({ abonent, canEdit }: { abonent: Abonent; canEdit: boolean }) {
   const { run, view } = useAction();
   const { data: houseMeters } = useApi(() => api.readings.houseMeters(), []);
   const lines = abonent.services.filter((line) => line.id !== 'penalty');
-  const withMeter = lines.filter((line) => line.meter);
 
   return (
     <Section title="Счётчики">
-      {withMeter.length === 0 && <p className="small muted">Квартирных счётчиков нет.</p>}
-      {withMeter.map((line) => (
-        <Field key={line.id} label={`${line.name}, счётчик ${line.meter!.number}: единица показаний`} hint="Показания в ГДж, МВт·ч и кВт·ч переводятся в Гкал. «В единицах тарифа» — без перевода (например, вода в м³)">{(id) => (
-          <SelectInput id={id} disabled={!canEdit} value={line.meter!.unit ?? ''} onChange={(event) => void run(() => api.abonents.setMeterUnit(abonent.id, line.id, event.target.value || null), 'Единица сохранена. Внесённое показание месяца пересчитано.')}>
-            <option value="">В единицах тарифа</option>
-            {METER_UNITS.map((unit) => <option key={unit.value} value={unit.value}>{unit.label}</option>)}
-          </SelectInput>
-        )}</Field>
-      ))}
+      {lines.length === 0 && <p className="small muted">Услуг нет.</p>}
+      {lines.map((line) => <ApartmentMeter key={line.id} abonent={abonent} line={line} canEdit={canEdit} run={run} />)}
+      <h3 className="field-label" style={{ marginTop: 4 }}>Общедомовые счётчики</h3>
       {lines.map((line) => (
-        <Field key={`house-${line.id}`} label={`${line.name}: общедомовой счётчик`} hint="Нужен для тарифа «по общедомовому счётчику»">{(id) => (
+        <Field key={`house-${line.id}`} label={`${line.name}`} hint="Для тарифа «по общедомовому счётчику»">{(id) => (
           <SelectInput id={id} disabled={!canEdit || !houseMeters} value={line.houseMeterId ?? ''} onChange={(event) => void run(() => api.abonents.setHouseMeter(abonent.id, line.id, event.target.value || null), 'Привязка сохранена.')}>
             <option value="">Не привязан</option>
             {(houseMeters?.rows ?? []).map((meter) => <option key={meter.id} value={meter.id}>{meter.place}, {meter.street}{meter.number ? `, № ${meter.number}` : ''} ({meter.unit})</option>)}

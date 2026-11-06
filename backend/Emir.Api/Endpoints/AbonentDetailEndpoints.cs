@@ -11,6 +11,7 @@ public record AbonentDetailsDto(string? Note, bool? Consent, string? ConsentWhen
 public record SetNoteRequest(string? Note);
 public record SetHeatNormRequest(decimal? Norm, string Reason);
 public record SetMeterUnitRequest(string? Unit);
+public record SetMeterRequest(string? Number, decimal LastReading, string? VerifiedUntil, decimal? Average, string? Unit);
 public record SetHouseMeterRequest(string? HouseMeterId);
 public record SetContactRequest(string? Phone);
 public record SetLegalRequest(bool? Consent, string? OwnershipDocument);
@@ -127,6 +128,50 @@ public static class AbonentDetailEndpoints
             db.AddJournal(id, "Площадь и жильцы", user.Who(), $"С {request.FromPeriod}: {request.Area:0.####} м², жильцов {request.Residents}", request.Reason.Trim());
             await db.SaveChangesAsync();
             await transaction.CommitAsync();
+            return Results.NoContent();
+        }).Roles(Roles.Service, Roles.Accountant, Roles.Admin);
+
+        // Установка или замена квартирного счётчика у услуги. Нельзя менять, если показание открытого месяца уже внесено
+        group.MapPost("/services/{serviceId}/meter", async (string id, string serviceId, SetMeterRequest request, EmirDb db, ClaimsPrincipal user) =>
+        {
+            var number = request.Number?.Trim();
+            if (string.IsNullOrEmpty(number) || number.Length > 100) throw new ApiError(422, "Укажите номер счётчика");
+            if (request.LastReading < 0 || request.LastReading > 100_000_000) throw new ApiError(422, "Начальное показание указано неверно");
+            if (request.Average is < 0 or > 1_000_000) throw new ApiError(422, "Среднее указано неверно");
+            var unit = MeterUnits.Parse(request.Unit);
+            var abonent = await db.GetAbonent(id);
+            var line = abonent.Services.FirstOrDefault(item => item.ServiceId == serviceId) ?? throw new ApiError(404, "Услуга не найдена");
+            var period = await Periods.WorkPeriod(db);
+            if (await db.PeriodReadings.AnyAsync(item => item.AbonentId == id && item.ServiceId == serviceId && item.Period == period))
+                throw new ApiError(409, "За открытый месяц уже внесено показание. Сначала отмените его или используйте корректировку");
+            var was = line.MeterNumber;
+            line.MeterNumber = number;
+            line.MeterLastReading = request.LastReading;
+            line.MeterVerifiedUntil = string.IsNullOrWhiteSpace(request.VerifiedUntil) ? null : request.VerifiedUntil.Trim();
+            line.MeterAverage = request.Average ?? line.MeterAverage;
+            line.MeterUnit = unit;
+            db.AddJournal(id, was is null ? "Счётчик установлен" : "Счётчик заменён", user.Who(),
+                $"{line.Name}: {(was is null ? "" : was + " → ")}{number}, старт {request.LastReading:0.####}{(unit is null ? "" : ", " + unit)}");
+            await db.SaveChangesAsync();
+            return Results.NoContent();
+        }).Roles(Roles.Service, Roles.Accountant, Roles.Admin);
+
+        // Снятие квартирного счётчика: услуга переходит на расчёт по нормативу
+        group.MapPost("/services/{serviceId}/meter/remove", async (string id, string serviceId, EmirDb db, ClaimsPrincipal user) =>
+        {
+            var abonent = await db.GetAbonent(id);
+            var line = abonent.Services.FirstOrDefault(item => item.ServiceId == serviceId) ?? throw new ApiError(404, "Услуга не найдена");
+            if (line.MeterNumber is null) return Results.NoContent();
+            var period = await Periods.WorkPeriod(db);
+            if (await db.PeriodReadings.AnyAsync(item => item.AbonentId == id && item.ServiceId == serviceId && item.Period == period))
+                throw new ApiError(409, "За открытый месяц уже внесено показание. Сначала отмените его или используйте корректировку");
+            var was = line.MeterNumber;
+            line.MeterNumber = null;
+            line.MeterLastReading = null;
+            line.MeterVerifiedUntil = null;
+            line.MeterUnit = null;
+            db.AddJournal(id, "Счётчик снят", user.Who(), $"{line.Name}: снят счётчик {was}");
+            await db.SaveChangesAsync();
             return Results.NoContent();
         }).Roles(Roles.Service, Roles.Accountant, Roles.Admin);
 

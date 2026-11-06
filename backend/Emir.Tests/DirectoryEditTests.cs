@@ -112,6 +112,39 @@ public sealed class DirectoryEditTests : IDisposable
     }
 
     [Fact]
+    public async Task ApartmentMeter_InstallReplaceRemove()
+    {
+        var oper = await Login();
+        static string? MeterNumber(JsonElement abonent, string serviceId)
+        {
+            var meter = abonent.GetProperty("services").EnumerateArray().First(line => line.GetProperty("id").GetString() == serviceId).GetProperty("meter");
+            return meter.ValueKind == JsonValueKind.Null ? null : meter.GetProperty("number").GetString();
+        }
+
+        // у a2/heat счётчика нет
+        Assert.Null(MeterNumber(await oper.GetFromJsonAsync<JsonElement>("/api/abonents/a2"), "heat"));
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await oper.PostAsJsonAsync("/api/abonents/a2/services/heat/meter", new { number = "", lastReading = 0m })).StatusCode);
+
+        (await oper.PostAsJsonAsync("/api/abonents/a2/services/heat/meter", new { number = "ТС-99", lastReading = 10m, unit = "ГДж" })).EnsureSuccessStatusCode();
+        Assert.Equal("ТС-99", MeterNumber(await oper.GetFromJsonAsync<JsonElement>("/api/abonents/a2"), "heat"));
+
+        // замена
+        (await oper.PostAsJsonAsync("/api/abonents/a2/services/heat/meter", new { number = "ТС-100", lastReading = 0m })).EnsureSuccessStatusCode();
+        Assert.Equal("ТС-100", MeterNumber(await oper.GetFromJsonAsync<JsonElement>("/api/abonents/a2"), "heat"));
+
+        // снятие
+        (await oper.PostAsJsonAsync("/api/abonents/a2/services/heat/meter/remove", new { })).EnsureSuccessStatusCode();
+        Assert.Null(MeterNumber(await oper.GetFromJsonAsync<JsonElement>("/api/abonents/a2"), "heat"));
+
+        // если показание месяца внесено — менять нельзя
+        (await oper.PostAsJsonAsync("/api/readings", new { abonentId = "a7", serviceId = "water", value = 335m })).EnsureSuccessStatusCode();
+        Assert.Equal(HttpStatusCode.Conflict, (await oper.PostAsJsonAsync("/api/abonents/a7/services/water/meter", new { number = "НОВ-1", lastReading = 0m })).StatusCode);
+
+        var cashier = await Login("kassa1");
+        Assert.Equal(HttpStatusCode.Forbidden, (await cashier.PostAsJsonAsync("/api/abonents/a2/services/heat/meter", new { number = "X", lastReading = 0m })).StatusCode);
+    }
+
+    [Fact]
     public async Task ApartmentMeter_ReadingsInGigajoulesAreChargedInGcal()
     {
         var oper = await Login();
