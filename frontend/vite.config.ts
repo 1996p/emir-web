@@ -22,6 +22,8 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     css: false,
+    // Под coverage рендер медленнее; тест-таймаут выше, чем asyncUtilTimeout (5с) из setup
+    testTimeout: 15000,
     coverage: {
       include: ['src/**'],
       // Исключаем файлы только с типами, точку входа и сам тестовый инструментарий

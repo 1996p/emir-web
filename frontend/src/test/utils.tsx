@@ -26,7 +26,9 @@ export function installFetch(routes: Routes, role: Role | null = 'admin'): MockF
   const mock = vi.fn(async (url: string, init?: RequestInit) => {
     const method = (init?.method ?? 'GET').toUpperCase();
     const path = url.replace(/^\/api/, '').split('?')[0] ?? '';
-    const body = init?.body ? JSON.parse(init.body as string) : undefined;
+    // Тело запроса: JSON-строка разбирается, FormData (загрузка файла) помечается как multipart
+    const raw_body = init?.body;
+    const body = typeof raw_body === 'string' ? JSON.parse(raw_body) : raw_body instanceof FormData ? { multipart: true } : undefined;
     calls.push({ method, path, body });
 
     const raw = table[`${method} ${path}`];
