@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">1.63% </span>
+                <span class="strong">10.61% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>4/245</span>
+                <span class='fraction'>26/245</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">30% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/0</span>
+                <span class='fraction'>3/10</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">12.5% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/11</span>
+                <span class='fraction'>2/16</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">1.63% </span>
+                <span class="strong">10.61% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>4/245</span>
+                <span class='fraction'>26/245</span>
             </div>
         
             
@@ -369,6 +369,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">19x</span>
+<span class="cline-any cline-yes">19x</span>
+<span class="cline-any cline-yes">19x</span>
+<span class="cline-any cline-yes">19x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -380,18 +384,14 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">19x</span>
+<span class="cline-any cline-yes">19x</span>
+<span class="cline-any cline-yes">19x</span>
+<span class="cline-any cline-yes">19x</span>
+<span class="cline-any cline-yes">19x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">19x</span>
+<span class="cline-any cline-yes">19x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -637,19 +637,19 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">19x</span>
+<span class="cline-any cline-yes">19x</span>
+<span class="cline-any cline-yes">19x</span>
+<span class="cline-any cline-yes">19x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">19x</span>
+<span class="cline-any cline-yes">19x</span>
+<span class="cline-any cline-yes">19x</span>
+<span class="cline-any cline-yes">19x</span>
+<span class="cline-any cline-yes">19x</span>
+<span class="cline-any cline-yes">19x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">19x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -667,10 +667,10 @@ import { useRole } from '@/layout/role';
 import { AbonentBenefits } from './BenefitsDirectory';
 import { Button, Field, Notice, SelectInput, TextArea, TextInput } from '@/ui';
 &nbsp;
-<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >function useAction() {</span></span>
-<span class="cstat-no" title="statement not covered" >  const [error, setError] = useState&lt;string | null&gt;(null);</span>
-<span class="cstat-no" title="statement not covered" >  const [note, setNote] = useState&lt;string | null&gt;(null);</span>
-<span class="cstat-no" title="statement not covered" >  const run = async (action: () =&gt; Promise&lt;unknown&gt;, done: string) =&gt; {</span>
+function useAction() {
+  const [error, setError] = useState&lt;string | null&gt;(null);
+  const [note, setNote] = useState&lt;string | null&gt;(null);
+  const run = <span class="fstat-no" title="function not covered" >async (action: () =&gt; Promise&lt;unknown&gt;, done: string) =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >    setError(null);</span>
 <span class="cstat-no" title="statement not covered" >    setNote(null);</span>
 <span class="cstat-no" title="statement not covered" >    try {</span>
@@ -682,14 +682,14 @@ import { Button, Field, Notice, SelectInput, TextArea, TextInput } from '@/ui';
 <span class="cstat-no" title="statement not covered" >      return false;</span>
 <span class="cstat-no" title="statement not covered" >    }</span>
 <span class="cstat-no" title="statement not covered" >  };</span>
-<span class="cstat-no" title="statement not covered" >  const view = (</span>
-<span class="cstat-no" title="statement not covered" >    &lt;&gt;</span>
-<span class="cstat-no" title="statement not covered" >      {error &amp;&amp; &lt;Notice tone="warn"&gt;{error}&lt;/Notice&gt;}</span>
-<span class="cstat-no" title="statement not covered" >      {note &amp;&amp; &lt;Notice tone="ok"&gt;{note}&lt;/Notice&gt;}</span>
-<span class="cstat-no" title="statement not covered" >    &lt;/&gt;</span>
+  const view = (
+    &lt;&gt;
+      {<span class="branch-0 cbranch-no" title="branch not covered" >error &amp;&amp; &lt;Notice tone="warn"&gt;{error}&lt;/Notice&gt;}</span>
+      {<span class="branch-0 cbranch-no" title="branch not covered" >note &amp;&amp; &lt;Notice tone="ok"&gt;{note}&lt;/Notice&gt;}</span>
+    &lt;/&gt;
   );
-<span class="cstat-no" title="statement not covered" >  return { run, view };</span>
-<span class="cstat-no" title="statement not covered" >}</span>
+  return { run, view };
+}
 &nbsp;
 <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >function Section({ title, children }: { title: string; children: React.ReactNode }) {</span></span>
 <span class="cstat-no" title="statement not covered" >  return (</span>
@@ -934,25 +934,25 @@ export <span class="fstat-no" title="function not covered" >function AbonentDeta
 <span class="cstat-no" title="statement not covered" >}</span>
 &nbsp;
 /** Заметка видна на любой вкладке: в ней часто рабочие договорённости по абоненту. */
-export <span class="fstat-no" title="function not covered" >function AbonentNote({ abonent, note }: { abonent: Abonent; note: string | null }) {</span>
-<span class="cstat-no" title="statement not covered" >  const [editing, setEditing] = useState(false);</span>
-<span class="cstat-no" title="statement not covered" >  const [text, setText] = useState(note ?? '');</span>
-<span class="cstat-no" title="statement not covered" >  const { run, view } = useAction();</span>
-<span class="cstat-no" title="statement not covered" >  useEffect(() =&gt; { setText(note ?? ''); setEditing(false); }, [note, abonent.id]);</span>
+export function AbonentNote({ abonent, note }: { abonent: Abonent; note: string | null }) {
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState(note ?? '');
+  const { run, view } = useAction();
+  useEffect(() =&gt; { setText(note ?? ''); setEditing(false); }, [note, abonent.id]);
 &nbsp;
-<span class="cstat-no" title="statement not covered" >  if (!editing) {</span>
-<span class="cstat-no" title="statement not covered" >    return (</span>
-<span class="cstat-no" title="statement not covered" >      &lt;div className="bar" style={{ background: note ? 'var(--warn-bg)' : undefined, padding: '6px 16px', justifyContent: 'space-between', flexWrap: 'nowrap' }}&gt;</span>
-<span class="cstat-no" title="statement not covered" >        &lt;span className={note ? '' : 'small muted'} style={{ color: note ? 'var(--warn-ink)' : undefined, whiteSpace: 'pre-wrap', minWidth: 0 }}&gt;{note ?? 'Заметки нет'}&lt;/span&gt;</span>
-<span class="cstat-no" title="statement not covered" >        &lt;button type="button" className="link-button" style={{ flex: '0 0 auto' }} onClick={() =&gt; setEditing(true)}&gt;{note ? 'Изменить' : 'Добавить заметку'}&lt;/button&gt;</span>
-<span class="cstat-no" title="statement not covered" >      &lt;/div&gt;</span>
+  if (!editing) {
+    return (
+      &lt;div className="bar" style={{ background: <span class="branch-0 cbranch-no" title="branch not covered" >note ? 'var(--warn-bg)' : u</span>ndefined, padding: '6px 16px', justifyContent: 'space-between', flexWrap: 'nowrap' }}&gt;
+        &lt;span className={<span class="branch-0 cbranch-no" title="branch not covered" >note ? '' : '</span>small muted'} style={{ color: <span class="branch-0 cbranch-no" title="branch not covered" >note ? 'var(--warn-ink)' : u</span>ndefined, whiteSpace: 'pre-wrap', minWidth: 0 }}&gt;{note ?? 'Заметки нет'}&lt;/span&gt;
+        &lt;button type="button" className="link-button" style={{ flex: '0 0 auto' }} onClick={<span class="fstat-no" title="function not covered" >() =&gt; setEditing(true)}&gt;{<span class="branch-0 cbranch-no" title="branch not covered" >n</span>ote ? 'Изменить' : '</span>Добавить заметку'}&lt;/button&gt;
+      &lt;/div&gt;
     );
-<span class="cstat-no" title="statement not covered" >  }</span>
+<span class="branch-0 cbranch-no" title="branch not covered" >  }</span>
 <span class="cstat-no" title="statement not covered" >  return (</span>
 <span class="cstat-no" title="statement not covered" >    &lt;div className="bar" style={{ alignItems: 'flex-start' }}&gt;</span>
-<span class="cstat-no" title="statement not covered" >      &lt;div style={{ flex: '1 1 320px', minWidth: 0 }}&gt;&lt;TextArea aria-label="Заметка" autoFocus rows={2} maxLength={2000} value={text} onChange={(event) =&gt; setText(event.target.value)} style={{ width: '100%' }} /&gt;&lt;/div&gt;</span>
-<span class="cstat-no" title="statement not covered" >      &lt;Button size="sm" onClick={() =&gt; void run(() =&gt; api.abonents.setNote(abonent.id, text.trim() || null), '')}&gt;Сохранить&lt;/Button&gt;</span>
-<span class="cstat-no" title="statement not covered" >      &lt;Button size="sm" onClick={() =&gt; { setEditing(false); setText(note ?? ''); }}&gt;Отмена&lt;/Button&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;div style={{ flex: '1 1 320px', minWidth: 0 }}&gt;&lt;TextArea aria-label="Заметка" autoFocus rows={2} maxLength={2000} value={text} onChange={<span class="fstat-no" title="function not covered" >(event) =&gt; setText(event.target.value)} s</span>tyle={{ width: '100%' }} /&gt;&lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;Button size="sm" onClick={<span class="fstat-no" title="function not covered" >() =&gt; void run(() =&gt; api.abonents.setNote(abonent.id, text.trim() || null), '')}&gt;С</span>охранить&lt;/Button&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;Button size="sm" onClick={<span class="fstat-no" title="function not covered" >() =&gt; { setEditing(false); setText(note ?? ''); }}&gt;О</span>тмена&lt;/Button&gt;</span>
 <span class="cstat-no" title="statement not covered" >      {view}</span>
 <span class="cstat-no" title="statement not covered" >    &lt;/div&gt;</span>
   );
@@ -964,7 +964,7 @@ export <span class="fstat-no" title="function not covered" >function AbonentNote
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-11-07T18:17:12.687Z
+                at 2026-11-07T18:30:59.017Z
             </div>
         <script src="../../prettify.js"></script>
         <script>
