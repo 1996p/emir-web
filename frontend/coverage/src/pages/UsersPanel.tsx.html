@@ -1,0 +1,514 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for src/pages/UsersPanel.tsx</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/pages</a> UsersPanel.tsx</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">32.5% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>39/120</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">57.14% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>12/21</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">50% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>8/16</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">32.5% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>39/120</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line low'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a>
+<a name='L3'></a><a href='#L3'>3</a>
+<a name='L4'></a><a href='#L4'>4</a>
+<a name='L5'></a><a href='#L5'>5</a>
+<a name='L6'></a><a href='#L6'>6</a>
+<a name='L7'></a><a href='#L7'>7</a>
+<a name='L8'></a><a href='#L8'>8</a>
+<a name='L9'></a><a href='#L9'>9</a>
+<a name='L10'></a><a href='#L10'>10</a>
+<a name='L11'></a><a href='#L11'>11</a>
+<a name='L12'></a><a href='#L12'>12</a>
+<a name='L13'></a><a href='#L13'>13</a>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a>
+<a name='L41'></a><a href='#L41'>41</a>
+<a name='L42'></a><a href='#L42'>42</a>
+<a name='L43'></a><a href='#L43'>43</a>
+<a name='L44'></a><a href='#L44'>44</a>
+<a name='L45'></a><a href='#L45'>45</a>
+<a name='L46'></a><a href='#L46'>46</a>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a>
+<a name='L61'></a><a href='#L61'>61</a>
+<a name='L62'></a><a href='#L62'>62</a>
+<a name='L63'></a><a href='#L63'>63</a>
+<a name='L64'></a><a href='#L64'>64</a>
+<a name='L65'></a><a href='#L65'>65</a>
+<a name='L66'></a><a href='#L66'>66</a>
+<a name='L67'></a><a href='#L67'>67</a>
+<a name='L68'></a><a href='#L68'>68</a>
+<a name='L69'></a><a href='#L69'>69</a>
+<a name='L70'></a><a href='#L70'>70</a>
+<a name='L71'></a><a href='#L71'>71</a>
+<a name='L72'></a><a href='#L72'>72</a>
+<a name='L73'></a><a href='#L73'>73</a>
+<a name='L74'></a><a href='#L74'>74</a>
+<a name='L75'></a><a href='#L75'>75</a>
+<a name='L76'></a><a href='#L76'>76</a>
+<a name='L77'></a><a href='#L77'>77</a>
+<a name='L78'></a><a href='#L78'>78</a>
+<a name='L79'></a><a href='#L79'>79</a>
+<a name='L80'></a><a href='#L80'>80</a>
+<a name='L81'></a><a href='#L81'>81</a>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a>
+<a name='L84'></a><a href='#L84'>84</a>
+<a name='L85'></a><a href='#L85'>85</a>
+<a name='L86'></a><a href='#L86'>86</a>
+<a name='L87'></a><a href='#L87'>87</a>
+<a name='L88'></a><a href='#L88'>88</a>
+<a name='L89'></a><a href='#L89'>89</a>
+<a name='L90'></a><a href='#L90'>90</a>
+<a name='L91'></a><a href='#L91'>91</a>
+<a name='L92'></a><a href='#L92'>92</a>
+<a name='L93'></a><a href='#L93'>93</a>
+<a name='L94'></a><a href='#L94'>94</a>
+<a name='L95'></a><a href='#L95'>95</a>
+<a name='L96'></a><a href='#L96'>96</a>
+<a name='L97'></a><a href='#L97'>97</a>
+<a name='L98'></a><a href='#L98'>98</a>
+<a name='L99'></a><a href='#L99'>99</a>
+<a name='L100'></a><a href='#L100'>100</a>
+<a name='L101'></a><a href='#L101'>101</a>
+<a name='L102'></a><a href='#L102'>102</a>
+<a name='L103'></a><a href='#L103'>103</a>
+<a name='L104'></a><a href='#L104'>104</a>
+<a name='L105'></a><a href='#L105'>105</a>
+<a name='L106'></a><a href='#L106'>106</a>
+<a name='L107'></a><a href='#L107'>107</a>
+<a name='L108'></a><a href='#L108'>108</a>
+<a name='L109'></a><a href='#L109'>109</a>
+<a name='L110'></a><a href='#L110'>110</a>
+<a name='L111'></a><a href='#L111'>111</a>
+<a name='L112'></a><a href='#L112'>112</a>
+<a name='L113'></a><a href='#L113'>113</a>
+<a name='L114'></a><a href='#L114'>114</a>
+<a name='L115'></a><a href='#L115'>115</a>
+<a name='L116'></a><a href='#L116'>116</a>
+<a name='L117'></a><a href='#L117'>117</a>
+<a name='L118'></a><a href='#L118'>118</a>
+<a name='L119'></a><a href='#L119'>119</a>
+<a name='L120'></a><a href='#L120'>120</a>
+<a name='L121'></a><a href='#L121'>121</a>
+<a name='L122'></a><a href='#L122'>122</a>
+<a name='L123'></a><a href='#L123'>123</a>
+<a name='L124'></a><a href='#L124'>124</a>
+<a name='L125'></a><a href='#L125'>125</a>
+<a name='L126'></a><a href='#L126'>126</a>
+<a name='L127'></a><a href='#L127'>127</a>
+<a name='L128'></a><a href='#L128'>128</a>
+<a name='L129'></a><a href='#L129'>129</a>
+<a name='L130'></a><a href='#L130'>130</a>
+<a name='L131'></a><a href='#L131'>131</a>
+<a name='L132'></a><a href='#L132'>132</a>
+<a name='L133'></a><a href='#L133'>133</a>
+<a name='L134'></a><a href='#L134'>134</a>
+<a name='L135'></a><a href='#L135'>135</a>
+<a name='L136'></a><a href='#L136'>136</a>
+<a name='L137'></a><a href='#L137'>137</a>
+<a name='L138'></a><a href='#L138'>138</a>
+<a name='L139'></a><a href='#L139'>139</a>
+<a name='L140'></a><a href='#L140'>140</a>
+<a name='L141'></a><a href='#L141'>141</a>
+<a name='L142'></a><a href='#L142'>142</a>
+<a name='L143'></a><a href='#L143'>143</a>
+<a name='L144'></a><a href='#L144'>144</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { useEffect, useState } from 'react';
+import { api, errorText, useApi } from '@/api';
+import type { ManagedUser, Role } from '@/domain/types';
+import { ROLE_LABEL } from '@/layout/role';
+import { Button, DataTable, Field, Notice, SelectInput, TextInput, type Column } from '@/ui';
+&nbsp;
+const ROLES = Object.keys(ROLE_LABEL) as Role[];
+&nbsp;
+const stateOf = (user: ManagedUser) =&gt; {
+  if (!user.isActive) <span class="branch-0 cbranch-no" title="branch not covered" >return &lt;span className="warn strong"&gt;Отключён&lt;/span&gt;;</span>
+  if (user.locked) <span class="branch-0 cbranch-no" title="branch not covered" >return &lt;span className="warn strong"&gt;Вход заблокирован&lt;/span&gt;;</span>
+  if (user.mustChangePassword) <span class="branch-0 cbranch-no" title="branch not covered" >return 'Ждёт смены пароля';</span>
+  return 'Работает';
+};
+&nbsp;
+const COLUMNS: Column&lt;ManagedUser&gt;[] = [
+  { key: 'name', header: 'Сотрудник', render: (user) =&gt; &lt;span className="strong"&gt;{user.displayName}{user.<span class="branch-0 cbranch-no" title="branch not covered" >isSelf ? ' (вы)' : '</span>'}&lt;/span&gt; },
+  { key: 'login', header: 'Логин', mono: true, render: (user) =&gt; user.login },
+  { key: 'role', header: 'Роль', render: (user) =&gt; ROLE_LABEL[user.role] },
+  { key: 'state', header: 'Состояние', render: stateOf },
+  { key: 'last', header: 'Последний вход', render: (user) =&gt; user.lastLogin ?? 'Не входил' },
+];
+&nbsp;
+/** Временный пароль виден один раз: сервер его не хранит. */
+<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >function TemporaryPassword({ login, password, onClose }: { login: string; password: string; onClose: () =&gt; void }) {</span></span>
+<span class="cstat-no" title="statement not covered" >  return (</span>
+<span class="cstat-no" title="statement not covered" >    &lt;Notice tone="warn"&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;strong style={{ display: 'block', marginBottom: 4 }}&gt;Временный пароль для {login}&lt;/strong&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;span className="mono" style={{ display: 'block', fontSize: 16, userSelect: 'all', overflowWrap: 'anywhere' }}&gt;{password}&lt;/span&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;span style={{ display: 'block', margin: '6px 0' }}&gt;Передайте его сотруднику. Больше он нигде не показывается, при первом входе его нужно будет сменить.&lt;/span&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;Button size="sm" onClick={onClose}&gt;Закрыть&lt;/Button&gt;</span>
+<span class="cstat-no" title="statement not covered" >    &lt;/Notice&gt;</span>
+  );
+<span class="cstat-no" title="statement not covered" >}</span>
+&nbsp;
+export function UsersPanel() {
+  const { data: users, error: loadError } = useApi(() =&gt; api.admin.users(), []);
+  const [selectedId, setSelectedId] = useState&lt;number | null&gt;(null);
+  const [creating, setCreating] = useState(false);
+  const [issued, setIssued] = useState&lt;{ login: string; temporaryPassword: string } | null&gt;(null);
+  const selected = users?.find((user) =&gt; user.id === selectedId) ?? null;
+&nbsp;
+  return (
+    &lt;div className="split"&gt;
+      &lt;main className="main"&gt;
+        &lt;div className="bar" style={{ justifyContent: 'space-between' }}&gt;
+          &lt;div&gt;
+            &lt;h1 className="title"&gt;Сотрудники&lt;/h1&gt;
+            &lt;p className="muted" style={{ fontSize: 13.5, marginTop: 2 }}&gt;Учётные записи и доступ. Сотрудников не удаляем: их имена остаются в журнале.&lt;/p&gt;
+          &lt;/div&gt;
+          &lt;Button variant="primary" style={{ width: 170 }} size="auto" onClick={<span class="fstat-no" title="function not covered" >() =&gt; { setCreating(true); setSelectedId(null); setIssued(null); }}&gt;Н</span>овый сотрудник&lt;/Button&gt;
+        &lt;/div&gt;
+        {<span class="branch-0 cbranch-no" title="branch not covered" >loadError &amp;&amp; &lt;div style={{ padding: '8px 16px' }}&gt;&lt;Notice tone="warn"&gt;{loadError}&lt;/Notice&gt;&lt;/div&gt;}</span>
+        {<span class="branch-0 cbranch-no" title="branch not covered" >issued &amp;&amp; &lt;div style={{ padding: '8px 16px' }}&gt;&lt;TemporaryPassword login={issued.login} password={issued.temporaryPassword} onClose={<span class="fstat-no" title="function not covered" >() =&gt; setIssued(null)} /</span>&gt;&lt;/div&gt;}</span>
+        &lt;DataTable columns={COLUMNS} rows={users ?? []} rowKey={(user) =&gt; String(user.id)} onRowClick={<span class="fstat-no" title="function not covered" >(user) =&gt; { setSelectedId(user.id); setCreating(false); }} i</span>sSelected={(user) =&gt; user.id === selectedId} /&gt;
+      &lt;/main&gt;
+      {<span class="branch-0 cbranch-no" title="branch not covered" >creating &amp;&amp; &lt;CreatePanel onClose={<span class="fstat-no" title="function not covered" >() =&gt; setCreating(false)} o</span>nIssued={<span class="fstat-no" title="function not covered" >(result) =&gt; { setIssued(result); setCreating(false); }} /</span>&gt;}</span>
+      {<span class="branch-0 cbranch-no" title="branch not covered" >selected &amp;&amp; !<span class="branch-0 cbranch-no" title="branch not covered" >creating &amp;&amp; &lt;</span>EditPanel key={selected.id} user={selected} onIssued={setIssued} /&gt;}</span>
+    &lt;/div&gt;
+  );
+}
+&nbsp;
+<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >function CreatePanel({ onClose, onIssued }: { onClose: () =&gt; void; onIssued: (result: { login: string; temporaryPassword: string }) =&gt; void }) {</span></span>
+<span class="cstat-no" title="statement not covered" >  const [login, setLogin] = useState('');</span>
+<span class="cstat-no" title="statement not covered" >  const [displayName, setDisplayName] = useState('');</span>
+<span class="cstat-no" title="statement not covered" >  const [role, setRole] = useState&lt;Role&gt;('cashier');</span>
+<span class="cstat-no" title="statement not covered" >  const [error, setError] = useState&lt;string | null&gt;(null);</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  const submit = async () =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >    setError(null);</span>
+<span class="cstat-no" title="statement not covered" >    try {</span>
+<span class="cstat-no" title="statement not covered" >      onIssued(await api.admin.createUser({ login, displayName, role }));</span>
+<span class="cstat-no" title="statement not covered" >    } catch (reason) {</span>
+<span class="cstat-no" title="statement not covered" >      setError(errorText(reason));</span>
+<span class="cstat-no" title="statement not covered" >    }</span>
+<span class="cstat-no" title="statement not covered" >  };</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  return (</span>
+<span class="cstat-no" title="statement not covered" >    &lt;aside className="pane pane-right" aria-label="Новый сотрудник" style={{ width: 340 }}&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;div className="scroll stack pad"&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;h2 style={{ fontSize: 17, fontWeight: 600 }}&gt;Новый сотрудник&lt;/h2&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;Field label="Имя"&gt;{(id) =&gt; &lt;TextInput id={id} autoFocus value={displayName} onChange={(event) =&gt; setDisplayName(event.target.value)} /&gt;}&lt;/Field&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;Field label="Логин" hint="Латинские буквы, цифры, точка, дефис."&gt;{(id) =&gt; &lt;TextInput id={id} autoComplete="off" value={login} onChange={(event) =&gt; setLogin(event.target.value)} /&gt;}&lt;/Field&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;Field label="Роль"&gt;{(id) =&gt; &lt;SelectInput id={id} value={role} onChange={(event) =&gt; setRole(event.target.value as Role)}&gt;{ROLES.map((item) =&gt; &lt;option key={item} value={item}&gt;{ROLE_LABEL[item]}&lt;/option&gt;)}&lt;/SelectInput&gt;}&lt;/Field&gt;</span>
+<span class="cstat-no" title="statement not covered" >        {error &amp;&amp; &lt;Notice tone="warn"&gt;{error}&lt;/Notice&gt;}</span>
+<span class="cstat-no" title="statement not covered" >        &lt;Button variant="primary" size="full" disabled={!login.trim() || !displayName.trim()} onClick={() =&gt; void submit()}&gt;Создать и выдать пароль&lt;/Button&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;Button size="full" onClick={onClose}&gt;Отмена&lt;/Button&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >    &lt;/aside&gt;</span>
+  );
+<span class="cstat-no" title="statement not covered" >}</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >function EditPanel({ user, onIssued }: { user: ManagedUser; onIssued: (result: { login: string; temporaryPassword: string }) =&gt; void }) {</span></span>
+<span class="cstat-no" title="statement not covered" >  const [displayName, setDisplayName] = useState(user.displayName);</span>
+<span class="cstat-no" title="statement not covered" >  const [role, setRole] = useState&lt;Role&gt;(user.role);</span>
+<span class="cstat-no" title="statement not covered" >  const [error, setError] = useState&lt;string | null&gt;(null);</span>
+<span class="cstat-no" title="statement not covered" >  const [note, setNote] = useState&lt;string | null&gt;(null);</span>
+<span class="cstat-no" title="statement not covered" >  const [confirmingDisable, setConfirmingDisable] = useState(false);</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  useEffect(() =&gt; { setDisplayName(user.displayName); setRole(user.role); }, [user.displayName, user.role]);</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  const run = async (action: () =&gt; Promise&lt;unknown&gt;, done: string) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >    setError(null);</span>
+<span class="cstat-no" title="statement not covered" >    setNote(null);</span>
+<span class="cstat-no" title="statement not covered" >    try {</span>
+<span class="cstat-no" title="statement not covered" >      await action();</span>
+<span class="cstat-no" title="statement not covered" >      setNote(done);</span>
+<span class="cstat-no" title="statement not covered" >    } catch (reason) {</span>
+<span class="cstat-no" title="statement not covered" >      setError(errorText(reason));</span>
+<span class="cstat-no" title="statement not covered" >    }</span>
+<span class="cstat-no" title="statement not covered" >    setConfirmingDisable(false);</span>
+<span class="cstat-no" title="statement not covered" >  };</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  return (</span>
+<span class="cstat-no" title="statement not covered" >    &lt;aside className="pane pane-right" aria-label="Сотрудник" style={{ width: 340 }}&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;div className="scroll stack pad"&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;h2 style={{ fontSize: 17, fontWeight: 600 }}&gt;{user.displayName}&lt;/h2&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;p className="muted mono"&gt;{user.login}&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;Field label="Имя"&gt;{(id) =&gt; &lt;TextInput id={id} value={displayName} onChange={(event) =&gt; setDisplayName(event.target.value)} /&gt;}&lt;/Field&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;Field label="Роль" hint={user.isSelf ? 'Свою роль менять нельзя.' : 'Начнёт действовать сразу, без повторного входа.'}&gt;{(id) =&gt; &lt;SelectInput id={id} disabled={user.isSelf} value={role} onChange={(event) =&gt; setRole(event.target.value as Role)}&gt;{ROLES.map((item) =&gt; &lt;option key={item} value={item}&gt;{ROLE_LABEL[item]}&lt;/option&gt;)}&lt;/SelectInput&gt;}&lt;/Field&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;Button variant="primary" size="full" disabled={!displayName.trim() || (displayName === user.displayName &amp;&amp; role === user.role)} onClick={() =&gt; void run(() =&gt; api.admin.updateUser(user.id, { displayName, role }), 'Сохранено.')}&gt;Сохранить&lt;/Button&gt;</span>
+<span class="cstat-no" title="statement not covered" >        {error &amp;&amp; &lt;Notice tone="warn"&gt;{error}&lt;/Notice&gt;}</span>
+<span class="cstat-no" title="statement not covered" >        {note &amp;&amp; &lt;Notice tone="ok"&gt;{note}&lt;/Notice&gt;}</span>
+<span class="cstat-no" title="statement not covered" >        {!user.isSelf &amp;&amp; (</span>
+<span class="cstat-no" title="statement not covered" >          &lt;&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;h3 className="section-title" style={{ marginTop: 6 }}&gt;Доступ&lt;/h3&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;Button size="full" onClick={() =&gt; void run(async () =&gt; onIssued(await api.admin.resetPassword(user.id)), 'Выдан временный пароль, прежние сессии завершены.')}&gt;Сбросить пароль&lt;/Button&gt;</span>
+<span class="cstat-no" title="statement not covered" >            {user.locked &amp;&amp; &lt;Button size="full" onClick={() =&gt; void run(() =&gt; api.admin.unlock(user.id), 'Блокировка снята.')}&gt;Снять блокировку входа&lt;/Button&gt;}</span>
+<span class="cstat-no" title="statement not covered" >            {user.isActive ? (</span>
+<span class="cstat-no" title="statement not covered" >              confirmingDisable ? (</span>
+<span class="cstat-no" title="statement not covered" >                &lt;&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;Notice tone="warn"&gt;Сотрудник сразу потеряет доступ, даже если сейчас работает.&lt;/Notice&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;Button variant="danger" size="full" onClick={() =&gt; void run(() =&gt; api.admin.setActive(user.id, false), 'Сотрудник отключён.')}&gt;Да, отключить&lt;/Button&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;Button size="full" onClick={() =&gt; setConfirmingDisable(false)}&gt;Отмена&lt;/Button&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;/&gt;</span>
+<span class="cstat-no" title="statement not covered" >              ) : &lt;Button size="full" onClick={() =&gt; setConfirmingDisable(true)}&gt;Отключить&lt;/Button&gt;</span>
+<span class="cstat-no" title="statement not covered" >            ) : &lt;Button size="full" onClick={() =&gt; void run(() =&gt; api.admin.setActive(user.id, true), 'Сотрудник включён.')}&gt;Включить&lt;/Button&gt;}</span>
+<span class="cstat-no" title="statement not covered" >          &lt;/&gt;</span>
+        )}
+<span class="cstat-no" title="statement not covered" >      &lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >    &lt;/aside&gt;</span>
+  );
+<span class="cstat-no" title="statement not covered" >}</span>
+&nbsp;</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-11-07T18:17:12.687Z
+            </div>
+        <script src="../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../sorter.js"></script>
+        <script src="../../block-navigation.js"></script>
+    </body>
+</html>
+    

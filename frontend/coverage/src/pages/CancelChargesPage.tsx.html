@@ -1,0 +1,367 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for src/pages/CancelChargesPage.tsx</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/pages</a> CancelChargesPage.tsx</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">11.68% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>9/77</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">100% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>0/0</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>0/5</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">11.68% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>9/77</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line low'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a>
+<a name='L3'></a><a href='#L3'>3</a>
+<a name='L4'></a><a href='#L4'>4</a>
+<a name='L5'></a><a href='#L5'>5</a>
+<a name='L6'></a><a href='#L6'>6</a>
+<a name='L7'></a><a href='#L7'>7</a>
+<a name='L8'></a><a href='#L8'>8</a>
+<a name='L9'></a><a href='#L9'>9</a>
+<a name='L10'></a><a href='#L10'>10</a>
+<a name='L11'></a><a href='#L11'>11</a>
+<a name='L12'></a><a href='#L12'>12</a>
+<a name='L13'></a><a href='#L13'>13</a>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a>
+<a name='L41'></a><a href='#L41'>41</a>
+<a name='L42'></a><a href='#L42'>42</a>
+<a name='L43'></a><a href='#L43'>43</a>
+<a name='L44'></a><a href='#L44'>44</a>
+<a name='L45'></a><a href='#L45'>45</a>
+<a name='L46'></a><a href='#L46'>46</a>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a>
+<a name='L61'></a><a href='#L61'>61</a>
+<a name='L62'></a><a href='#L62'>62</a>
+<a name='L63'></a><a href='#L63'>63</a>
+<a name='L64'></a><a href='#L64'>64</a>
+<a name='L65'></a><a href='#L65'>65</a>
+<a name='L66'></a><a href='#L66'>66</a>
+<a name='L67'></a><a href='#L67'>67</a>
+<a name='L68'></a><a href='#L68'>68</a>
+<a name='L69'></a><a href='#L69'>69</a>
+<a name='L70'></a><a href='#L70'>70</a>
+<a name='L71'></a><a href='#L71'>71</a>
+<a name='L72'></a><a href='#L72'>72</a>
+<a name='L73'></a><a href='#L73'>73</a>
+<a name='L74'></a><a href='#L74'>74</a>
+<a name='L75'></a><a href='#L75'>75</a>
+<a name='L76'></a><a href='#L76'>76</a>
+<a name='L77'></a><a href='#L77'>77</a>
+<a name='L78'></a><a href='#L78'>78</a>
+<a name='L79'></a><a href='#L79'>79</a>
+<a name='L80'></a><a href='#L80'>80</a>
+<a name='L81'></a><a href='#L81'>81</a>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a>
+<a name='L84'></a><a href='#L84'>84</a>
+<a name='L85'></a><a href='#L85'>85</a>
+<a name='L86'></a><a href='#L86'>86</a>
+<a name='L87'></a><a href='#L87'>87</a>
+<a name='L88'></a><a href='#L88'>88</a>
+<a name='L89'></a><a href='#L89'>89</a>
+<a name='L90'></a><a href='#L90'>90</a>
+<a name='L91'></a><a href='#L91'>91</a>
+<a name='L92'></a><a href='#L92'>92</a>
+<a name='L93'></a><a href='#L93'>93</a>
+<a name='L94'></a><a href='#L94'>94</a>
+<a name='L95'></a><a href='#L95'>95</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { api, errorText, useApi } from '@/api';
+import { formatMoney } from '@/domain/billing';
+import type { CancelLine } from '@/domain/types';
+import { Button, DataTable, Field, Notice, Segmented, SelectInput, TextInput, type Column } from '@/ui';
+&nbsp;
+const COLUMNS: Column&lt;CancelLine&gt;[] = [
+  { key: 'abonent', header: 'Абонент', render: <span class="fstat-no" title="function not covered" >(row) =&gt; &lt;span className="strong"&gt;{row.abonent}&lt;/span&gt; }</span>,
+  { key: 'account', header: 'ЛС', mono: true, render: <span class="fstat-no" title="function not covered" >(row) =&gt; row.account }</span>,
+  { key: 'service', header: 'Услуга', render: <span class="fstat-no" title="function not covered" >(row) =&gt; row.service }</span>,
+  { key: 'amount', header: 'Будет снято, ₽', align: 'right', mono: true, render: <span class="fstat-no" title="function not covered" >(row) =&gt; formatMoney(row.amount) }</span>,
+];
+&nbsp;
+type Who = '' | 'person' | 'org';
+const WHO: Array&lt;{ value: Who; label: string }&gt; = [{ value: '', label: 'Все' }, { value: 'person', label: 'Физлица' }, { value: 'org', label: 'Юрлица' }];
+&nbsp;
+export <span class="fstat-no" title="function not covered" >function CancelChargesPage() {</span>
+<span class="cstat-no" title="statement not covered" >  const [kind, setKind] = useState&lt;Who&gt;('');</span>
+<span class="cstat-no" title="statement not covered" >  const [place, setPlace] = useState('');</span>
+<span class="cstat-no" title="statement not covered" >  const [query, setQuery] = useState('');</span>
+<span class="cstat-no" title="statement not covered" >  const [picked, setPicked] = useState&lt;string[] | null&gt;(null);</span>
+<span class="cstat-no" title="statement not covered" >  const [reason, setReason] = useState('');</span>
+<span class="cstat-no" title="statement not covered" >  const [confirming, setConfirming] = useState(false);</span>
+<span class="cstat-no" title="statement not covered" >  const [message, setMessage] = useState&lt;string | null&gt;(null);</span>
+<span class="cstat-no" title="statement not covered" >  const [error, setError] = useState&lt;string | null&gt;(null);</span>
+&nbsp;
+  // Первый запрос без услуг только получает список услуг, отмечать их должен сам бухгалтер
+<span class="cstat-no" title="statement not covered" >  const services = picked ?? [];</span>
+<span class="cstat-no" title="statement not covered" >  const { data: preview, error: loadError } = useApi(() =&gt; api.period.cancelPreview({ kind, place, query, services }), [kind, place, query, services.join(',')]);</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  const toggle = (id: string) =&gt; { setPicked(services.includes(id) ? services.filter((item) =&gt; item !== id) : [...services, id]); setConfirming(false); setMessage(null); };</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  const apply = async () =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >    if (!preview) return;</span>
+<span class="cstat-no" title="statement not covered" >    setError(null);</span>
+<span class="cstat-no" title="statement not covered" >    try {</span>
+<span class="cstat-no" title="statement not covered" >      const result = await api.period.cancel({ kind, place, query, services, reason: reason.trim(), expectedTotal: preview.total, expectedLines: preview.lines.length });</span>
+<span class="cstat-no" title="statement not covered" >      setMessage(result.message);</span>
+<span class="cstat-no" title="statement not covered" >      setReason('');</span>
+<span class="cstat-no" title="statement not covered" >      setPicked([]);</span>
+<span class="cstat-no" title="statement not covered" >    } catch (reason_) {</span>
+<span class="cstat-no" title="statement not covered" >      setError(errorText(reason_));</span>
+<span class="cstat-no" title="statement not covered" >    }</span>
+<span class="cstat-no" title="statement not covered" >    setConfirming(false);</span>
+<span class="cstat-no" title="statement not covered" >  };</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  return (</span>
+<span class="cstat-no" title="statement not covered" >    &lt;div className="split"&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;main className="main"&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;div className="bar" style={{ justifyContent: 'space-between' }}&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;h1 className="title"&gt;Отмена начислений{preview ? `: ${preview.title.toLowerCase()}` : ''}&lt;/h1&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;Link to="/period" className="btn" style={{ width: 148 }}&gt;К месяцу&lt;/Link&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >        {loadError &amp;&amp; &lt;div style={{ padding: '8px 16px' }}&gt;&lt;Notice tone="warn"&gt;{loadError}&lt;/Notice&gt;&lt;/div&gt;}</span>
+<span class="cstat-no" title="statement not covered" >        {message &amp;&amp; &lt;div style={{ padding: '8px 16px' }}&gt;&lt;Notice tone="ok"&gt;{message}&lt;/Notice&gt;&lt;/div&gt;}</span>
+<span class="cstat-no" title="statement not covered" >        &lt;DataTable columns={COLUMNS} rows={preview?.lines ?? []} rowKey={(row) =&gt; `${row.abonentId}-${row.serviceId}`} minWidth={560}</span>
+<span class="cstat-no" title="statement not covered" >          empty={&lt;span className="muted"&gt;{services.length === 0 ? 'Отметьте услуги справа, и здесь появится список.' : 'Под условия не попало ни одного начисления.'}&lt;/span&gt;} /&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;/main&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;aside className="pane pane-right" aria-label="Условия отмены" style={{ width: 344 }}&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;div className="scroll stack pad"&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;h2 className="section-title"&gt;Услуги&lt;/h2&gt;</span>
+<span class="cstat-no" title="statement not covered" >          {preview?.services.length === 0 &amp;&amp; &lt;p className="small muted"&gt;За этот месяц начислений нет.&lt;/p&gt;}</span>
+<span class="cstat-no" title="statement not covered" >          {preview?.services.map((service) =&gt; (</span>
+<span class="cstat-no" title="statement not covered" >            &lt;label key={service.id} className="between small" style={{ gap: 8, cursor: 'pointer' }}&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;span className="row" style={{ gap: 6 }}&gt;&lt;input type="checkbox" checked={services.includes(service.id)} onChange={() =&gt; toggle(service.id)} /&gt;{service.name}&lt;/span&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;span className="mono"&gt;{formatMoney(service.total)} ₽&lt;/span&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;/label&gt;</span>
+<span class="cstat-no" title="statement not covered" >          ))}</span>
+<span class="cstat-no" title="statement not covered" >          &lt;h2 className="section-title" style={{ marginTop: 6 }}&gt;Кому&lt;/h2&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;Segmented label="Тип абонента" options={WHO} value={kind} onChange={(value) =&gt; { setKind(value); setConfirming(false); }} itemWidth={92} /&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;Field label="Населённый пункт"&gt;{(id) =&gt; &lt;SelectInput id={id} value={place} onChange={(event) =&gt; { setPlace(event.target.value); setConfirming(false); }}&gt;&lt;option value=""&gt;Все&lt;/option&gt;{preview?.places.map((item) =&gt; &lt;option key={item}&gt;{item}&lt;/option&gt;)}&lt;/SelectInput&gt;}&lt;/Field&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;Field label="ФИО, лицевой счёт или адрес"&gt;{(id) =&gt; &lt;TextInput id={id} type="search" value={query} onChange={(event) =&gt; { setQuery(event.target.value); setConfirming(false); }} /&gt;}&lt;/Field&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;Field label="Причина"&gt;{(id) =&gt; &lt;TextInput id={id} placeholder="Например, неверная цена в приказе" value={reason} onChange={(event) =&gt; setReason(event.target.value)} /&gt;}&lt;/Field&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;p className="small muted" style={{ lineHeight: 1.45 }}&gt;Показания счётчиков останутся. Оплаченная часть станет переплатой. Шаги месяца начнутся заново: запустите начисление ещё раз.&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >          {preview?.penaltyDone &amp;&amp; !services.includes('penalty') &amp;&amp; &lt;Notice tone="warn"&gt;Пени уже начислены и зависят от долга. Запустите их заново после начисления.&lt;/Notice&gt;}</span>
+<span class="cstat-no" title="statement not covered" >          {error &amp;&amp; &lt;Notice tone="warn"&gt;{error}&lt;/Notice&gt;}</span>
+<span class="cstat-no" title="statement not covered" >        &lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;div className="stack pad" style={{ background: 'var(--surface)', borderTop: '1px solid var(--line)', gap: 8 }}&gt;</span>
+<span class="cstat-no" title="statement not covered" >          {preview &amp;&amp; &lt;div className="between strong"&gt;&lt;span&gt;Строк: {preview.lines.length}&lt;/span&gt;&lt;span className="mono"&gt;{formatMoney(preview.total)} ₽&lt;/span&gt;&lt;/div&gt;}</span>
+<span class="cstat-no" title="statement not covered" >          {confirming &amp;&amp; preview ? (</span>
+<span class="cstat-no" title="statement not covered" >            &lt;&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;Notice tone="warn"&gt;&lt;strong style={{ display: 'block', marginBottom: 2 }}&gt;Снять {formatMoney(preview.total)} ₽?&lt;/strong&gt;Строк: {preview.lines.length}. Действие попадёт в журнал денег.&lt;/Notice&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;Button variant="danger" size="lg" onClick={() =&gt; void apply()}&gt;Да, отменить начисления&lt;/Button&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;Button size="full" onClick={() =&gt; setConfirming(false)}&gt;Назад&lt;/Button&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;/&gt;</span>
+          ) : (
+<span class="cstat-no" title="statement not covered" >            &lt;Button variant="primary" size="lg" disabled={!preview || preview.lines.length === 0 || !reason.trim()} onClick={() =&gt; setConfirming(true)}&gt;Отменить начисления&lt;/Button&gt;</span>
+          )}
+<span class="cstat-no" title="statement not covered" >        &lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;/aside&gt;</span>
+<span class="cstat-no" title="statement not covered" >    &lt;/div&gt;</span>
+  );
+<span class="cstat-no" title="statement not covered" >}</span>
+&nbsp;</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-11-07T18:17:12.687Z
+            </div>
+        <script src="../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../sorter.js"></script>
+        <script src="../../block-navigation.js"></script>
+    </body>
+</html>
+    

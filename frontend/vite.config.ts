@@ -22,5 +22,10 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     css: false,
+    coverage: {
+      include: ['src/**'],
+      // Исключаем файлы только с типами, точку входа и сам тестовый инструментарий
+      exclude: ['src/**/*.test.*', 'src/test/**', 'src/main.tsx', 'src/domain/types.ts', 'src/vite-env.d.ts'],
+    },
   },
 });
