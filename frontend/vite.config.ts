@@ -1,6 +1,6 @@
 import react from '@vitejs/plugin-react';
 import { fileURLToPath } from 'node:url';
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   plugins: [react()],
@@ -15,6 +15,12 @@ export default defineConfig({
   // Сборка для показа: слушает только этот компьютер. Наружу её выводит туннель ngrok, поэтому разрешены его адреса.
   preview: {
     proxy: { '/api': 'http://localhost:5080' },
-    allowedHosts: ['.ngrok-free.app', '.ngrok.app', '.ngrok.io'],
+    allowedHosts: ['.ngrok-free.app', '.ngrok-free.dev', '.ngrok.app', '.ngrok.io'],
+  },
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: ['./src/test/setup.ts'],
+    css: false,
   },
 });
