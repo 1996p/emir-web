@@ -295,6 +295,32 @@ public sealed class ApiTests : IDisposable
     }
 
     [Fact]
+    public async Task Readiness_SumsBlockedLinesAndReportsHouseMeters()
+    {
+        var client = await LoginAs("buh1");
+        var readiness = await client.GetFromJsonAsync<JsonElement>("/api/period/readiness");
+
+        var problems = readiness.GetProperty("problems").EnumerateArray().ToList();
+        var blockedFromGroups = problems.Sum(problem => problem.GetProperty("lines").GetInt32());
+        Assert.Equal(readiness.GetProperty("blockedLines").GetInt32(), blockedFromGroups);
+        // Каждая причина знает про своих абонентов и приводит примеры
+        Assert.All(problems, problem =>
+        {
+            Assert.True(problem.GetProperty("abonents").GetInt32() > 0);
+            Assert.NotEmpty(problem.GetProperty("examples").EnumerateArray());
+        });
+        Assert.True(readiness.GetProperty("houseMetersTotal").GetInt32() >= 0);
+        Assert.True(readiness.GetProperty("wouldCharge").GetInt64() > 0);
+    }
+
+    [Fact]
+    public async Task Readiness_ForbiddenForCashier()
+    {
+        var client = await LoginAs("kassa1");
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/period/readiness")).StatusCode);
+    }
+
+    [Fact]
     public void Billing_TakeAndGive_KeepCreditAndDebtConsistent()
     {
         var abonent = new Emir.Api.Data.Abonent { Id = "x", Kind = "person", Name = "X", ShortName = "X", Street = "Y", Account = "1", Credit = 500 };

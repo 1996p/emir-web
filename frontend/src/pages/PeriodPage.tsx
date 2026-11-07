@@ -110,6 +110,7 @@ export function PeriodPage() {
         <div className="between" style={{ alignItems: 'center', flexWrap: 'wrap' }}>
           <h1 className="title">{month?.title ?? ''}{month?.status === 'closed' ? ', закрыт' : ''}</h1>
           <div className="row">
+            <Link to="/period/readiness" className="btn" style={{ width: 160 }}>Готовность месяца</Link>
             {canManage && month?.status === 'open' && <Link to="/period/cancel" className="btn" style={{ width: 160 }}>Отмена начислений</Link>}
             <Button style={{ width: 160 }} size="auto" active={panel === 'settings'} onClick={() => setPanel(panel === 'settings' ? 'step' : 'settings')}>Параметры</Button>
             <Button style={{ width: 160 }} size="auto" active={panel === 'closed'} onClick={() => setPanel(panel === 'closed' ? 'step' : 'closed')}>Закрытые месяцы</Button>

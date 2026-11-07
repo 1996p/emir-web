@@ -10,6 +10,10 @@ public record ServicePreview(string Service, int Abonents, long Previous, long A
 /// <summary>Already — уже проведено за открытый месяц; Total — что даст расчёт сейчас. Разница Total − Already добавится к долгу при проведении.</summary>
 public record ChargePreview(int Abonents, int Lines, long Total, long Already, List<ServicePreview> Services, List<ChargeIssue> Issues);
 public record ChargeRunResult(int Abonents, int Lines, long Total, List<ChargeIssue> Issues);
+/// <summary>Одна причина, по которой услуги не будут начислены, со счётчиком строк и примерами абонентов.</summary>
+public record ReadinessProblem(string Problem, int Lines, int Abonents, List<string> Examples);
+/// <summary>Готовность открытого месяца к начислению: что посчитается и что мешает.</summary>
+public record MonthReadiness(string Period, bool Reopened, int ReadyLines, int ReadyAbonents, long WouldCharge, int BlockedLines, int BlockedAbonents, List<ReadinessProblem> Problems, int HouseMetersTotal, int HouseMetersWithReading);
 
 /// <summary>Расчёт и проведение начислений за открытый месяц.</summary>
 public static class ChargingService
@@ -119,6 +123,28 @@ public static class ChargingService
         }).ToList();
 
         return new ChargePreview(valid.Select(item => item.Abonent.Id).Distinct().Count(), valid.Count, valid.Sum(item => item.Result.Amount), already.Sum(entry => entry.Amount), services, IssuesOf(plan));
+    }
+
+    /// <summary>Что мешает закрыть открытый месяц: причины сгруппированы, с примерами и прогрессом по общедомовым счётчикам.</summary>
+    public static async Task<MonthReadiness> Readiness(EmirDb db)
+    {
+        var abonents = await db.Abonents.Include(abonent => abonent.Services).ToListAsync();
+        var work = await Periods.Work(db);
+        var open = work.Period;
+        var plan = await Plan(db, abonents, open);
+        var valid = plan.Where(item => item.Result.Error is null).ToList();
+        var blocked = plan.Where(item => item.Result.Error is not null).ToList();
+
+        var problems = blocked.GroupBy(item => item.Result.Error!).OrderByDescending(group => group.Count()).Select(group => new ReadinessProblem(
+            group.Key, group.Count(), group.Select(item => item.Abonent.Id).Distinct().Count(),
+            group.Select(item => item.Abonent.ShortName).Distinct().Take(5).ToList())).ToList();
+
+        var houseMetersTotal = await db.HouseMeters.CountAsync();
+        var withReading = await db.HouseMeterReadings.Where(reading => reading.Period == open).Select(reading => reading.HouseMeterId).Distinct().CountAsync();
+
+        return new MonthReadiness(open, work.ReopenedAtUtc is not null,
+            valid.Count, valid.Select(item => item.Abonent.Id).Distinct().Count(), valid.Sum(item => item.Result.Amount),
+            blocked.Count, blocked.Select(item => item.Abonent.Id).Distinct().Count(), problems, houseMetersTotal, withReading);
     }
 
     /// <summary>Повторный запуск сначала отменяет начисления месяца, поэтому сумма не удваивается.</summary>

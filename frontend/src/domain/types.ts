@@ -192,6 +192,26 @@ export interface HeatNormsView {
   withoutCategory: number;
 }
 
+export interface ReadinessProblem {
+  problem: string;
+  lines: number;
+  abonents: number;
+  examples: string[];
+}
+
+export interface MonthReadiness {
+  period: string;
+  reopened: boolean;
+  readyLines: number;
+  readyAbonents: number;
+  wouldCharge: Kopecks;
+  blockedLines: number;
+  blockedAbonents: number;
+  problems: ReadinessProblem[];
+  houseMetersTotal: number;
+  houseMetersWithReading: number;
+}
+
 export interface ServiceTermItem {
   fromPeriod: string;
   tariffId: string | null;

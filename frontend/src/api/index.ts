@@ -8,7 +8,7 @@ import type { Beneficiary, BenefitCategory, BenefitImportLine } from '@/domain/t
 import type { AbonentDetails, LedgerRow, ManagedUser, Role } from '@/domain/types';
 import type { DocumentCounter, DocumentRow, DocumentsView, OrganizationProfile, PrintDocument } from '@/domain/types';
 import type { ChecksView, ClosedMonth, CurrentMonth, ReclosePreview, ServiceTermItem, TariffsView } from '@/domain/types';
-import type { HeatNormsView } from '@/domain/types';
+import type { HeatNormsView, MonthReadiness } from '@/domain/types';
 
 export class ApiError extends Error {
   constructor(public readonly status: number, message: string) {
@@ -150,6 +150,7 @@ export const api = {
   period: {
     steps: () => get<PeriodStep[]>('/period/steps'),
     preview: () => get<ChargePreview>('/period/charges/preview'),
+    readiness: () => get<MonthReadiness>('/period/readiness'),
     run: (stepId: string) => mutate<{ message: string }>(`/period/steps/${encodeURIComponent(stepId)}/run`),
     settings: () => get<PeriodSetting[]>('/period/settings'),
     closed: () => get<ClosedMonth[]>('/period/closed'),

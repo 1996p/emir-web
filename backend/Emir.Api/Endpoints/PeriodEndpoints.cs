@@ -99,6 +99,8 @@ public static class PeriodEndpoints
 
         group.MapGet("/charges/preview", async (EmirDb db) => await ChargingService.Preview(db)).Roles(Roles.Service, Roles.Accountant, Roles.Admin);
 
+        group.MapGet("/readiness", async (EmirDb db) => await ChargingService.Readiness(db)).Roles(Roles.Service, Roles.Accountant, Roles.Admin);
+
         group.MapPost("/steps/{id}/run", async (string id, EmirDb db, ClaimsPrincipal user) =>
         {
             if (!Steps.ContainsKey(id)) throw new ApiError(404, "Шаг не найден");
