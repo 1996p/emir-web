@@ -257,6 +257,36 @@ public sealed class ApiTests : IDisposable
     }
 
     [Fact]
+    public async Task Directory_ReferenceColumn_IsDropdownAndValidated()
+    {
+        var client = await LoginAs("admin");   // поднимает приложение и создаёт базу теста
+        static string J(object value) => System.Text.Json.JsonSerializer.Serialize(value);
+        await using (var db = Db())
+        {
+            db.ReferenceTables.Add(new Emir.Api.Data.ReferenceTable { Name = "Котельные", ColumnsJson = J(new[] { "ID", "Название" }), RowsJson = J(new[] { new[] { "1", "Журавка" }, new[] { "2", "Степное" } }), RowCount = 2 });
+            db.ReferenceTables.Add(new Emir.Api.Data.ReferenceTable { Name = "Абоненты ЖКХ", ColumnsJson = J(new[] { "ЛС", "Котельная" }), RowsJson = J(new[] { new[] { "40010001", "Журавка" } }), RowCount = 1 });
+            await db.SaveChangesAsync();
+        }
+
+        // таблица сообщает, что колонка «Котельная» — ссылка на справочник «Котельные»
+        var table = await client.GetFromJsonAsync<JsonElement>("/api/directories/table?name=" + Uri.EscapeDataString("Абоненты ЖКХ"));
+        var reference = table.GetProperty("references").GetProperty("Котельная");
+        Assert.Equal("Котельные", reference.GetProperty("source").GetString());
+
+        // значения выпадающего списка — по алфавиту из источника
+        var options = await client.GetFromJsonAsync<string[]>("/api/directories/options?" + $"name={Uri.EscapeDataString("Котельные")}&column={Uri.EscapeDataString("Название")}");
+        Assert.Equal(new[] { "Журавка", "Степное" }, options);
+
+        // значение не из справочника отклоняется
+        var bad = await client.PostAsJsonAsync("/api/directories/rows/0", new { name = "Абоненты ЖКХ", expected = new[] { "40010001", "Журавка" }, row = new[] { "40010001", "Несуществующая" }, reason = "тест" });
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, bad.StatusCode);
+
+        // значение из справочника принимается
+        var ok = await client.PostAsJsonAsync("/api/directories/rows/0", new { name = "Абоненты ЖКХ", expected = new[] { "40010001", "Журавка" }, row = new[] { "40010001", "Степное" }, reason = "тест" });
+        Assert.Equal(HttpStatusCode.NoContent, ok.StatusCode);
+    }
+
+    [Fact]
     public async Task Register_AcceptsRealAddress()
     {
         var client = await LoginAs("oper1");

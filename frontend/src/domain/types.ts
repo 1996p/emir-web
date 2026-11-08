@@ -621,6 +621,8 @@ export interface DirectoryTable {
   placeholder?: boolean;
   /** Строки можно добавлять, менять и удалять */
   editable?: boolean;
+  /** Колонка-ссылка на другой справочник: заголовок колонки → источник значений для выпадающего списка */
+  references?: Record<string, { source: string; label: string }>;
 }
 
 export interface AdminSection {

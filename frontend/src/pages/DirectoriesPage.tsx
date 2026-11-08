@@ -5,7 +5,7 @@ import { useRole } from '@/layout/role';
 import { BeneficiariesDirectory, CategoriesDirectory } from './BenefitsDirectory';
 import { HeatNormsDirectory } from './HeatNormsDirectory';
 import { TariffsDirectory } from './TariffsDirectory';
-import { AccordionNav, Button, DataTable, Field, Notice, TextInput, type Column } from '@/ui';
+import { AccordionNav, Button, DataTable, Field, Notice, SelectInput, TextInput, type Column } from '@/ui';
 
 interface Row { key: string; cells: string[] }
 
@@ -89,7 +89,7 @@ export function DirectoriesPage() {
             <aside className="pane pane-right" aria-label="Запись" style={{ width: 340 }}>
               <div className="scroll stack pad">
                 {table.editable && canEdit
-                  ? <RowEditor key={adding ? `new-${name}` : `${name}-${rowIndex}-${current?.join('|')}`} name={name} columns={table.columns} index={adding ? null : (table.rows[rowIndex] ? rowIndex : 0)} values={adding ? null : current ?? null} onDone={(added) => { setAdding(false); if (added) setRowIndex(table.rows.length); }} />
+                  ? <RowEditor key={adding ? `new-${name}` : `${name}-${rowIndex}-${current?.join('|')}`} name={name} columns={table.columns} references={table.references} index={adding ? null : (table.rows[rowIndex] ? rowIndex : 0)} values={adding ? null : current ?? null} onDone={(added) => { setAdding(false); if (added) setRowIndex(table.rows.length); }} />
                   : <><h2 className="section-title">Запись</h2>{current && <DefinitionRows columns={table.columns} values={current} />}</>}
                 {table?.sensitive && role === 'admin' && (
                   <div className="small muted" style={{ borderTop: '1px solid var(--line)', paddingTop: 10, lineHeight: 1.45 }}>
@@ -121,7 +121,21 @@ function DefinitionRows({ columns, values }: { columns: string[]; values: string
 }
 
 /** Форма записи справочника: новая (index = null) или существующая. Любое изменение требует причины и попадает в журнал. */
-function RowEditor({ name, columns, index, values, onDone }: { name: string; columns: string[]; index: number | null; values: string[] | null; onDone: (added: boolean) => void }) {
+/** Колонка-ссылка на справочник: выпадающий список значений источника. Старое «чужое» значение показываем, чтобы не потерять. */
+function RefSelect({ id, value, source, onChange }: { id: string; value: string; source: { source: string; label: string }; onChange: (value: string) => void }) {
+  const { data: options } = useApi(() => api.directories.options(source.source, source.label), [source.source, source.label]);
+  const list = options ?? [];
+  const extra = value && !list.includes(value) ? [value] : [];
+  return (
+    <SelectInput id={id} value={value} onChange={(event) => onChange(event.target.value)}>
+      <option value="">— не выбрано —</option>
+      {extra.map((item) => <option key={item} value={item}>{item} (вне справочника)</option>)}
+      {list.map((item) => <option key={item} value={item}>{item}</option>)}
+    </SelectInput>
+  );
+}
+
+function RowEditor({ name, columns, references, index, values, onDone }: { name: string; columns: string[]; references?: Record<string, { source: string; label: string }>; index: number | null; values: string[] | null; onDone: (added: boolean) => void }) {
   const [cells, setCells] = useState<string[]>(() => columns.map((_, i) => values?.[i] ?? ''));
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -145,9 +159,15 @@ function RowEditor({ name, columns, index, values, onDone }: { name: string; col
   return (
     <>
       <h2 className="section-title">{index === null ? 'Новая запись' : 'Запись'}</h2>
-      {columns.map((column, i) => (
-        <Field key={`${column}-${i}`} label={column}>{(id) => <TextInput id={id} value={cells[i]} onChange={(event) => setCells((current) => current.map((cell, j) => (j === i ? event.target.value : cell)))} />}</Field>
-      ))}
+      {columns.map((column, i) => {
+        const update = (value: string) => setCells((current) => current.map((cell, j) => (j === i ? value : cell)));
+        const ref = references?.[column];
+        return (
+          <Field key={`${column}-${i}`} label={column}>{(id) => ref
+            ? <RefSelect id={id} value={cells[i] ?? ''} source={ref} onChange={update} />
+            : <TextInput id={id} value={cells[i]} onChange={(event) => update(event.target.value)} />}</Field>
+        );
+      })}
       <Field label="Причина изменения">{(id) => <TextInput id={id} placeholder="Например, новый дом по акту" value={reason} onChange={(event) => setReason(event.target.value)} />}</Field>
       {error && <Notice tone="warn">{error}</Notice>}
       {note && <Notice tone="ok">{note}</Notice>}

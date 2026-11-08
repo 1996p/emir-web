@@ -5,7 +5,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Emir.Api.Endpoints;
 
-public record DirectoryTableDto(List<string> Columns, List<List<string>> Rows, bool Sensitive = false, bool Placeholder = false, bool Editable = false);
+/// <summary>Source — справочник-источник выпадающего списка, Label — его колонка со значениями.</summary>
+public record DirectoryRefDto(string Source, string Label);
+public record DirectoryTableDto(List<string> Columns, List<List<string>> Rows, bool Sensitive = false, bool Placeholder = false, bool Editable = false, Dictionary<string, DirectoryRefDto>? References = null);
 /// <summary>Expected: строка, какой её видел пользователь. Если её уже изменили, правка отклоняется.</summary>
 public record DirectoryRowRequest(string Name, List<string>? Row, List<string>? Expected, string? Reason);
 public record AdminSectionDto(string Id, string Group, string Title, string Description, List<string> Columns, List<List<string>> Rows, int? Badge = null);
@@ -38,11 +40,18 @@ public static class ReferenceEndpoints
                     return new DirectoryTableDto(["Номер", "Адрес", "Услуга", "Показание"], abonents.SelectMany(abonent => abonent.Services.Where(line => line.MeterNumber is not null).Select(line => new List<string> { line.MeterNumber!, Address(abonent), line.Name, (line.MeterLastReading ?? 0).ToString("0.####") })).ToList());
                 default:
                     var stored = await db.ReferenceTables.FirstOrDefaultAsync(item => item.Name == name);
-                    return stored is null
-                        ? new DirectoryTableDto(["ID", "Название", "Описание"], [], Placeholder: true)
-                        : new DirectoryTableDto(System.Text.Json.JsonSerializer.Deserialize<List<string>>(stored.ColumnsJson) ?? [], System.Text.Json.JsonSerializer.Deserialize<List<List<string>>>(stored.RowsJson) ?? [], stored.Sensitive, Editable: true);
+                    if (stored is null) return new DirectoryTableDto(["ID", "Название", "Описание"], [], Placeholder: true);
+                    var references = Catalog.References.Where(item => item.Table == name).ToDictionary(item => item.Column, item => new DirectoryRefDto(item.Source, item.Label));
+                    return new DirectoryTableDto(
+                        System.Text.Json.JsonSerializer.Deserialize<List<string>>(stored.ColumnsJson) ?? [],
+                        System.Text.Json.JsonSerializer.Deserialize<List<List<string>>>(stored.RowsJson) ?? [],
+                        stored.Sensitive, Editable: true, References: references.Count > 0 ? references : null);
             }
         }).Roles(Roles.Service, Roles.Accountant, Roles.Admin);
+
+        // Значения для выпадающего списка: уникальные непустые значения колонки справочника-источника
+        api.MapGet("/directories/options", async (string name, string column, EmirDb db) =>
+            await DirectoryOptions(db, name, column)).Roles(Roles.Service, Roles.Accountant, Roles.Admin);
 
         // Справочники старой системы хранятся таблицей целиком. Строку правят по номеру, сверяя с тем, что видел пользователь
         api.MapPost("/directories/rows", (DirectoryRowRequest request, EmirDb db, ClaimsPrincipal user) =>
@@ -111,6 +120,18 @@ public static class ReferenceEndpoints
 
     private const int MaxCell = 1000;
 
+    /// <summary>Уникальные непустые значения колонки справочника-источника, по алфавиту.</summary>
+    private static async Task<List<string>> DirectoryOptions(EmirDb db, string name, string column)
+    {
+        var table = await db.ReferenceTables.FirstOrDefaultAsync(item => item.Name == name) ?? throw new ApiError(404, "Справочник-источник не найден");
+        var columns = System.Text.Json.JsonSerializer.Deserialize<List<string>>(table.ColumnsJson) ?? [];
+        var index = columns.IndexOf(column);
+        if (index < 0) throw new ApiError(404, $"В справочнике «{name}» нет колонки «{column}»");
+        var rows = System.Text.Json.JsonSerializer.Deserialize<List<List<string>>>(table.RowsJson) ?? [];
+        return rows.Select(row => index < row.Count ? row[index].Trim() : "").Where(value => value != "")
+            .Distinct().OrderBy(value => value, StringComparer.CurrentCulture).ToList();
+    }
+
     private static async Task<IResult> EditRow(EmirDb db, ClaimsPrincipal user, DirectoryRowRequest request, int? index, string action)
     {
         var reason = request.Reason?.Trim();
@@ -133,10 +154,28 @@ public static class ReferenceEndpoints
         }
         string Text(List<string> row) => string.Join("; ", columns.Zip(row).Where(pair => pair.Second != "").Select(pair => $"{pair.First}: {pair.Second}"));
 
+        // Колонки-ссылки на другие справочники: новое значение должно быть из списка источника (старое «грязное» значение не трогаем)
+        var refs = Catalog.References.Where(item => item.Table == request.Name).ToList();
+        var optionsCache = new Dictionary<string, HashSet<string>>();
+        async Task ValidateRefs(List<string> row, List<string>? old)
+        {
+            foreach (var reference in refs)
+            {
+                var at = columns.IndexOf(reference.Column);
+                if (at < 0 || at >= row.Count) continue;
+                var value = row[at];
+                if (value == "" || (old is not null && at < old.Count && old[at] == value)) continue;
+                if (!optionsCache.TryGetValue(reference.Source, out var allowed))
+                    optionsCache[reference.Source] = allowed = (await DirectoryOptions(db, reference.Source, reference.Label)).ToHashSet();
+                if (!allowed.Contains(value)) throw new ApiError(422, $"«{value}» нет в справочнике «{reference.Source}». Выберите значение из списка.");
+            }
+        }
+
         string details;
         if (index is null)
         {
             var row = Clean(request.Row);
+            await ValidateRefs(row, null);
             rows.Add(row);
             details = $"Добавлено: {Text(row)}";
         }
@@ -153,6 +192,7 @@ public static class ReferenceEndpoints
             else
             {
                 var row = Clean(request.Row);
+                await ValidateRefs(row, old);
                 rows[index.Value] = row;
                 var changes = columns.Select((column, i) => (column, before: i < old.Count ? old[i] : "", after: row[i])).Where(item => item.before != item.after).Select(item => $"{item.column}: «{item.before}» → «{item.after}»").ToList();
                 if (changes.Count == 0) return Results.NoContent();

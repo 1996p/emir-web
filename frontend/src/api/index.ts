@@ -231,6 +231,7 @@ export const api = {
   directories: {
     groups: () => get<DirectoryGroup[]>('/directories/groups'),
     table: (name: string) => get<DirectoryTable>(`/directories/table?${q({ name })}`),
+    options: (name: string, column: string) => get<string[]>(`/directories/options?${q({ name, column })}`),
     addRow: (name: string, row: string[], reason: string) => mutate<void>('/directories/rows', { name, row, reason }),
     editRow: (name: string, index: number, expected: string[], row: string[], reason: string) => mutate<void>(`/directories/rows/${index}`, { name, expected, row, reason }),
     deleteRow: (name: string, index: number, expected: string[], reason: string) => mutate<void>(`/directories/rows/${index}/delete`, { name, expected, reason }),
