@@ -168,6 +168,7 @@ function HeatNormSection({ abonent, details, canEdit }: { abonent: Abonent; deta
 
   return (
     <Section title="Норматив потребления">
+      <HouseCategoryField abonent={abonent} details={details} canEdit={canEdit} onNorm={(value) => { setCurrent(value); setNorm(value === null ? '' : String(value).replace('.', ',')); }} />
       <p className="small muted" style={{ lineHeight: 1.45 }}>
         Сейчас: {formatNorm(current)}{volume !== null ? ` · за месяц ${abonent.area} м² × норма = ${volume.toLocaleString('ru-RU')} Гкал` : ''}.
         Действует для тарифа по норме дома, учитывается при следующем начислении.
@@ -182,6 +183,47 @@ function HeatNormSection({ abonent, details, canEdit }: { abonent: Abonent; deta
         </>
       )}
     </Section>
+  );
+}
+
+/** Категория дома — из справочника «Категории домов». При смене абоненту ставится норма категории. */
+function HouseCategoryField({ abonent, details, canEdit, onNorm }: { abonent: Abonent; details: Details; canEdit: boolean; onNorm: (norm: number | null) => void }) {
+  const saved = details.houseCategory ?? '';
+  const [current, setCurrent] = useState(saved);
+  const [category, setCategory] = useState(saved);
+  const [reason, setReason] = useState('');
+  const { run, view } = useAction();
+  const { data: options } = useApi(() => (canEdit ? api.directories.options('Категории домов', 'Название') : Promise.resolve([] as string[])), [canEdit]);
+  const list = options ?? [];
+
+  useEffect(() => { setCurrent(saved); setCategory(saved); }, [saved, abonent.id]);
+
+  const save = () => run(() => api.abonents.setHouseCategory(abonent.id, category || null, reason.trim()), 'Категория сохранена. Нажмите «Начислить», чтобы пересчитать открытый месяц.')
+    .then(async (ok) => {
+      if (!ok) return;
+      setCurrent(category);
+      setReason('');
+      onNorm((await api.abonents.details(abonent.id)).houseHeatNorm);
+    });
+
+  if (!canEdit) return <p className="small muted">Категория дома: {current || 'не указана'}.</p>;
+  return (
+    <>
+      <Field label="Категория дома" hint="Из справочника «Категории домов». Норма категории проставится абоненту">{(id) => (
+        <SelectInput id={id} value={category} onChange={(event) => setCategory(event.target.value)}>
+          <option value="">— не указана —</option>
+          {category && !list.includes(category) && <option value={category}>{category} (вне справочника)</option>}
+          {list.map((item) => <option key={item} value={item}>{item}</option>)}
+        </SelectInput>
+      )}</Field>
+      {category !== current && (
+        <>
+          <Field label="Причина смены категории">{(id) => <TextInput id={id} placeholder="Например, акт обследования" value={reason} onChange={(event) => setReason(event.target.value)} />}</Field>
+          {view}
+          <Button size="full" disabled={!reason.trim()} onClick={() => void save()}>Сохранить категорию</Button>
+        </>
+      )}
+    </>
   );
 }
 

@@ -185,6 +185,8 @@ export interface HeatNormRow {
   withoutNorm: number;
   norm: number | null;
   distinct: number[];
+  /** Категория есть в справочнике «Категории домов». Нет — осталась у абонентов от старой системы */
+  inDirectory?: boolean;
 }
 
 export interface HeatNormsView {
@@ -427,6 +429,8 @@ export interface AbonentDetails {
   residents: Array<{ id: number; name: string; fromDate: string | null; toDate: string | null }>;
   /** Норма теплопотребления дома, Гкал/м² */
   houseHeatNorm: number | null;
+  /** Категория дома из справочника «Категории домов» */
+  houseCategory?: string | null;
 }
 
 export interface BenefitCategory {
@@ -614,6 +618,9 @@ export interface DirectoryGroup {
   items: string[];
 }
 
+/** Источник выпадающего списка. where — каскад: колонка источника → колонка этой записи (улицы выбранного города) */
+export interface DirectoryRef { source: string; label: string; where?: Record<string, string> | null }
+
 export interface DirectoryTable {
   columns: string[];
   rows: string[][];
@@ -622,7 +629,7 @@ export interface DirectoryTable {
   /** Строки можно добавлять, менять и удалять */
   editable?: boolean;
   /** Колонка-ссылка на другой справочник: заголовок колонки → источник значений для выпадающего списка */
-  references?: Record<string, { source: string; label: string }>;
+  references?: Record<string, DirectoryRef>;
 }
 
 export interface AdminSection {

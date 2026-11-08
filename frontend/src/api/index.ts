@@ -101,6 +101,7 @@ export const api = {
     setContact: (id: string, phone: string | null) => mutate<void>(`/abonents/${encodeURIComponent(id)}/contact`, { phone }),
     setLegal: (id: string, consent: boolean | null, ownershipDocument: string | null) => mutate<void>(`/abonents/${encodeURIComponent(id)}/legal`, { consent, ownershipDocument }),
     setHeatNorm: (id: string, norm: number | null, reason: string) => mutate<void>(`/abonents/${encodeURIComponent(id)}/heat-norm`, { norm, reason }),
+    setHouseCategory: (id: string, category: string | null, reason: string) => mutate<void>(`/abonents/${encodeURIComponent(id)}/house-category`, { category, reason }),
     setMeterUnit: (id: string, serviceId: string, unit: string | null) => mutate<void>(`/abonents/${encodeURIComponent(id)}/services/${encodeURIComponent(serviceId)}/meter-unit`, { unit }),
     setMeter: (id: string, serviceId: string, body: { number: string; lastReading: number; verifiedUntil: string | null; average: number | null; unit: string | null }) => mutate<void>(`/abonents/${encodeURIComponent(id)}/services/${encodeURIComponent(serviceId)}/meter`, body),
     removeMeter: (id: string, serviceId: string) => mutate<void>(`/abonents/${encodeURIComponent(id)}/services/${encodeURIComponent(serviceId)}/meter/remove`),
@@ -231,7 +232,8 @@ export const api = {
   directories: {
     groups: () => get<DirectoryGroup[]>('/directories/groups'),
     table: (name: string) => get<DirectoryTable>(`/directories/table?${q({ name })}`),
-    options: (name: string, column: string) => get<string[]>(`/directories/options?${q({ name, column })}`),
+    options: (name: string, column: string, where?: Record<string, string>) =>
+      get<string[]>(`/directories/options?${q(where && Object.keys(where).length > 0 ? { name, column, where: JSON.stringify(where) } : { name, column })}`),
     addRow: (name: string, row: string[], reason: string) => mutate<void>('/directories/rows', { name, row, reason }),
     editRow: (name: string, index: number, expected: string[], row: string[], reason: string) => mutate<void>(`/directories/rows/${index}`, { name, expected, row, reason }),
     deleteRow: (name: string, index: number, expected: string[], reason: string) => mutate<void>(`/directories/rows/${index}/delete`, { name, expected, reason }),

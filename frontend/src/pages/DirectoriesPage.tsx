@@ -5,6 +5,7 @@ import { useRole } from '@/layout/role';
 import { BeneficiariesDirectory, CategoriesDirectory } from './BenefitsDirectory';
 import { HeatNormsDirectory } from './HeatNormsDirectory';
 import { TariffsDirectory } from './TariffsDirectory';
+import type { DirectoryRef } from '@/domain/types';
 import { AccordionNav, Button, DataTable, Field, Notice, SelectInput, TextInput, type Column } from '@/ui';
 
 interface Row { key: string; cells: string[] }
@@ -121,21 +122,36 @@ function DefinitionRows({ columns, values }: { columns: string[]; values: string
 }
 
 /** Форма записи справочника: новая (index = null) или существующая. Любое изменение требует причины и попадает в журнал. */
-/** Колонка-ссылка на справочник: выпадающий список значений источника. Старое «чужое» значение показываем, чтобы не потерять. */
-function RefSelect({ id, value, source, onChange }: { id: string; value: string; source: { source: string; label: string }; onChange: (value: string) => void }) {
-  const { data: options } = useApi(() => api.directories.options(source.source, source.label), [source.source, source.label]);
+/** Колонка-ссылка на справочник: выпадающий список значений источника. Старое «чужое» значение показываем, чтобы не потерять.
+ *  where — каскад: значения родительских колонок этой записи (улицы только выбранного города). */
+function RefSelect({ id, value, source, where, waitFor, onChange }: { id: string; value: string; source: DirectoryRef; where?: Record<string, string>; waitFor?: string; onChange: (value: string) => void }) {
+  const key = JSON.stringify(where ?? {});
+  const { data: options } = useApi(() => (waitFor ? Promise.resolve([] as string[]) : api.directories.options(source.source, source.label, where)), [source.source, source.label, key, waitFor]);
   const list = options ?? [];
   const extra = value && !list.includes(value) ? [value] : [];
   return (
-    <SelectInput id={id} value={value} onChange={(event) => onChange(event.target.value)}>
-      <option value="">— не выбрано —</option>
+    <SelectInput id={id} value={value} disabled={Boolean(waitFor) && !value} onChange={(event) => onChange(event.target.value)}>
+      <option value="">{waitFor ? `— сначала выберите «${waitFor}» —` : '— не выбрано —'}</option>
       {extra.map((item) => <option key={item} value={item}>{item} (вне справочника)</option>)}
       {list.map((item) => <option key={item} value={item}>{item}</option>)}
     </SelectInput>
   );
 }
 
-function RowEditor({ name, columns, references, index, values, onDone }: { name: string; columns: string[]; references?: Record<string, { source: string; label: string }>; index: number | null; values: string[] | null; onDone: (added: boolean) => void }) {
+/** Колонки, которые зависят от column по каскаду (улица и дом зависят от города), включая зависимые от зависимых. */
+function dependentsOf(column: string, references?: Record<string, DirectoryRef>): string[] {
+  const found: string[] = [];
+  const queue = [column];
+  while (queue.length > 0) {
+    const parent = queue.shift();
+    for (const [child, ref] of Object.entries(references ?? {})) {
+      if (!found.includes(child) && Object.values(ref.where ?? {}).includes(parent ?? '')) { found.push(child); queue.push(child); }
+    }
+  }
+  return found;
+}
+
+function RowEditor({ name, columns, references, index, values, onDone }: { name: string; columns: string[]; references?: Record<string, DirectoryRef>; index: number | null; values: string[] | null; onDone: (added: boolean) => void }) {
   const [cells, setCells] = useState<string[]>(() => columns.map((_, i) => values?.[i] ?? ''));
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -160,11 +176,17 @@ function RowEditor({ name, columns, references, index, values, onDone }: { name:
     <>
       <h2 className="section-title">{index === null ? 'Новая запись' : 'Запись'}</h2>
       {columns.map((column, i) => {
-        const update = (value: string) => setCells((current) => current.map((cell, j) => (j === i ? value : cell)));
+        // Смена родителя (города) сбрасывает зависимые колонки (улицу, дом): старое значение к новому городу не подходит
+        const update = (value: string) => setCells((current) => {
+          const reset = current[i] === value ? [] : dependentsOf(column, references);
+          return current.map((cell, j) => (j === i ? value : reset.includes(columns[j] ?? '') ? '' : cell));
+        });
         const ref = references?.[column];
+        const where = ref?.where ? Object.fromEntries(Object.entries(ref.where).map(([from, to]) => [from, (cells[columns.indexOf(to)] ?? '').trim()])) : undefined;
+        const waitFor = ref?.where ? Object.values(ref.where).find((to) => !(cells[columns.indexOf(to)] ?? '').trim()) : undefined;
         return (
           <Field key={`${column}-${i}`} label={column}>{(id) => ref
-            ? <RefSelect id={id} value={cells[i] ?? ''} source={ref} onChange={update} />
+            ? <RefSelect id={id} value={cells[i] ?? ''} source={ref} where={where} waitFor={waitFor} onChange={update} />
             : <TextInput id={id} value={cells[i]} onChange={(event) => update(event.target.value)} />}</Field>
         );
       })}

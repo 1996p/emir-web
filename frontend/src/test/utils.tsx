@@ -7,7 +7,7 @@ import type { Role } from '@/domain/types';
 
 /** Ответ маршрута: голые данные (→200), либо { status, data } для ошибок/204. */
 type RouteValue = unknown | { status: number; data?: unknown };
-export type Routes = Record<string, RouteValue | ((body: unknown) => RouteValue)>;
+export type Routes = Record<string, RouteValue | ((body: unknown, query: URLSearchParams) => RouteValue)>;
 
 export interface MockFetch {
   calls: Array<{ method: string; path: string; body: unknown }>;
@@ -15,7 +15,7 @@ export interface MockFetch {
   set(key: string, value: RouteValue | ((body: unknown) => RouteValue)): void;
 }
 
-/** Ставит global.fetch, который отвечает по карте «МЕТОД /путь» (query игнорируется). */
+/** Ставит global.fetch, который отвечает по карте «МЕТОД /путь». Query в ключ не входит, но передаётся функции-ответу вторым аргументом. */
 export function installFetch(routes: Routes, role: Role | null = 'admin'): MockFetch {
   const table: Routes = {
     'GET /auth/me': role ? { login: 'test', displayName: 'Тест', role, mustChangePassword: false } : { status: 401, data: { detail: 'нет сессии' } },
@@ -33,7 +33,7 @@ export function installFetch(routes: Routes, role: Role | null = 'admin'): MockF
 
     const raw = table[`${method} ${path}`];
     if (raw === undefined) return new Response(JSON.stringify({ detail: `нет мока: ${method} ${path}` }), { status: 404, headers: { 'Content-Type': 'application/json' } });
-    const resolved = typeof raw === 'function' ? (raw as (b: unknown) => RouteValue)(body) : raw;
+    const resolved = typeof raw === 'function' ? (raw as (b: unknown, query: URLSearchParams) => RouteValue)(body, new URLSearchParams(url.split('?')[1] ?? '')) : raw;
     const envelope = (resolved && typeof resolved === 'object' && 'status' in (resolved as object)) ? resolved as { status: number; data?: unknown } : { status: 200, data: resolved };
     if (envelope.status === 204) return new Response(null, { status: 204 });
     return new Response(JSON.stringify(envelope.data ?? null), { status: envelope.status, headers: { 'Content-Type': 'application/json' } });

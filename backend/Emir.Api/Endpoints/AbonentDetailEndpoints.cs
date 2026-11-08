@@ -7,9 +7,10 @@ namespace Emir.Api.Endpoints;
 
 public record AbonentFactDto(string FromPeriod, decimal Area, int Residents, string Who, string When, string? Reason);
 public record ResidentDto(int Id, string Name, string? FromDate, string? ToDate);
-public record AbonentDetailsDto(string? Note, bool? Consent, string? ConsentWhen, string? OwnershipDocument, string? Phone, string OpenPeriod, bool Reopened, List<AbonentFactDto> Facts, List<ResidentDto> Residents, decimal? HouseHeatNorm);
+public record AbonentDetailsDto(string? Note, bool? Consent, string? ConsentWhen, string? OwnershipDocument, string? Phone, string OpenPeriod, bool Reopened, List<AbonentFactDto> Facts, List<ResidentDto> Residents, decimal? HouseHeatNorm, string? HouseCategory = null);
 public record SetNoteRequest(string? Note);
 public record SetHeatNormRequest(decimal? Norm, string Reason);
+public record SetHouseCategoryRequest(string? Category, string Reason);
 public record SetMeterUnitRequest(string? Unit);
 public record SetMeterRequest(string? Number, decimal LastReading, string? VerifiedUntil, decimal? Average, string? Unit);
 public record SetHouseMeterRequest(string? HouseMeterId);
@@ -35,7 +36,7 @@ public static class AbonentDetailEndpoints
             var work = await Periods.Work(db);
             return new AbonentDetailsDto(abonent.Note, abonent.Consent, abonent.ConsentAtUtc?.ToLocalTime().ToString("dd.MM.yyyy HH:mm"), abonent.OwnershipDocument, abonent.Phone, work.Period, work.ReopenedAtUtc is not null,
                 facts.OrderByDescending(fact => fact.FromPeriod, StringComparer.Ordinal).Select(fact => new AbonentFactDto(fact.FromPeriod, fact.Area, fact.Residents, fact.Who, fact.AtUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm"), fact.Reason)).ToList(),
-                residents.Select(resident => new ResidentDto(resident.Id, resident.Name, resident.FromDate?.ToString("dd.MM.yyyy"), resident.ToDate?.ToString("dd.MM.yyyy"))).ToList(), abonent.HouseHeatNorm);
+                residents.Select(resident => new ResidentDto(resident.Id, resident.Name, resident.FromDate?.ToString("dd.MM.yyyy"), resident.ToDate?.ToString("dd.MM.yyyy"))).ToList(), abonent.HouseHeatNorm, abonent.HouseCategory);
         });
 
         // Норма теплопотребления дома (Гкал/м²) для тарифов «по норме дома»: объём = площадь × норма.
@@ -48,6 +49,25 @@ public static class AbonentDetailEndpoints
             var old = abonent.HouseHeatNorm;
             abonent.HouseHeatNorm = request.Norm;
             db.AddJournal(id, "Норма теплопотребления", user.Who(), $"{old?.ToString("0.######") ?? "нет"}, теперь {request.Norm?.ToString("0.######") ?? "нет"} Гкал/м²", request.Reason.Trim());
+            await db.SaveChangesAsync();
+            return Results.NoContent();
+        }).Roles(Roles.Service, Roles.Accountant, Roles.Admin);
+
+        // Категория дома — из справочника «Категории домов». Норма теплопотребления берётся у категории, если она там задана
+        group.MapPost("/house-category", async (string id, SetHouseCategoryRequest request, EmirDb db, ClaimsPrincipal user) =>
+        {
+            if (string.IsNullOrWhiteSpace(request.Reason)) throw new ApiError(422, "Укажите причину");
+            var category = string.IsNullOrWhiteSpace(request.Category) ? null : request.Category.Trim();
+            var item = category is null ? null : (await DirectoryData.HouseCategories(db)).FirstOrDefault(entry => entry.Name == category)
+                ?? throw new ApiError(422, $"«{category}» нет в справочнике «{Catalog.HouseCategories}». Выберите категорию из списка.");
+            var abonent = await db.GetAbonent(id);
+            if (abonent.HouseCategory == category) return Results.NoContent();
+            var old = abonent.HouseCategory;
+            var oldNorm = abonent.HouseHeatNorm;
+            abonent.HouseCategory = category;
+            if (item?.Norm is { } norm) abonent.HouseHeatNorm = norm;
+            var normText = abonent.HouseHeatNorm == oldNorm ? "" : $". Норма {oldNorm?.ToString("0.######") ?? "нет"}, теперь {abonent.HouseHeatNorm?.ToString("0.######") ?? "нет"} Гкал/м²";
+            db.AddJournal(id, "Категория дома", user.Who(), $"{old ?? "нет"}, теперь {category ?? "нет"}{normText}", request.Reason.Trim());
             await db.SaveChangesAsync();
             return Results.NoContent();
         }).Roles(Roles.Service, Roles.Accountant, Roles.Admin);

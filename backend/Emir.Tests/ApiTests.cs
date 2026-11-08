@@ -301,8 +301,12 @@ public sealed class ApiTests : IDisposable
         await using (var db = Db())
         {
             foreach (var id in new[] { "a1", "a2" }) (await db.Abonents.FirstAsync(abonent => abonent.Id == id)).HouseCategory = "Кирпич 5эт";
+            db.ReferenceTables.Add(new Emir.Api.Data.ReferenceTable { Name = "Категории домов", ColumnsJson = JsonSerializer.Serialize(new[] { "ID", "Название", "Норма теплопотребления" }), RowsJson = JsonSerializer.Serialize(new[] { new[] { "1", "Кирпич 5эт", ".015" } }), RowCount = 1 });
             await db.SaveChangesAsync();
         }
+
+        // категории нет в справочнике — норму не применить
+        Assert.Equal(HttpStatusCode.NotFound, (await client.PostAsJsonAsync("/api/heat-norms/apply", new { category = "Дерево 1эт", norm = 0.0188m, reason = "приказ 1" })).StatusCode);
 
         var apply = await client.PostAsJsonAsync("/api/heat-norms/apply", new { category = "Кирпич 5эт", norm = 0.0188m, reason = "приказ 1" });
         apply.EnsureSuccessStatusCode();
@@ -313,6 +317,8 @@ public sealed class ApiTests : IDisposable
         {
             Assert.Equal(0.0188m, await db.HeatNormCategories.Where(item => item.Category == "Кирпич 5эт").Select(item => item.Norm).FirstAsync());
             Assert.All(await db.Abonents.Where(abonent => abonent.HouseCategory == "Кирпич 5эт").ToListAsync(), abonent => Assert.Equal(0.0188m, abonent.HouseHeatNorm));
+            // норма записана и в справочник «Категории домов»
+            Assert.Contains("0.0188", (await db.ReferenceTables.FirstAsync(item => item.Name == "Категории домов")).RowsJson);
         }
     }
 

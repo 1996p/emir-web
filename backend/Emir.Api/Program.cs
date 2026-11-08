@@ -77,6 +77,7 @@ using (var scope = app.Services.CreateScope())
         var file = args.SkipWhile(arg => arg != "import-references").Skip(1).FirstOrDefault();
         if (file is null) { Console.Error.WriteLine("Использование: dotnet Emir.Api.dll import-references <references.json>"); Environment.ExitCode = 1; return; }
         Console.WriteLine($"Справочников загружено: {await DataMigration.ImportReferences(db, file)}");
+        await DirectoryData.EnsureHouseTypes(db);
         return;
     }
     if (command == "create-admin")
@@ -146,6 +147,8 @@ using (var scope = app.Services.CreateScope())
         var demoPassword = app.Configuration["Seed:DemoPassword"];
         if (!string.IsNullOrEmpty(demoPassword)) Seed.Run(db, demoPassword);
     }
+    // Справочники, которых не было в старой системе, заводятся сами (схему не меняет)
+    if (await db.ReferenceTables.AnyAsync()) await DirectoryData.EnsureHouseTypes(db);
 }
 
 app.UseResponseCompression();

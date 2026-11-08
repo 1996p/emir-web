@@ -24,7 +24,7 @@ export function HeatNormsDirectory({ filter }: { filter: string }) {
   const current = rows.find((row) => row.category === selected) ?? rows[0];
 
   const columns: Column<HeatNormRow>[] = [
-    { key: 'category', header: 'Категория дома', render: (row) => row.category },
+    { key: 'category', header: 'Категория дома', render: (row) => row.inDirectory === false ? <span>{row.category} <span className="muted">(вне справочника)</span></span> : row.category },
     { key: 'abonents', header: 'Абонентов', render: (row) => row.abonents },
     { key: 'norm', header: 'Норма категории, Гкал/м²', render: (row) => row.norm === null ? <span className="muted">не задана</span> : formatNorm(row.norm) },
     {
@@ -45,7 +45,7 @@ export function HeatNormsDirectory({ filter }: { filter: string }) {
             <Notice>У {data.withoutCategory.toLocaleString('ru-RU')} абонентов не указана категория дома — задать им норму здесь нельзя. Укажите категорию в карточке абонента.</Notice>
           </div>
         )}
-        <DataTable columns={columns} rows={rows} rowKey={(row) => row.category} onRowClick={(row) => setSelected(row.category)} isSelected={(row) => row.category === current?.category} empty={<span className="muted">Категорий домов нет. Укажите категорию в карточках абонентов.</span>} />
+        <DataTable columns={columns} rows={rows} rowKey={(row) => row.category} onRowClick={(row) => setSelected(row.category)} isSelected={(row) => row.category === current?.category} empty={<span className="muted">Категорий домов нет. Заведите их в справочнике «Категории домов».</span>} />
       </div>
       {current && (
         <aside className="pane pane-right" aria-label="Норма категории" style={{ width: 360 }}>
@@ -80,6 +80,7 @@ function HeatNormPanel({ row, canEdit }: { row: HeatNormRow; canEdit: boolean })
   return (
     <>
       <h2 className="section-title">{row.category}</h2>
+      {row.inDirectory === false && <Notice tone="warn">Этой категории нет в справочнике «Категории домов». Заведите её там или смените категорию абонентам в карточке.</Notice>}
       <p className="small muted" style={{ lineHeight: 1.45 }}>
         Абонентов в категории: {row.abonents}. Без нормы: {row.withoutNorm}.
         {row.distinct.length > 1 && ' Сейчас у абонентов стоят разные нормы — применение выровняет их.'}
@@ -88,10 +89,10 @@ function HeatNormPanel({ row, canEdit }: { row: HeatNormRow; canEdit: boolean })
         <>
           <Field label="Норма теплопотребления, Гкал/м² в месяц" hint="Например, 0,0188">{(id) => <TextInput id={id} mono inputMode="decimal" value={norm} onChange={(event) => setNorm(event.target.value)} />}</Field>
           <Field label="Основание">{(id) => <TextInput id={id} placeholder="Например, приказ № 12 от 01.11.2026" value={reason} onChange={(event) => setReason(event.target.value)} />}</Field>
-          <p className="small muted" style={{ lineHeight: 1.45 }}>Норма проставится всем {row.abonents} абонентам этой категории. Закрытые месяцы не пересчитываются.</p>
+          <p className="small muted" style={{ lineHeight: 1.45 }}>Норма запишется в справочник «Категории домов» и проставится всем {row.abonents} абонентам этой категории. Закрытые месяцы не пересчитываются.</p>
           {error && <Notice tone="warn">{error}</Notice>}
           {note && <Notice tone="ok">{note}</Notice>}
-          <Button variant="primary" size="full" disabled={parsed === null || !reason.trim()} onClick={() => void apply()}>Применить ко всем в категории</Button>
+          <Button variant="primary" size="full" disabled={parsed === null || !reason.trim() || row.inDirectory === false} onClick={() => void apply()}>Применить ко всем в категории</Button>
         </>
       ) : <p className="small muted">Норму задаёт бухгалтер или администратор.</p>}
     </>
