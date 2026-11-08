@@ -9,11 +9,16 @@ namespace Emir.Api.Endpoints;
 /// Unit: единица показаний; null — в единицах тарифа.
 public record MeterDto(string Number, decimal LastReading, decimal Tariff, string VerifiedUntil, string? Unit);
 public record ServiceLineDto(string Id, string Name, string State, string TariffName, decimal? Price, string ChargeStatus, long Debt, MeterDto? Meter, string? HouseMeterId = null, string? TariffId = null);
-public record AbonentDto(string Id, string Kind, string Name, string ShortName, string Place, string Street, string? Flat, string Account, string? Phone, string? Inn, int Residents, decimal Area, long Credit, List<ServiceLineDto> Services);
+/// <summary>Street — улица и дом одной строкой. StreetName и House — части из справочников (нет у адресов, перенесённых строкой). HouseKey — дом на экране показаний.</summary>
+public record AbonentDto(string Id, string Kind, string Name, string ShortName, string Place, string Street, string? Flat, string Account, string? Phone, string? Inn, int Residents, decimal Area, long Credit, List<ServiceLineDto> Services,
+    string? StreetName = null, string? House = null, string? HouseKey = null);
 public record PaymentDto(string Id, string AbonentId, string Date, string Source, string Cashier, long Amount, string Status);
 public record JournalDto(string Id, string? AbonentId, string When, string Action, string Who, string Details, string? Reason);
-public record RegisterRequest(string Kind, string Name, string Address, string? Phone, string? Inn);
-public record ChangeAddressRequest(string Address);
+/// <summary>Адрес: населённый пункт, улица и дом из справочников, квартира руками.</summary>
+/// <summary>Регистрация: адрес из справочников, контакты, паспорт (только физлицо), КПП (только юрлицо), услуги. AddResident: записать человека в проживающие.</summary>
+public record RegisterRequest(string Kind, string Name, string? Place, string? Street, string? House, string? Flat, string? Phone, string? Inn,
+    string? Kpp = null, string? Email = null, DateOnly? BirthDate = null, PassportData? Passport = null, bool? AddResident = null, RegistrationServices? Services = null);
+public record ChangeAddressRequest(string? Place, string? Street, string? House, string? Flat);
 public record AddServiceRequest(string ServiceName);
 public record LedgerRowDto(long Id, string When, string Kind, string KindName, string? Period, string Service, long DebtDelta, long CreditDelta, long BalanceAfter, string Who, string? Reference);
 public record ChargeEntryDto(string Period, string Service, decimal Volume, string Scheme, decimal? Price, long Amount);
@@ -24,7 +29,8 @@ public static class AbonentEndpoints
         abonent.Id, abonent.Kind, abonent.Name, abonent.ShortName, abonent.Place, abonent.Street, abonent.Flat, abonent.Account, abonent.Phone, abonent.Inn, abonent.Residents, abonent.Area, abonent.Credit,
         abonent.Services.OrderBy(line => line.Position).Select(line => new ServiceLineDto(
             line.ServiceId, line.Name, line.State, line.TariffName, line.TariffId is null ? null : TariffHistory.PriceOn(prices, line.TariffId, period)?.Price, line.ChargeStatus, line.Debt,
-            line.MeterNumber is null ? null : new MeterDto(line.MeterNumber, line.MeterLastReading ?? 0, (line.TariffId is null ? 0 : TariffHistory.PriceOn(prices, line.TariffId, period)?.Price ?? 0) * 100m, line.MeterVerifiedUntil ?? "", line.MeterUnit), line.HouseMeterId, line.TariffId)).ToList());
+            line.MeterNumber is null ? null : new MeterDto(line.MeterNumber, line.MeterLastReading ?? 0, (line.TariffId is null ? 0 : TariffHistory.PriceOn(prices, line.TariffId, period)?.Price ?? 0) * 100m, line.MeterVerifiedUntil ?? "", line.MeterUnit), line.HouseMeterId, line.TariffId)).ToList(),
+        abonent.StreetName, abonent.House, Addresses.HouseKey(abonent.Place, abonent.Street));
 
     public static PaymentDto ToDto(this Payment payment) => new(payment.Id, payment.AbonentId, payment.AtUtc.ToLocalTime().ToString("dd.MM.yyyy"), payment.Source, payment.Cashier, payment.Amount, payment.Status);
 
@@ -56,31 +62,48 @@ public static class AbonentEndpoints
             return records.Select(record => record.ToDto());
         });
 
-        group.MapPost("/", async (RegisterRequest request, EmirDb db, ClaimsPrincipal user) =>
+        group.MapPost("/", async (RegisterRequest request, EmirDb db, ClaimsPrincipal user, Microsoft.AspNetCore.DataProtection.IDataProtectionProvider protection) =>
         {
             if (request.Kind is not ("person" or "org")) throw new ApiError(422, "Неизвестный тип абонента");
             var name = request.Name?.Trim();
-            var address = request.Address?.Trim();
-            if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(address)) throw new ApiError(422, "Заполните имя и адрес");
+            if (string.IsNullOrEmpty(name)) throw new ApiError(422, "Заполните имя и адрес");
             if (name.Length is < 2 or > 200) throw new ApiError(422, "Имя должно быть от 2 до 200 символов");
             if (!name.Any(char.IsLetter)) throw new ApiError(422, "В имени должны быть буквы");
-            if (address.Length is < 3 or > 200) throw new ApiError(422, "Адрес должен быть от 3 до 200 символов");
-            // Адрес дома без буквы (улицы) или без цифры (номера дома) — почти наверняка опечатка или мусор
-            if (!address.Any(char.IsLetter) || !address.Any(char.IsDigit)) throw new ApiError(422, "В адресе укажите улицу и номер дома, например: ул. Молодёжная 1");
+            // Город, улица и дом только из справочников: так адреса одного дома всегда записаны одинаково
+            var address = await Addresses.Validate(db, request.Place, request.Street, request.House, request.Flat);
+            var person = request.Kind == "person";
+            var phone = Registration.Phone(request.Phone);
+            var email = Registration.Email(request.Email);
+            // Дата рождения и паспорт — у человека, КПП — у организации
+            var birthDate = person ? Registration.BirthDate(request.BirthDate) : null;
+            var passport = person ? Registration.Passport(request.Passport) : null;
+            var kpp = person ? null : Registration.Kpp(request.Kpp);
+            var addResident = person && (request.AddResident ?? true);
 
             var maxAccount = (await db.Abonents.Select(abonent => abonent.Account).ToListAsync()).Select(long.Parse).DefaultIfEmpty(40030000).Max();
             var id = Guid.NewGuid().ToString("N");
+            var (services, serviceNotes) = Registration.Services(id, request.Services);
             var abonent = new Abonent
             {
-                Id = id, Kind = request.Kind, Name = name, ShortName = name, Street = address, Account = (maxAccount + 1).ToString(),
-                Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim(), Inn = string.IsNullOrWhiteSpace(request.Inn) ? null : request.Inn.Trim(),
-                Residents = request.Kind == "person" ? 1 : 0,
-                Services = [new ServiceLine { AbonentId = id, ServiceId = "heat", Name = "Теплоснабжение", TariffName = "По нормативу", ChargeStatus = "Ждёт начисления" }],
+                Id = id, Kind = request.Kind, Name = name, ShortName = name, Account = (maxAccount + 1).ToString(),
+                Place = address.Place, Street = address.StreetLine, StreetName = address.Street, House = address.House, Flat = address.Flat,
+                Phone = phone, Inn = string.IsNullOrWhiteSpace(request.Inn) ? null : request.Inn.Trim(),
+                Kpp = kpp, Email = email, BirthDate = birthDate, PassportProtected = passport is null ? null : Registration.Protect(protection, passport),
+                Residents = addResident ? 1 : 0,
+                Services = services,
             };
             db.Abonents.Add(abonent);
             db.AbonentFacts.Add(new AbonentFact { AbonentId = id, FromPeriod = await Periods.WorkPeriod(db), Area = abonent.Area, Residents = abonent.Residents, Who = user.Who(), AtUtc = DateTime.UtcNow, Reason = "Регистрация абонента" });
-            db.ServiceTerms.Add(new ServiceTerm { AbonentId = id, ServiceId = "heat", FromPeriod = await Periods.WorkPeriod(db), State = TariffHistory.Working, Who = user.Who(), AtUtc = DateTime.UtcNow, Reason = "Регистрация абонента" });
-            db.AddJournal(id, "Регистрация абонента", user.Who(), name);
+            foreach (var line in services)
+                db.ServiceTerms.Add(new ServiceTerm { AbonentId = id, ServiceId = line.ServiceId, FromPeriod = await Periods.WorkPeriod(db), State = TariffHistory.Working, Who = user.Who(), AtUtc = DateTime.UtcNow, Reason = "Регистрация абонента" });
+            if (addResident) db.Residents.Add(new Resident { AbonentId = id, Name = name, FromDate = DateOnly.FromDateTime(DateTime.Today) });
+            // Паспорт в журнал не пишем: только отметку, что он заполнен
+            var notes = new List<string> { name };
+            notes.AddRange(serviceNotes);
+            if (services.Count == 0) notes.Add("без услуг");
+            if (addResident) notes.Add("записан в проживающие");
+            if (passport is not null) notes.Add("паспорт заполнен");
+            db.AddJournal(id, "Регистрация абонента", user.Who(), string.Join("; ", notes));
             await db.SaveChangesAsync();
             return Results.Created($"/api/abonents/{id}", abonent.ToDto(await db.TariffPrices.ToListAsync(), await Periods.WorkPeriod(db)));
         }).Roles(Roles.Service, Roles.Admin);
@@ -122,14 +145,18 @@ public static class AbonentEndpoints
 
         group.MapPost("/{id}/address", async (string id, ChangeAddressRequest request, EmirDb db, ClaimsPrincipal user) =>
         {
-            var address = request.Address?.Trim();
-            if (string.IsNullOrEmpty(address)) throw new ApiError(422, "Укажите новый адрес");
+            var address = await Addresses.Validate(db, request.Place, request.Street, request.House, request.Flat);
             var abonent = await db.GetAbonent(id);
-            var old = abonent.Street;
-            abonent.Street = address;
-            abonent.Place = "";
-            abonent.Flat = null;
-            db.AddJournal(id, "Смена адреса", user.Who(), $"{old}, теперь {address}");
+            static string Full(string place, string street, string? flat) => string.Join(", ", new[] { place, street + (flat is null ? "" : $"-{flat}") }.Where(part => !string.IsNullOrWhiteSpace(part)));
+            var old = Full(abonent.Place, abonent.Street, abonent.Flat);
+            var updated = Full(address.Place, address.StreetLine, address.Flat);
+            if (old == updated && abonent.StreetName == address.Street && abonent.House == address.House) throw new ApiError(422, "Новый адрес совпадает с нынешним");
+            abonent.Place = address.Place;
+            abonent.Street = address.StreetLine;
+            abonent.StreetName = address.Street;
+            abonent.House = address.House;
+            abonent.Flat = address.Flat;
+            db.AddJournal(id, "Смена адреса", user.Who(), $"{old}, теперь {updated}");
             await db.SaveChangesAsync();
             return abonent.ToDto(await db.TariffPrices.ToListAsync(), await Periods.WorkPeriod(db));
         }).Roles(Roles.Cashier, Roles.Service, Roles.Accountant, Roles.Admin);

@@ -219,16 +219,22 @@ public static class ChargingService
                 db.ChargeEntries.Remove(oldEntry);
             }
 
-            var debts = new List<OutstandingDebt>();
-            foreach (var line in abonent.Services.Where(item => item.ServiceId != "penalty" && item.Debt > 0))
+            // Как в старой системе (Penaltie.Control.GetDebtLocal): у каждой услуги свой лицевой счёт, пеня считается от его остатка
+            // и разносится по начислениям этой услуги, начиная с самых новых. Переплата в новой системе общая на абонента,
+            // поэтому сначала она гасит долги услуг по порядку — так долг, покрытый переплатой, пеню не даёт
+            var credit = abonent.Credit;
+            long amount = 0;
+            foreach (var line in abonent.Services.Where(item => item.ServiceId != "penalty").OrderBy(item => item.Position))
             {
+                var covered = Math.Min(credit, Math.Max(line.Debt, 0));
+                credit -= covered;
+                var debt = line.Debt - covered;
+                if (debt <= 0) continue;
                 if (line.TariffId is not null && tariffs.TryGetValue(line.TariffId, out var tariff) && !tariff.PenaltyEnabled) continue;
                 var charges = entries.Where(entry => entry.AbonentId == abonent.Id && entry.ServiceId == line.ServiceId)
-                    .OrderByDescending(entry => entry.Period).Select(entry => new OutstandingDebt(entry.Period, entry.Amount));
-                debts.AddRange(PenaltyEngine.Allocate(line.Debt, charges));
+                    .OrderByDescending(entry => entry.Period, StringComparer.Ordinal).Select(entry => new OutstandingDebt(entry.Period, entry.Amount));
+                amount += PenaltyEngine.Calculate(PenaltyEngine.Allocate(debt, charges), period, PenaltyEngine.Current);
             }
-
-            var amount = PenaltyEngine.Calculate(debts, period, PenaltyEngine.Current);
             if (amount <= 0) continue;
             if (penalty is null)
             {

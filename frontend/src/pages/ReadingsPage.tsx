@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { api, errorText, useApi } from '@/api';
 import { checkReading, parseReading, type ReadingCheck } from '@/domain/billing';
 import { useRole } from '@/layout/role';
@@ -14,13 +15,25 @@ export function ReadingsPage() {
   const role = useRole();
   const canEdit = role !== 'accountant';
   const { data: houses } = useApi(() => api.readings.houses(), []);
-  const [houseId, setHouseId] = useState<string | null>(null);
+  // Из карточки абонента приходят дом и абонент: открываем его дом и подсвечиваем его счётчики
+  const [params, setParams] = useSearchParams();
+  const wantedHouse = params.get('house');
+  const highlight = params.get('abonent');
+  const [houseId, setHouseId] = useState<string | null>(wantedHouse);
+  const selectHouse = (id: string) => { setHouseId(id); setParams({ house: id }, { replace: true }); };
   const [mode, setMode] = useState<InputMode>('current');
   const [filter, setFilter] = useState('');
   const activeHouse = houseId ?? houses?.[0]?.id ?? null;
-  const { data: rows } = useApi(() => (activeHouse ? api.readings.rows(activeHouse) : Promise.resolve([])), [activeHouse]);
+  // Дома нет в списке: у него нет квартирных счётчиков. Чужой дом вместо него не открываем
+  const missingHouse = Boolean(houses && activeHouse && !houses.some((item) => item.id === activeHouse));
+  const { data: rows } = useApi(() => (activeHouse && !missingHouse ? api.readings.rows(activeHouse) : Promise.resolve([])), [activeHouse, missingHouse]);
   const [values, setValues] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Строка абонента может быть далеко внизу длинного дома: прокручиваем к ней один раз после загрузки
+  useEffect(() => {
+    if (rows && highlight) document.querySelector('tr[aria-current="true"]')?.scrollIntoView?.({ block: 'center' });
+  }, [rows, highlight]);
 
   useEffect(() => {
     if (rows) {
@@ -59,7 +72,7 @@ export function ReadingsPage() {
         </div>
         <div className="scroll" style={{ padding: '0 8px 12px' }}>
           {visibleHouses.map((item) => (
-            <button key={item.id} type="button" className="list-item" style={{ borderBottom: 0, borderRadius: 5, padding: 8, marginBottom: 2 }} aria-pressed={item.id === activeHouse} onClick={() => setHouseId(item.id)}>
+            <button key={item.id} type="button" className="list-item" style={{ borderBottom: 0, borderRadius: 5, padding: 8, marginBottom: 2 }} aria-pressed={item.id === activeHouse} onClick={() => selectHouse(item.id)}>
               <span className="between" style={{ fontSize: 13.5, fontWeight: 500 }}>
                 <span>{item.name}</span>
                 <span className="mono" style={{ fontSize: 12.5 }}>{item.done}/{item.total}</span>
@@ -72,7 +85,7 @@ export function ReadingsPage() {
 
       <main className="main">
         <div className="bar">
-          <h1 className="title">{house?.name ?? 'Дом не выбран'}</h1>
+          <h1 className="title">{house?.name ?? (missingHouse ? 'Дом без счётчиков' : 'Дом не выбран')}</h1>
           <span className="muted" style={{ fontSize: 13.5 }}>{month?.title.toLowerCase() ?? ''}</span>
           <div className="spacer" />
           <label className="small muted row">Ввожу
@@ -84,6 +97,7 @@ export function ReadingsPage() {
           {role !== 'cashier' && <LinkButton to="/readings/import">Из файла</LinkButton>}
           {role !== 'cashier' && <LinkButton to="/readings/house">Общедомовые</LinkButton>}
         </div>
+        {missingHouse && <div style={{ padding: '8px 16px' }}><Notice tone="warn">В доме абонента нет квартирных счётчиков, показания по нему не вводятся. Выберите дом слева.</Notice></div>}
         {!canEdit && <div style={{ padding: '8px 16px' }}><Notice>Для вашей роли показания доступны только для просмотра.</Notice></div>}
         {mode === 'delta' && (
           <div style={{ padding: '8px 16px' }}>
@@ -97,7 +111,7 @@ export function ReadingsPage() {
             </thead>
             <tbody>
               {computed.map(({ row, raw, next, usage, check }) => (
-                <tr key={row.id} className={check === 'lower' || check === 'high' || errors[row.id] ? 'is-warn' : undefined}>
+                <tr key={row.id} className={check === 'lower' || check === 'high' || errors[row.id] ? 'is-warn' : undefined} aria-current={highlight && row.id.startsWith(`${highlight}:`) ? 'true' : undefined} style={highlight && row.id.startsWith(`${highlight}:`) ? { background: 'var(--tint-strong)' } : undefined}>
                   <td className="strong">{row.flat}</td>
                   <td className="mono small">{row.meterNumber}</td>
                   <td>{row.service}</td>
@@ -116,7 +130,7 @@ export function ReadingsPage() {
               ))}
             </tbody>
           </table>
-          {computed.length === 0 && <p className="pad muted">В этом доме нет счётчиков.</p>}
+          {computed.length === 0 && !missingHouse && <p className="pad muted">В этом доме нет счётчиков.</p>}
         </div>
         <div className="bar bar-tint" style={{ borderBottom: 0, borderTop: '1px solid var(--line)', justifyContent: 'space-between', fontSize: 13.5 }}>
           <span>Внесено: <strong>{filled} из {computed.length}</strong> · сохраняется при переходе на следующую строку</span>

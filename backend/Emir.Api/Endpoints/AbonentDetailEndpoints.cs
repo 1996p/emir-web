@@ -7,7 +7,8 @@ namespace Emir.Api.Endpoints;
 
 public record AbonentFactDto(string FromPeriod, decimal Area, int Residents, string Who, string When, string? Reason);
 public record ResidentDto(int Id, string Name, string? FromDate, string? ToDate);
-public record AbonentDetailsDto(string? Note, bool? Consent, string? ConsentWhen, string? OwnershipDocument, string? Phone, string OpenPeriod, bool Reopened, List<AbonentFactDto> Facts, List<ResidentDto> Residents, decimal? HouseHeatNorm, string? HouseCategory = null);
+public record AbonentDetailsDto(string? Note, bool? Consent, string? ConsentWhen, string? OwnershipDocument, string? Phone, string OpenPeriod, bool Reopened, List<AbonentFactDto> Facts, List<ResidentDto> Residents, decimal? HouseHeatNorm, string? HouseCategory = null,
+    string? Email = null, string? BirthDate = null, string? Kpp = null, bool HasPassport = false);
 public record SetNoteRequest(string? Note);
 public record SetHeatNormRequest(decimal? Norm, string Reason);
 public record SetHouseCategoryRequest(string? Category, string Reason);
@@ -36,7 +37,8 @@ public static class AbonentDetailEndpoints
             var work = await Periods.Work(db);
             return new AbonentDetailsDto(abonent.Note, abonent.Consent, abonent.ConsentAtUtc?.ToLocalTime().ToString("dd.MM.yyyy HH:mm"), abonent.OwnershipDocument, abonent.Phone, work.Period, work.ReopenedAtUtc is not null,
                 facts.OrderByDescending(fact => fact.FromPeriod, StringComparer.Ordinal).Select(fact => new AbonentFactDto(fact.FromPeriod, fact.Area, fact.Residents, fact.Who, fact.AtUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm"), fact.Reason)).ToList(),
-                residents.Select(resident => new ResidentDto(resident.Id, resident.Name, resident.FromDate?.ToString("dd.MM.yyyy"), resident.ToDate?.ToString("dd.MM.yyyy"))).ToList(), abonent.HouseHeatNorm, abonent.HouseCategory);
+                residents.Select(resident => new ResidentDto(resident.Id, resident.Name, resident.FromDate?.ToString("dd.MM.yyyy"), resident.ToDate?.ToString("dd.MM.yyyy"))).ToList(), abonent.HouseHeatNorm, abonent.HouseCategory,
+                abonent.Email, abonent.BirthDate?.ToString("dd.MM.yyyy"), abonent.Kpp, abonent.PassportProtected is not null);
         });
 
         // Норма теплопотребления дома (Гкал/м²) для тарифов «по норме дома»: объём = площадь × норма.
@@ -86,8 +88,7 @@ public static class AbonentDetailEndpoints
 
         group.MapPost("/contact", async (string id, SetContactRequest request, EmirDb db, ClaimsPrincipal user) =>
         {
-            var phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim();
-            if (phone?.Length > 50) throw new ApiError(422, "Телефон слишком длинный");
+            var phone = Registration.Phone(request.Phone);
             var abonent = await db.GetAbonent(id);
             var old = abonent.Phone;
             abonent.Phone = phone;

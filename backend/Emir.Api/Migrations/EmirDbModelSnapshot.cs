@@ -35,6 +35,9 @@ namespace Emir.Api.Migrations
                         .HasPrecision(18, 4)
                         .HasColumnType("numeric(18,4)");
 
+                    b.Property<DateOnly?>("BirthDate")
+                        .HasColumnType("date");
+
                     b.Property<string>("Boiler")
                         .HasColumnType("text");
 
@@ -50,10 +53,16 @@ namespace Emir.Api.Migrations
                     b.Property<string>("District")
                         .HasColumnType("text");
 
+                    b.Property<string>("Email")
+                        .HasColumnType("text");
+
                     b.Property<string>("Flat")
                         .HasColumnType("text");
 
                     b.Property<string>("HeatChamber")
+                        .HasColumnType("text");
+
+                    b.Property<string>("House")
                         .HasColumnType("text");
 
                     b.Property<string>("HouseCategory")
@@ -70,6 +79,9 @@ namespace Emir.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("Kpp")
+                        .HasColumnType("text");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
@@ -78,6 +90,9 @@ namespace Emir.Api.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("OwnershipDocument")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PassportProtected")
                         .HasColumnType("text");
 
                     b.Property<string>("Phone")
@@ -96,6 +111,9 @@ namespace Emir.Api.Migrations
 
                     b.Property<string>("Street")
                         .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("StreetName")
                         .HasColumnType("text");
 
                     b.Property<string>("WallMaterial")

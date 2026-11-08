@@ -30,66 +30,96 @@ public record ChargeResult(decimal Volume, long Amount, string? Error = null)
     public static ChargeResult Fail(string error) => new(0, 0, error);
 }
 
-/// <summary>Схемы начисления из документации ЕМИР ЖКХ. Сумма = объём × цена, округление до копеек.</summary>
+/// <summary>Схемы начисления ЕМИР ЖКХ. Сумма = объём × цена, округление до копеек.</summary>
 public static class ChargeEngine
 {
     public static readonly string[] Schemes =
     [
-        "Norm", "AreaKrsk", "HeatHouseNorm", "HeatHouseNormKrsk", "HeatLost", "ContractNorm", "ServiceNorm", "MonthlyQuantityHouse", "NormHouse", "NormTarifContract",
+        "Norm", "AreaKrsk", "HeatHouseNorm", "HeatHouseNormKrsk", "HeatLost", "ContractNorm", "ServiceNorm", "MonthlyQuantity", "MonthlyQuantityHouse", "NormHouse", "NormTarifContract",
         "MonthlyAmount", "AreaKrskNorm", "NormTarif", "AreaNormTarif", "AreaNormTarifSeasonal", "AreaNormTarifMonthly", "MeterApartment", "MeterHouse", "HouseMeterLeftover", "Area",
     ];
 
+    /// <summary>Формулы сверены с кодом старой системы (классы GKH.Contract.Scheme.* и GKH.Krsk.Contract.Scheme.*).</summary>
     public static ChargeResult Calculate(ChargeInput input)
     {
         decimal? serviceNorm = NormFor(input.ServiceNorm, input.Month);
         decimal? tariffNorm = NormFor(input.TariffNorm, input.Month);
         decimal? contractNorm = NormFor(input.ContractNorm, input.Month);
+        // Норматив по заказу помесячно, а этого месяца в нём нет: старая система начисляет 0 без ошибки (например, летом)
+        bool contractMonthMissing = contractNorm is null && IsMonthly(input.ContractNorm);
 
         ChargeResult Need(string what) => ChargeResult.Fail($"Нет данных: {what}");
         ChargeResult Result(decimal volume) => new(volume, Money(volume, input.Price));
         // Старый ЕМИР (AbstractScheme.Round): объём округляется ДО умножения на цену — 3 знака для юрлиц, 4 для физлиц
         int scale = input.IsOrg ? 3 : 4;
-        ChargeResult RResult(decimal volume) => Result(Math.Round(volume, scale, MidpointRounding.AwayFromZero));
+        decimal Round(decimal volume) => Math.Round(volume, scale, MidpointRounding.AwayFromZero);
+        ChargeResult RResult(decimal volume) => Result(Round(volume));
+        ChargeResult Zero() => new(0, 0);
+        bool noArea = input.Area <= 0;
+        const string AreaMissing = "площадь квартиры пустая или нулевая";
+        // «Тепло по норме дома»: деньги = площадь × цена, а объём показывается в Гкал = норма дома × площадь
+        ChargeResult ByArea(decimal quantity) => new(input.HouseHeatNorm is { } norm ? norm * quantity : quantity, Money(quantity, input.Price));
 
         switch (input.Scheme)
         {
             case "Norm": return serviceNorm is { } n1 ? RResult(n1 * input.Residents) : Need("норма по услуге");
             case "NormTarif": return tariffNorm is { } n2 ? RResult(n2 * input.Residents) : Need("норматив по тарифу");
             case "ServiceNorm": return serviceNorm is { } n3 ? RResult(n3) : Need("норма по услуге");
-            case "AreaKrsk": return Result(contractNorm ?? input.Area);
-            case "ContractNorm": return contractNorm is { } n4 ? Result(n4) : Need("норматив по заказу");
-            case "MonthlyAmount": return contractNorm is { } n5 ? Result(n5) : Need("норматив по заказу на этот месяц");
-            case "AreaKrskNorm": return serviceNorm is { } n6 && contractNorm is { } c6 ? RResult(n6 * c6) : Need("норма по услуге и норматив по заказу");
-            case "NormTarifContract": return tariffNorm is { } n7 && contractNorm is { } c7 ? RResult(c7 * n7) : Need("норматив по тарифу и норматив по заказу");
-            case "Area":
-            case "HeatHouseNorm": return Result(input.Area);
-            case "HeatHouseNormKrsk": return contractNorm is { } n8 ? Result(n8) : Need("норматив по заказу");
+            // Норматив в заказе, если он больше нуля, иначе жилая площадь (как схема «Area»)
+            case "AreaKrsk":
+                if (contractNorm is > 0) return Result(contractNorm.Value);
+                return noArea ? Need(AreaMissing) : Result(input.Area);
+            case "ContractNorm":
+                if (contractMonthMissing) return Zero();
+                return contractNorm is { } n4 ? Result(n4) : Need("норматив по заказу");
+            // Норматив заказа здесь — СУММА в рублях на месяц, а не объём. Объём = сумма / цена
+            case "MonthlyAmount":
+                if (contractNorm is not > 0) return Zero();
+                var rubles = Round(contractNorm.Value);
+                return new(input.Price > 0 ? Round(rubles / input.Price) : 0, (long)Math.Round(rubles * 100m, MidpointRounding.AwayFromZero));
+            case "MonthlyQuantity":
+                return contractNorm is > 0 ? RResult(contractNorm.Value) : Zero();
+            case "AreaKrskNorm":
+                return serviceNorm is { } n6 && contractNorm is > 0 ? RResult(n6 * contractNorm.Value) : Need("норма по услуге и норматив по заказу");
+            case "NormTarifContract":
+                return tariffNorm is { } n7 && contractNorm is > 0 ? RResult(contractNorm.Value * n7) : Need("норматив по тарифу и норматив по заказу");
+            case "Area": return noArea ? Need(AreaMissing) : Result(input.Area);
+            case "HeatHouseNorm": return ByArea(input.Area);
+            // Норматив в заказе, если он больше нуля, иначе как «тепло по норме дома»
+            case "HeatHouseNormKrsk": return contractNorm is > 0 ? ByArea(contractNorm.Value) : ByArea(input.Area);
             case "HeatLost":
-                return contractNorm is { } n9 && input.YearSharePercent is { } share ? Result(n9 * share / 100m) : Need("норматив по заказу и процент месяца");
-            case "NormHouse": return input.HouseHeatNorm is { } h ? RResult(input.Area * h) : Need("норма теплопотребления дома");
+                return contractNorm is > 0 && input.YearSharePercent is { } share ? RResult(contractNorm.Value * share / 100m) : Need("годовые потери тепла по заказу и процент месяца");
+            case "NormHouse":
+                if (noArea) return Need(AreaMissing);
+                return input.HouseHeatNorm is > 0 ? RResult(input.Area * input.HouseHeatNorm.Value) : Need("норма теплопотребления дома");
             case "AreaNormTarif":
             case "AreaNormTarifMonthly":
+                if (noArea) return Need(AreaMissing);
                 return tariffNorm is { } n10 ? RResult(input.Area * n10) : Need("норматив по тарифу");
             case "AreaNormTarifSeasonal":
-                if (!input.HeatingSeason) return new ChargeResult(0, 0);
+                if (!input.HeatingSeason) return Zero();
+                if (noArea) return Need(AreaMissing);
                 return tariffNorm is { } n11 ? RResult(input.Area * n11) : Need("норматив по тарифу");
             case "MonthlyQuantityHouse":
                 if (input.HouseLoss is not { } loss || input.HouseArea is not { } houseArea || houseArea <= 0) return Need("потери тепла и площадь дома");
-                return Result(loss * input.Area / houseArea);
+                return RResult(loss * input.Area / houseArea);
             case "MeterApartment":
-                return input.MeterUsage is { } usage ? Result(usage) : ChargeResult.Fail("Нет показаний за месяц");
+                return input.MeterUsage is { } usage ? RResult(usage) : ChargeResult.Fail("Нет показаний за месяц");
             case "MeterHouse":
                 if (input.HouseMeter is not { } m1) return Need("общедомовой счётчик");
                 var restArea = m1.TotalArea - m1.IndividualArea;
                 return restArea <= 0 ? Need("площадь дома без индивидуальных счётчиков") : RResult((m1.Usage - m1.IndividualUsage) * input.Area / restArea);
             case "HouseMeterLeftover":
                 if (input.HouseMeter is not { } m2) return Need("общедомовой счётчик");
+                if (m2.IndividualUsage > m2.Usage) return ChargeResult.Fail("Потребление по общедомовому счётчику меньше, чем сумма по квартирным");
                 var restPeople = m2.TotalResidents - m2.IndividualResidents;
-                return restPeople <= 0 ? Need("проживающие без индивидуальных счётчиков") : Result((m2.Usage - m2.IndividualUsage) * input.Residents / restPeople);
+                return restPeople <= 0 ? Need("проживающие без индивидуальных счётчиков") : RResult((m2.Usage - m2.IndividualUsage) * input.Residents / restPeople);
             default:
                 return ChargeResult.Fail($"Неизвестная схема {input.Scheme}");
         }
     }
+
+    private static bool IsMonthly(string? norm) => norm?.Contains('=') == true;
 
     public static long Money(decimal volume, decimal priceRubles) =>
         (long)Math.Round(volume * priceRubles * 100m, MidpointRounding.AwayFromZero);
@@ -157,24 +187,32 @@ public static class PenaltyEngine
     public static decimal FractionFor(int overdueDays, PenaltySettings settings) =>
         settings.Tiers.Where(tier => tier.FromDay <= overdueDays).OrderBy(tier => tier.FromDay).LastOrDefault()?.Fraction ?? 0m;
 
-    /// <summary>Пеня за расчётный месяц в копейках по долгам, разбитым по месяцам начисления.</summary>
+    /// <summary>Пеня за расчётный месяц в копейках по долгам, разбитым по месяцам начисления.
+    /// Как в старой системе (Penaltie.Control.AbonPay): пеня начисляется за каждый день отдельно и сразу округляется до копейки,
+    /// дневная сумма меньше копейки не начисляется. Долги одного месяца начисления складываются до расчёта.</summary>
     public static long Calculate(IEnumerable<OutstandingDebt> debts, string period, PenaltySettings settings)
     {
         var first = FirstDay(period);
         var last = first.AddMonths(1).AddDays(-1);
-        var total = 0m;
-        foreach (var debt in debts.Where(item => item.Amount > 0 && string.CompareOrdinal(item.Period, settings.StartPeriod) >= 0))
+        long total = 0;
+        var byMonth = debts.Where(item => item.Amount > 0 && string.CompareOrdinal(item.Period, settings.StartPeriod) >= 0)
+            .GroupBy(item => item.Period).Select(group => new OutstandingDebt(group.Key, group.Sum(item => item.Amount)));
+        foreach (var debt in byMonth)
         {
             var due = DueDate(debt.Period, settings.PayDayNextMonth);
             for (var day = first; day <= last; day = day.AddDays(1))
             {
                 var overdue = day.DayNumber - due.DayNumber;
                 if (overdue <= 0) continue;
-                total += debt.Amount * FractionFor(overdue, settings) * RateOn(day, settings);
+                total += DailyKopecks(debt.Amount, FractionFor(overdue, settings), RateOn(day, settings));
             }
         }
-        return (long)Math.Round(total, MidpointRounding.AwayFromZero);
+        return total;
     }
+
+    /// <summary>Пеня за один день: долг × доля ставки × ставка, до копейки. Меньше копейки — 0.</summary>
+    public static long DailyKopecks(long debt, decimal fraction, decimal rate) =>
+        (long)Math.Round(debt * fraction * rate, MidpointRounding.AwayFromZero);
 
     /// <summary>Распределяет долг по месяцам: оплата гасит старое, значит остаток лежит в самых новых начислениях.</summary>
     public static List<OutstandingDebt> Allocate(long debt, IEnumerable<OutstandingDebt> chargesNewestFirst)

@@ -4,6 +4,8 @@ import { formatPeriod, nextPeriod, parsePrice } from '@/domain/tariffs';
 import type { Abonent, AbonentDetails as Details } from '@/domain/types';
 import { useRole } from '@/layout/role';
 import { AbonentBenefits } from './BenefitsDirectory';
+import { PhoneField } from './PhoneField';
+import { checkPhone } from '@/domain/phone';
 import { Button, Field, Notice, SelectInput, TextArea, TextInput } from '@/ui';
 
 function useAction() {
@@ -126,21 +128,29 @@ function ContactSection({ abonent, details, canEdit }: { abonent: Abonent; detai
     setDocument(details.ownershipDocument ?? '');
   }, [details.phone, details.consent, details.ownershipDocument]);
 
+  const phoneCheck = checkPhone(phone);
   const save = () => run(async () => {
-    if (phone.trim() !== (details.phone ?? '')) await api.abonents.setContact(abonent.id, phone.trim() || null);
+    if ((phoneCheck.phone ?? '') !== (details.phone ?? '')) await api.abonents.setContact(abonent.id, phoneCheck.phone);
     await api.abonents.setLegal(abonent.id, consent === '' ? null : consent === 'true', document.trim() || null);
   }, 'Сохранено.');
 
   return (
     <Section title="Контакты и документы">
-      <p className="small muted">ЛС {abonent.account}{abonent.inn ? `, ИНН ${abonent.inn}` : ''}</p>
-      <Field label="Телефон">{(id) => <TextInput id={id} readOnly={!canEdit} value={phone} onChange={(event) => setPhone(event.target.value)} />}</Field>
+      <p className="small muted">ЛС {abonent.account}{abonent.inn ? `, ИНН ${abonent.inn}` : ''}{details.kpp ? `, КПП ${details.kpp}` : ''}</p>
+      {(details.email || details.birthDate || details.hasPassport) && (
+        <div className="small" style={{ lineHeight: 1.6 }}>
+          {details.birthDate && <div><span className="muted">Дата рождения: </span>{details.birthDate}</div>}
+          {details.email && <div><span className="muted">E-mail: </span>{details.email}</div>}
+          {details.hasPassport && <div><span className="muted">Паспорт: </span>заполнен, смотрит администратор в справочнике «Люди»</div>}
+        </div>
+      )}
+      <PhoneField value={phone} onChange={setPhone} readOnly={!canEdit} />
       <Field label="Согласие на передачу персональных данных" hint={details.consentWhen ? `Изменено ${details.consentWhen}` : undefined}>
         {(id) => <SelectInput id={id} disabled={!canEdit} value={consent} onChange={(event) => setConsent(event.target.value)}><option value="">Не указано</option><option value="false">Нет</option><option value="true">Да</option></SelectInput>}
       </Field>
       <Field label="Документ о праве собственности на отапливаемое помещение">{(id) => <TextArea id={id} rows={3} readOnly={!canEdit} value={document} onChange={(event) => setDocument(event.target.value)} />}</Field>
       {view}
-      {canEdit && <Button size="full" onClick={() => void save()}>Сохранить</Button>}
+      {canEdit && <Button size="full" disabled={Boolean(phoneCheck.error)} onClick={() => void save()}>Сохранить</Button>}
     </Section>
   );
 }

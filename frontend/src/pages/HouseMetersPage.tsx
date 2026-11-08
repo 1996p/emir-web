@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { api, errorText, useApi, METER_UNITS, type HouseMeterRow } from '@/api';
 import { useRole } from '@/layout/role';
 import { Button, Field, LinkButton, Notice, SelectInput, TextInput } from '@/ui';
+import type { AddressValue } from '@/domain/types';
+import { AddressPicker, isAddressComplete, splitStreet } from './AddressPicker';
 
 export function HouseMetersPage() {
   const role = useRole();
@@ -179,8 +181,11 @@ function LinkPanel({ meterId, onDone }: { meterId: string; onDone: () => void })
 }
 
 function HouseMeterForm({ meter, onDone }: { meter: HouseMeterRow | null; onDone: () => void }) {
-  const [place, setPlace] = useState(meter?.place ?? '');
-  const [street, setStreet] = useState(meter?.street ?? '');
+  // Адрес дома, как и у абонентов, из справочников: так счётчик и квартиры дома записаны одинаково
+  const [address, setAddress] = useState<AddressValue>(() => {
+    const parsed = splitStreet(meter?.street ?? '');
+    return { place: meter?.place ?? '', street: parsed.street, house: parsed.house, flat: '' };
+  });
   const [number, setNumber] = useState(meter?.number ?? '');
   const [unit, setUnit] = useState(meter?.unit ?? 'Гкал');
   const [error, setError] = useState<string | null>(null);
@@ -188,7 +193,7 @@ function HouseMeterForm({ meter, onDone }: { meter: HouseMeterRow | null; onDone
 
   const submit = async () => {
     setError(null);
-    const body = { place: place.trim(), street: street.trim(), number: number.trim(), unit };
+    const body = { place: address.place, street: `${address.street} ${address.house}`, number: number.trim(), unit };
     try {
       if (meter) await api.readings.editHouseMeter(meter.id, body);
       else await api.readings.createHouseMeter(body);
@@ -200,8 +205,7 @@ function HouseMeterForm({ meter, onDone }: { meter: HouseMeterRow | null; onDone
 
   return (
     <>
-      <Field label="Населённый пункт">{(id) => <TextInput id={id} placeholder="с. Новокрасное" value={place} onChange={(event) => setPlace(event.target.value)} />}</Field>
-      <Field label="Улица и дом">{(id) => <TextInput id={id} placeholder="ул. Молодежная 1" value={street} onChange={(event) => setStreet(event.target.value)} />}</Field>
+      <AddressPicker value={address} onChange={setAddress} withFlat={false} />
       <Field label="Номер прибора">{(id) => <TextInput id={id} mono value={number} onChange={(event) => setNumber(event.target.value)} />}</Field>
       <Field label="Единица показаний" hint="Тариф считается в Гкал, показания переводятся автоматически">{(id) => (
         <SelectInput id={id} value={unit} onChange={(event) => setUnit(event.target.value)}>
@@ -211,7 +215,7 @@ function HouseMeterForm({ meter, onDone }: { meter: HouseMeterRow | null; onDone
       )}</Field>
       {meter && meter.lines > 0 && <p className="small muted">К счётчику привязано услуг: {meter.lines}. Привязка делается в карточке абонента, вкладка «Жильцы и параметры».</p>}
       {error && <Notice tone="warn">{error}</Notice>}
-      <Button variant="primary" size="full" disabled={!street.trim() || !known} onClick={() => void submit()}>{meter ? 'Сохранить' : 'Добавить счётчик'}</Button>
+      <Button variant="primary" size="full" disabled={!isAddressComplete(address) || !known} onClick={() => void submit()}>{meter ? 'Сохранить' : 'Добавить счётчик'}</Button>
     </>
   );
 }

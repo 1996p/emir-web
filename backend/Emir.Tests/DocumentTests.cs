@@ -199,14 +199,14 @@ public sealed class DocumentTests : IDisposable
         (await Generate(client)).EnsureSuccessStatusCode();
         var id = Doc(await Docs(client), "a2", "receipt").GetProperty("id").GetInt32();
 
-        (await client.PostAsJsonAsync("/api/abonents/a2/address", new { address = "ул. Новая, 100" })).EnsureSuccessStatusCode();
+        (await client.PostAsJsonAsync("/api/abonents/a2/address", new { place = "с. Журавка", street = "ул. Новая", house = "3", flat = "100" })).EnsureSuccessStatusCode();
         var profile = await client.GetFromJsonAsync<JsonElement>("/api/documents/profile");
         var changed = JsonSerializer.Deserialize<Dictionary<string, object?>>(profile.GetRawText())!;
         changed["name"] = "Новое название";
         (await client.PostAsJsonAsync("/api/documents/profile", changed)).EnsureSuccessStatusCode();
 
         var data = await Print(client, id);
-        Assert.DoesNotContain("Новая, 100", data.GetProperty("buyer").GetProperty("address").GetString());
+        Assert.DoesNotContain("Новая 3", data.GetProperty("buyer").GetProperty("address").GetString());
         Assert.NotEqual("Новое название", data.GetProperty("seller").GetProperty("name").GetString());
     }
 

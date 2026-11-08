@@ -78,6 +78,18 @@ using (var scope = app.Services.CreateScope())
         if (file is null) { Console.Error.WriteLine("Использование: dotnet Emir.Api.dll import-references <references.json>"); Environment.ExitCode = 1; return; }
         Console.WriteLine($"Справочников загружено: {await DataMigration.ImportReferences(db, file)}");
         await DirectoryData.EnsureHouseTypes(db);
+        await Addresses.EnsureTables(db);
+        return;
+    }
+    if (command == "import-addresses")
+    {
+        // Пробный прогон по умолчанию: запись только с явным --apply
+        var file = args.SkipWhile(arg => arg != "import-addresses").Skip(1).FirstOrDefault(arg => !arg.StartsWith("--"));
+        if (file is null) { Console.Error.WriteLine("Использование: dotnet Emir.Api.dll import-addresses <адреса.csv> [--apply]"); Environment.ExitCode = 1; return; }
+        var result = await Addresses.ImportCsv(db, file, args.Contains("--apply"));
+        Console.WriteLine($"{(result.Applied ? "Загружено" : "Пробный прогон, ничего не записано")}. Строк: {result.Lines}, новых населённых пунктов: {result.CitiesAdded}, улиц: {result.StreetsAdded}, домов: {result.HousesAdded}, уже были: {result.Existing}");
+        foreach (var problem in result.Problems.Take(50)) Console.WriteLine(problem);
+        if (result.Problems.Count > 50) Console.WriteLine($"…и ещё {result.Problems.Count - 50}");
         return;
     }
     if (command == "create-admin")
@@ -149,6 +161,8 @@ using (var scope = app.Services.CreateScope())
     }
     // Справочники, которых не было в старой системе, заводятся сами (схему не меняет)
     if (await db.ReferenceTables.AnyAsync()) await DirectoryData.EnsureHouseTypes(db);
+    // Без справочников городов, улиц и домов нельзя завести абонента: собираем их из адресов, если их ещё нет
+    await Addresses.EnsureTables(db);
 }
 
 app.UseResponseCompression();
@@ -204,6 +218,7 @@ api.MapCorrections();
 api.MapReports();
 api.MapExchange();
 api.MapReference();
+api.MapAddresses();
 api.MapTariffs();
 api.MapChecks();
 api.MapDocuments();

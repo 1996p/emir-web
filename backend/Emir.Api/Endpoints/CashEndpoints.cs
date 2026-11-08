@@ -5,7 +5,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Emir.Api.Endpoints;
 
-public record PayRequest(string AbonentId, string Source, List<Allocation> Allocations, decimal? Reading);
+/// <summary>Readings — показания счётчиков, принятые вместе с оплатой, по услугам. Reading — старый вариант для абонента с одним счётчиком.</summary>
+public record PayReading(string ServiceId, decimal Value);
+public record PayRequest(string AbonentId, string Source, List<Allocation> Allocations, decimal? Reading, List<PayReading>? Readings = null);
 public record PayResult(string PaymentId, long Total, long NewBalance);
 public record RefundRequest(string AbonentId, string PaymentId, string Reason);
 public record ShiftEntryDto(string Id, string Time, string Name, long Amount);
@@ -36,13 +38,24 @@ public static class CashEndpoints
             }
 
             var abonent = await db.GetAbonent(request.AbonentId);
-            if (request.Reading is { } reading)
+            // Каждое показание — в счётчик своей услуги. Раньше одно показание всегда уходило в первый счётчик абонента
+            var readings = (request.Readings ?? []).ToList();
+            if (request.Reading is { } single)
             {
-                var meter = abonent.Services.FirstOrDefault(line => line.MeterNumber is not null)
-                    ?? throw new ApiError(422, "У абонента нет счётчика");
-                if (reading < meter.MeterLastReading) throw new ApiError(422, $"Показание {reading:0.####} меньше предыдущего {meter.MeterLastReading:0.####}");
+                var meters = abonent.Services.Where(line => line.MeterNumber is not null).ToList();
+                if (meters.Count == 0) throw new ApiError(422, "У абонента нет счётчика");
+                if (meters.Count > 1) throw new ApiError(422, "У абонента несколько счётчиков: укажите, к какой услуге показание");
+                readings.Add(new PayReading(meters[0].ServiceId, single));
+            }
+            if (readings.Select(item => item.ServiceId).Distinct().Count() != readings.Count) throw new ApiError(422, "Показание по услуге указано дважды");
+            foreach (var item in readings)
+            {
+                var meter = abonent.Services.FirstOrDefault(line => line.ServiceId == item.ServiceId && line.MeterNumber is not null)
+                    ?? throw new ApiError(422, "У этой услуги нет счётчика");
+                if (item.Value < meter.MeterLastReading) throw new ApiError(422, $"{meter.Name}: показание {item.Value:0.####} меньше предыдущего {meter.MeterLastReading:0.####}");
                 await db.BeginOperation("reading", user.Who(), meter.MeterNumber);
-                Billing.ApplyReading(db, abonent, meter, reading);
+                Billing.ApplyReading(db, abonent, meter, item.Value);
+                db.AddJournal(abonent.Id, "Показание счётчика", user.Who(), $"{meter.MeterNumber}: {item.Value:0.####}, принято в кассе");
                 // Отдельным движением: начисление по показанию и оплата в журнале не должны схлопнуться в разницу
                 await db.SaveChangesAsync();
             }

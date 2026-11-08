@@ -46,6 +46,8 @@ public static class DirectoryLinks
         }
 
         if (source == Catalog.HouseCategories) notes.AddRange(await HouseCategoryChanged(db, user, columns, rows, old, updated));
+        // Город, улица и дом абонента — значения из справочников адресов
+        if (await Addresses.Propagate(db, source, columns, rows, old, updated) is { } addressNote) notes.Add(addressNote);
         return string.Join("; ", notes);
     }
 

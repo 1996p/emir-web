@@ -8,7 +8,7 @@ import type { Beneficiary, BenefitCategory, BenefitImportLine } from '@/domain/t
 import type { AbonentDetails, LedgerRow, ManagedUser, Role } from '@/domain/types';
 import type { DocumentCounter, DocumentRow, DocumentsView, OrganizationProfile, PrintDocument } from '@/domain/types';
 import type { ChecksView, ClosedMonth, CurrentMonth, ReclosePreview, ServiceTermItem, TariffsView } from '@/domain/types';
-import type { HeatNormsView, MonthReadiness } from '@/domain/types';
+import type { AddressValue, HeatNormsView, MonthReadiness } from '@/domain/types';
 
 export class ApiError extends Error {
   constructor(public readonly status: number, message: string) {
@@ -111,7 +111,7 @@ export const api = {
     endResident: (id: string, residentId: number, toDate: string) => mutate<void>(`/abonents/${encodeURIComponent(id)}/residents/${residentId}/end`, { toDate }),
     ledger: (id: string) => get<LedgerRow[]>(`/abonents/${encodeURIComponent(id)}/ledger`),
     recharge: (id: string) => mutate<ChargeRunResult>(`/abonents/${encodeURIComponent(id)}/recharge`),
-    changeAddress: (id: string, address: string) => mutate<Abonent>(`/abonents/${encodeURIComponent(id)}/address`, { address }),
+    changeAddress: (id: string, address: AddressValue) => mutate<Abonent>(`/abonents/${encodeURIComponent(id)}/address`, address),
     addService: (id: string, serviceName: string) => mutate<Abonent>(`/abonents/${encodeURIComponent(id)}/services`, { serviceName }),
     terms: (id: string, serviceId: string) => get<ServiceTermItem[]>(`/abonents/${encodeURIComponent(id)}/services/${encodeURIComponent(serviceId)}/terms`),
     setTerm: (id: string, serviceId: string, body: { fromPeriod: string; tariffId: string | null; state: string; reason: string }) => mutate<void>(`/abonents/${encodeURIComponent(id)}/services/${encodeURIComponent(serviceId)}/terms`, body),
@@ -165,7 +165,8 @@ export const api = {
   },
   corrections: {
     types: () => get<CorrectionType[]>('/corrections/types'),
-    apply: (abonentId: string, typeId: string, amount: Kopecks, reason: string, paymentId?: string) => mutate<Abonent>('/corrections', { abonentId, typeId, amount, reason, paymentId: paymentId ?? null }),
+    /** operationDate — дата документа-основания, ГГГГ-ММ-ДД; деньги проводятся в открытом месяце */
+    apply: (abonentId: string, typeId: string, amount: Kopecks, reason: string, paymentId?: string, operationDate?: string) => mutate<Abonent>('/corrections', { abonentId, typeId, amount, reason, paymentId: paymentId ?? null, operationDate: operationDate || null }),
   },
   reports: {
     catalog: () => get<ReportDefinition[]>('/reports/catalog'),
@@ -228,6 +229,14 @@ export const api = {
   heatNorms: {
     list: () => get<HeatNormsView>('/heat-norms'),
     apply: (body: { category: string; norm: number; reason: string }) => mutate<{ category: string; norm: number; total: number; changed: number }>('/heat-norms/apply', body),
+  },
+  /** Адрес каскадом: населённый пункт → улица → дом. Новые улицы и дома заводятся прямо из формы адреса. */
+  addresses: {
+    cities: () => get<string[]>('/addresses/cities'),
+    streets: (place: string) => get<string[]>(`/addresses/streets?${q({ place })}`),
+    houses: (place: string, street: string) => get<string[]>(`/addresses/houses?${q({ place, street })}`),
+    addStreet: (place: string, street: string, reason: string) => mutate<void>('/addresses/streets', { place, street, reason }),
+    addHouse: (place: string, street: string, house: string, reason: string) => mutate<void>('/addresses/houses', { place, street, house, reason }),
   },
   directories: {
     groups: () => get<DirectoryGroup[]>('/directories/groups'),
@@ -341,7 +350,7 @@ export interface HouseMeterBody { place: string; street: string; number: string;
 /** Единицы показаний тепловых счётчиков. Основная — Гкал, остальные переводятся в Гкал. */
 export const METER_UNITS: Array<{ value: string; label: string }> = [
   { value: 'Гкал', label: 'Гкал' },
-  { value: 'ГДж', label: 'ГДж (1 Гкал = 4,1868 ГДж)' },
+  { value: 'ГДж', label: 'ГДж (1 Гкал = 4,186 ГДж)' },
   { value: 'МВт·ч', label: 'МВт·ч (1 Гкал = 1,163 МВт·ч)' },
   { value: 'кВт·ч', label: 'кВт·ч (1 Гкал = 1163 кВт·ч)' },
 ];

@@ -11,7 +11,11 @@ public record SaveReadingRequest(string AbonentId, string ServiceId, decimal Val
 
 public static class ReadingEndpoints
 {
-    private static string HouseKey(Abonent abonent) => $"{abonent.Place}|{abonent.Street}";
+    /// <summary>«ул. Школьная, 12» и «Школьная ул. 12» в одном посёлке — один дом: адреса старой системы записаны по-разному.</summary>
+    private static string HouseKey(Abonent abonent) => Addresses.HouseKey(abonent.Place, abonent.Street);
+
+    /// <summary>Название дома в списке: посёлок нужен, иначе одинаковые улицы разных сёл не различить.</summary>
+    private static string HouseName(Abonent abonent) => abonent.Place.Trim() == "" ? abonent.Street : $"{abonent.Street}, {abonent.Place}";
 
     public static void MapReadings(this RouteGroupBuilder api)
     {
@@ -153,7 +157,7 @@ public static class ReadingEndpoints
                 .Select(house =>
                 {
                     var meters = house.SelectMany(abonent => abonent.Services.Where(line => line.MeterNumber is not null)).ToList();
-                    return new HouseProgressDto(house.Key, house.First().Street.Replace("ул. ", ""), meters.Count(line => saved.Contains(line.AbonentId + "|" + line.ServiceId)), meters.Count);
+                    return new HouseProgressDto(house.Key, HouseName(house.First()), meters.Count(line => saved.Contains(line.AbonentId + "|" + line.ServiceId)), meters.Count);
                 })
                 .OrderBy(house => house.Name)
                 .ToList();

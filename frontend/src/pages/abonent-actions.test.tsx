@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AbonentsPage } from './AbonentsPage';
 import { installFetch, renderPage, type Routes } from '@/test/utils';
@@ -34,19 +34,47 @@ describe('Карточка абонента — действия (ящики)', 
     expect(mock.calls.some((c) => c.method === 'POST' && c.path === '/abonents/a1/recharge')).toBe(true);
   });
 
-  it('«Сменить адрес» отправляет новый адрес', async () => {
-    const mock = installFetch(base({ 'POST /abonents/a1/address': { ...person, street: 'ул. Мира 7' } }));
+  it('«Сменить адрес»: текущий адрес подставлен из справочников, новый выбирается из списков', async () => {
+    const mock = installFetch(base({
+      'GET /addresses/cities': ['Чистоозерное рп.'],
+      'GET /addresses/streets': ['Ленина ул.', 'Мира ул.'],
+      'GET /addresses/houses': (_body: unknown, query: URLSearchParams) => (query.get('street') === 'Мира ул.' ? ['7'] : ['1']),
+      'POST /abonents/a1/address': { ...person, street: 'Мира ул. 7' },
+    }));
     renderPage(<AbonentsPage />, '/abonents?id=a1');
     const user = userEvent.setup();
 
     await user.click(await screen.findByRole('button', { name: 'Сменить адрес' }));
-    const addressDrawer = within(await screen.findByRole('complementary', { name: 'Сменить адрес' }));
-    await user.type(addressDrawer.getByLabelText('Новый адрес'), 'ул. Мира 7');
-    await user.click(addressDrawer.getByRole('button', { name: 'Сменить адрес' }));
+    const drawer = within(await screen.findByRole('complementary', { name: 'Сменить адрес' }));
+    // «рп. Чистоозерное, ул. Ленина 1» из старой системы находит «Чистоозерное рп.» и «Ленина ул.» в справочниках
+    await waitFor(() => expect(drawer.getByLabelText('Населённый пункт')).toHaveValue('Чистоозерное рп.'));
+    await waitFor(() => expect(drawer.getByLabelText('Улица')).toHaveValue('Ленина ул.'));
+    expect(drawer.getByLabelText('Дом')).toHaveValue('1');
 
-    expect(await screen.findByText('Адрес изменён.')).toBeInTheDocument();
+    await user.selectOptions(drawer.getByLabelText('Улица'), 'Мира ул.');
+    await user.selectOptions(drawer.getByLabelText('Дом'), await drawer.findByRole('option', { name: '7' }));
+    await user.click(drawer.getByRole('button', { name: 'Сменить адрес' }));
+
+    expect(await screen.findByText(/Адрес изменён/)).toBeInTheDocument();
     const call = mock.calls.find((c) => c.method === 'POST' && c.path === '/abonents/a1/address');
-    expect(call?.body).toMatchObject({ address: 'ул. Мира 7' });
+    expect(call?.body).toMatchObject({ place: 'Чистоозерное рп.', street: 'Мира ул.', house: '7', flat: '2' });
+  });
+
+  it('«Показания» без квартирных счётчиков недоступны', async () => {
+    installFetch(base());
+    renderPage(<AbonentsPage />, '/abonents?id=a1');
+    expect(await screen.findByRole('button', { name: 'Показания' })).toBeDisabled();
+  });
+
+  it('«Показания» ведут на дом абонента', async () => {
+    const withMeter = { ...person, houseKey: 'чистоозерное|ленина 1', services: [{ ...person.services[0], meter: { number: 'С-1', lastReading: 10, tariff: 100, verifiedUntil: '', unit: null } }] };
+    installFetch(base({ 'GET /abonents': [withMeter] }));
+    renderPage(<AbonentsPage />, '/abonents?id=a1');
+    const link = await screen.findByRole('link', { name: 'Показания' });
+    const url = new URL(link.getAttribute('href') ?? '', 'http://x');
+    expect(url.pathname).toBe('/readings');
+    expect(url.searchParams.get('house')).toBe('чистоозерное|ленина 1');
+    expect(url.searchParams.get('abonent')).toBe('a1');
   });
 
   it('«Добавить услугу» добавляет услугу', async () => {

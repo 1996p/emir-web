@@ -14,6 +14,36 @@ const abonent = (over: Partial<{ id: string; name: string; account: string; cred
 const emptyShift = { entries: [], count: 0, total: 0 };
 
 describe('Касса — оплата', () => {
+  it('у двух счётчиков свои показания: каждое уходит к своей услуге', async () => {
+    const meter = (number: string, last: number) => ({ number, lastReading: last, tariff: 5200, verifiedUntil: '', unit: null });
+    const mock = installFetch({
+      'GET /abonents': [abonent({ services: [
+        { id: 'cold', name: 'Холодная вода', state: 'Работает', tariffName: 'По счётчику', price: 52, chargeStatus: '', debt: 0, meter: meter('Х-1', 100) },
+        { id: 'hot', name: 'Горячая вода', state: 'Работает', tariffName: 'По счётчику', price: 52, chargeStatus: '', debt: 0, meter: meter('Г-1', 50) },
+      ] })],
+      'GET /cash/shift': emptyShift,
+      'POST /cash/payments': { paymentId: 'p1', total: 15600, newBalance: 0 },
+    });
+    renderPage(<CashPage />, '/cash');
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText('Найти абонента'), 'Иванова');
+    await user.keyboard('{Enter}');
+
+    await user.type(await screen.findByLabelText('Новое показание: Холодная вода'), '102');
+    await user.type(screen.getByLabelText('Новое показание: Горячая вода'), '51');
+    // второе поле не затёрло первое
+    expect(screen.getByLabelText('Новое показание: Холодная вода')).toHaveValue('102');
+    expect(screen.getByLabelText('Сумма за услугу Холодная вода')).toHaveValue('104,00');
+    expect(screen.getByLabelText('Сумма за услугу Горячая вода')).toHaveValue('52,00');
+
+    await user.click(screen.getByRole('button', { name: 'Ровно' }));
+    await user.click(screen.getByRole('button', { name: /Провести 156,00/ }));
+    expect(await screen.findByText('Оплата проведена')).toBeInTheDocument();
+    expect(mock.calls.find((c) => c.method === 'POST' && c.path === '/cash/payments')?.body).toMatchObject({
+      readings: [{ serviceId: 'cold', value: 102 }, { serviceId: 'hot', value: 51 }],
+    });
+  });
+
   it('поиск → выбор абонента → оплата наличными «Ровно» проводит платёж', async () => {
     const mock = installFetch({
       'GET /abonents': [abonent()],
