@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { api, errorText, useApi } from '@/api';
 import { balanceOf, chargeForReading, formatBalance, formatMoney, parseMoney, parseReading } from '@/domain/billing';
 import type { Abonent, PaymentAllocation, PaymentSource, ServiceId } from '@/domain/types';
-import { Button, Field, LinkButton, Segmented, TextArea, TextInput } from '@/ui';
+import { Button, Field, LinkButton, Segmented, SelectInput, TextArea, TextInput } from '@/ui';
 
 type Mode = 'pay' | 'refund';
 
@@ -155,6 +155,13 @@ function PaymentForm({ abonent, source, done, onDone, onNext, shift }: FormProps
   // Показание у каждого счётчика своё: у абонента может быть несколько счётчиков (холодная и горячая вода)
   const [readings, setReadings] = useState<Partial<Record<ServiceId, string>>>({});
   const [cash, setCash] = useState('');
+  // Как в старой системе: офис приёма и расчётный период платежа
+  const { data: offices } = useApi(() => api.cash.offices(), []);
+  const { data: month } = useApi(() => api.period.current(), []);
+  const [office, setOffice] = useState('');
+  const [payPeriod, setPayPeriod] = useState('');
+  const chosenOffice = office || offices?.[0] || '';
+  const chosenPeriod = payPeriod || month?.period || '';
   const [error, setError] = useState<string | null>(null);
   const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
   const [busy, setBusy] = useState(false);
@@ -187,7 +194,7 @@ function PaymentForm({ abonent, source, done, onDone, onNext, shift }: FormProps
     setBusy(true);
     try {
       const entered = rows.filter((row) => row.readingValue !== null).map((row) => ({ serviceId: row.line.id, value: row.readingValue as number }));
-      const request = { abonentId: abonent.id, source, allocations, ...(entered.length > 0 ? { readings: entered } : {}) };
+      const request = { abonentId: abonent.id, source, allocations, ...(entered.length > 0 ? { readings: entered } : {}), ...(chosenOffice ? { office: chosenOffice } : {}), ...(chosenPeriod ? { period: chosenPeriod } : {}) };
       const result = await api.cash.pay(request, idempotencyKey);
       setIdempotencyKey(crypto.randomUUID());
       setEdited({}); setReadings({}); setCash(''); setUnchecked({});
@@ -249,6 +256,12 @@ function PaymentForm({ abonent, source, done, onDone, onNext, shift }: FormProps
                 <span className="muted">Итого</span>
                 <span className="mono" style={{ fontSize: 26, fontWeight: 500 }}>{formatMoney(total)} ₽</span>
               </div>
+              <Field label="Офис приёма платежа">{(id) => (
+                <SelectInput id={id} value={chosenOffice} onChange={(event) => setOffice(event.target.value)}>
+                  {(offices ?? []).map((item) => <option key={item} value={item}>{item}</option>)}
+                </SelectInput>
+              )}</Field>
+              <Field label="Расчётный период" hint="За какой месяц платёж. Будущий месяц выбрать нельзя">{(id) => <TextInput id={id} type="month" max={month?.period} value={chosenPeriod} onChange={(event) => setPayPeriod(event.target.value)} />}</Field>
               {bank ? (
                 <p className="small muted" style={{ lineHeight: 1.45 }}>Безналичный платёж: сдачи нет, в реестре он будет отмечен офисом «Банковские платежи».</p>
               ) : (

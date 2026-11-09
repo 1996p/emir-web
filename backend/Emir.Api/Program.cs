@@ -163,6 +163,7 @@ using (var scope = app.Services.CreateScope())
     if (await db.ReferenceTables.AnyAsync()) await DirectoryData.EnsureHouseTypes(db);
     // Без справочников городов, улиц и домов нельзя завести абонента: собираем их из адресов, если их ещё нет
     await Addresses.EnsureTables(db);
+    await Offices.EnsureTable(db);
 }
 
 app.UseResponseCompression();

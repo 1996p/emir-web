@@ -143,7 +143,8 @@ public static class ChecksService
     private static CheckGroup Duplicates(List<Abonent> abonents)
     {
         var rows = new List<CheckRow>();
-        var people = abonents.Where(abonent => abonent.Kind == "person").ToList();
+        // Флаг «Игнорировать при сверке одинаковых ЛС», как в старой системе: такие счета в дубли не попадают
+        var people = abonents.Where(abonent => abonent.Kind == "person" && !abonent.IgnoreDuplicateCheck).ToList();
         foreach (var group in people.GroupBy(abonent => abonent.Name.Trim().ToLowerInvariant()).Where(group => group.Count() > 1))
             foreach (var abonent in group)
                 rows.Add(new CheckRow(abonent.Id, ["Одинаковое ФИО", abonent.Name, abonent.Account, Address(abonent)]));

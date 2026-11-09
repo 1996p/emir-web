@@ -50,6 +50,12 @@ public class Abonent
     public string? PassportProtected { get; set; }
     public int Residents { get; set; }
     public decimal Area { get; set; }
+    /// <summary>Общая площадь квартиры, м². В расчёте не участвует (расчёт идёт по отапливаемой Area), нужна для документов и отчётов, как в старой системе.</summary>
+    public decimal? TotalArea { get; set; }
+    /// <summary>Флаги лицевого счёта из старой системы: не выгружать в реестр Платосферы, не принимать платежи из файла 1С, не показывать в сверке одинаковых ЛС.</summary>
+    public bool HideInPlatosfera { get; set; }
+    public bool HideIn1C { get; set; }
+    public bool IgnoreDuplicateCheck { get; set; }
     /// <summary>Сельсовет, котельная, тепловая камера, категория дома и материал стен: из справочников старой системы, для отчётов и отбора.</summary>
     public string? District { get; set; }
     public string? Boiler { get; set; }
@@ -243,6 +249,10 @@ public class Payment
     public long Amount { get; set; }
     public string Status { get; set; } = "Проведена";
     public string? IdempotencyKey { get; set; }
+    /// <summary>Офис приёма платежа (справочник «Офисы приёма платежей»).</summary>
+    public string? Office { get; set; }
+    /// <summary>Расчётный месяц, за который принят платёж, ГГГГ-ММ.</summary>
+    public string? Period { get; set; }
 }
 
 public class CashOperation

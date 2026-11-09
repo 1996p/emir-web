@@ -8,7 +8,10 @@ namespace Emir.Api.Endpoints;
 public record AbonentFactDto(string FromPeriod, decimal Area, int Residents, string Who, string When, string? Reason);
 public record ResidentDto(int Id, string Name, string? FromDate, string? ToDate);
 public record AbonentDetailsDto(string? Note, bool? Consent, string? ConsentWhen, string? OwnershipDocument, string? Phone, string OpenPeriod, bool Reopened, List<AbonentFactDto> Facts, List<ResidentDto> Residents, decimal? HouseHeatNorm, string? HouseCategory = null,
-    string? Email = null, string? BirthDate = null, string? Kpp = null, bool HasPassport = false);
+    string? Email = null, string? BirthDate = null, string? Kpp = null, bool HasPassport = false,
+    decimal? TotalArea = null, bool HideInPlatosfera = false, bool HideIn1C = false, bool IgnoreDuplicateCheck = false);
+public record SetTotalAreaRequest(decimal? TotalArea, string? Reason);
+public record SetAccountFlagsRequest(bool HideInPlatosfera, bool HideIn1C, bool IgnoreDuplicateCheck);
 public record SetNoteRequest(string? Note);
 public record SetHeatNormRequest(decimal? Norm, string Reason);
 public record SetHouseCategoryRequest(string? Category, string Reason);
@@ -38,7 +41,8 @@ public static class AbonentDetailEndpoints
             return new AbonentDetailsDto(abonent.Note, abonent.Consent, abonent.ConsentAtUtc?.ToLocalTime().ToString("dd.MM.yyyy HH:mm"), abonent.OwnershipDocument, abonent.Phone, work.Period, work.ReopenedAtUtc is not null,
                 facts.OrderByDescending(fact => fact.FromPeriod, StringComparer.Ordinal).Select(fact => new AbonentFactDto(fact.FromPeriod, fact.Area, fact.Residents, fact.Who, fact.AtUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm"), fact.Reason)).ToList(),
                 residents.Select(resident => new ResidentDto(resident.Id, resident.Name, resident.FromDate?.ToString("dd.MM.yyyy"), resident.ToDate?.ToString("dd.MM.yyyy"))).ToList(), abonent.HouseHeatNorm, abonent.HouseCategory,
-                abonent.Email, abonent.BirthDate?.ToString("dd.MM.yyyy"), abonent.Kpp, abonent.PassportProtected is not null);
+                abonent.Email, abonent.BirthDate?.ToString("dd.MM.yyyy"), abonent.Kpp, abonent.PassportProtected is not null,
+                abonent.TotalArea, abonent.HideInPlatosfera, abonent.HideIn1C, abonent.IgnoreDuplicateCheck);
         });
 
         // Норма теплопотребления дома (Гкал/м²) для тарифов «по норме дома»: объём = площадь × норма.
@@ -96,6 +100,34 @@ public static class AbonentDetailEndpoints
             await db.SaveChangesAsync();
             return Results.NoContent();
         }).Roles(Roles.Service, Roles.Accountant, Roles.Admin);
+
+        // Общая площадь: в расчёте не участвует, поэтому без истории по месяцам, но с причиной в журнале
+        group.MapPost("/total-area", async (string id, SetTotalAreaRequest request, EmirDb db, ClaimsPrincipal user) =>
+        {
+            if (string.IsNullOrWhiteSpace(request.Reason)) throw new ApiError(422, "Укажите причину");
+            if (request.TotalArea is { } total && (total <= 0 || total > 100_000 || total != Math.Round(total, 2))) throw new ApiError(422, "Общая площадь: число больше нуля, до двух знаков после запятой");
+            var abonent = await db.GetAbonent(id);
+            var old = abonent.TotalArea;
+            abonent.TotalArea = request.TotalArea;
+            db.AddJournal(id, "Общая площадь", user.Who(), $"{old?.ToString("0.##") ?? "нет"}, теперь {request.TotalArea?.ToString("0.##") ?? "нет"} м²", request.Reason.Trim());
+            await db.SaveChangesAsync();
+            return Results.NoContent();
+        }).Roles(Roles.Service, Roles.Accountant, Roles.Admin);
+
+        // Флаги лицевого счёта влияют на реестры и сверки, поэтому их меняет бухгалтер или администратор
+        group.MapPost("/account-flags", async (string id, SetAccountFlagsRequest request, EmirDb db, ClaimsPrincipal user) =>
+        {
+            var abonent = await db.GetAbonent(id);
+            var changes = new List<string>();
+            void Set(string name, bool old, bool value, Action<bool> apply) { if (old != value) { apply(value); changes.Add($"{name}: {(value ? "да" : "нет")}"); } }
+            Set("скрывать в реестре Платосфера", abonent.HideInPlatosfera, request.HideInPlatosfera, value => abonent.HideInPlatosfera = value);
+            Set("скрывать при загрузке платежей из 1С", abonent.HideIn1C, request.HideIn1C, value => abonent.HideIn1C = value);
+            Set("игнорировать при сверке одинаковых ЛС", abonent.IgnoreDuplicateCheck, request.IgnoreDuplicateCheck, value => abonent.IgnoreDuplicateCheck = value);
+            if (changes.Count == 0) return Results.NoContent();
+            db.AddJournal(id, "Флаги лицевого счёта", user.Who(), string.Join("; ", changes));
+            await db.SaveChangesAsync();
+            return Results.NoContent();
+        }).Roles(Roles.Accountant, Roles.Admin);
 
         group.MapPost("/legal", async (string id, SetLegalRequest request, EmirDb db, ClaimsPrincipal user) =>
         {

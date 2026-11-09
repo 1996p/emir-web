@@ -53,7 +53,7 @@ function CalculationSection({ abonent, details, canEdit }: { abonent: Abonent; d
 
   return (
     <Section title="Параметры расчёта">
-      <p className="small muted" style={{ lineHeight: 1.45 }}>Сейчас: {abonent.area} м², жильцов {abonent.residents}. Новые значения действуют с выбранного месяца, прошлые месяцы не меняются.</p>
+      <p className="small muted" style={{ lineHeight: 1.45 }}>Сейчас: отапливаемая {abonent.area} м²{details.totalArea ? `, общая ${details.totalArea} м²` : ''}, жильцов {abonent.residents}. Новые значения действуют с выбранного месяца, прошлые месяцы не меняются.</p>
       {canEdit && (
         <>
           <div className="row" style={{ alignItems: 'flex-start' }}>
@@ -112,6 +112,51 @@ function ResidentsSection({ abonent, details, canEdit }: { abonent: Abonent; det
           <Button size="full" disabled={!name.trim()} onClick={() => void run(() => api.abonents.addResident(abonent.id, name.trim(), fromDate || null), 'Проживающий добавлен.').then((ok) => { if (ok) { setName(''); setFromDate(''); } })}>Добавить проживающего</Button>
         </>
       )}
+    </Section>
+  );
+}
+
+/** Общая площадь, как в карточке старой системы («отапл/общ»). В расчёте не участвует, нужна для документов. */
+function TotalAreaSection({ abonent, details, canEdit }: { abonent: Abonent; details: Details; canEdit: boolean }) {
+  const saved = details.totalArea === null || details.totalArea === undefined ? '' : String(details.totalArea).replace('.', ',');
+  const [value, setValue] = useState(saved);
+  const [reason, setReason] = useState('');
+  const { run, view } = useAction();
+  useEffect(() => { setValue(saved); }, [saved, abonent.id]);
+  const parsed = value.trim() === '' ? null : parsePrice(value);
+  const valid = (value.trim() === '' || (parsed !== null && parsed > 0)) && reason.trim() !== '' && value !== saved;
+  return (
+    <Section title="Площадь">
+      <p className="small muted" style={{ lineHeight: 1.45 }}>Отапливаемая {abonent.area} м² — по ней идёт расчёт, меняется в «Параметрах расчёта». Общая — для документов.</p>
+      <Field label="Общая площадь, м²">{(id) => <TextInput id={id} mono inputMode="decimal" readOnly={!canEdit} value={value} onChange={(event) => setValue(event.target.value)} />}</Field>
+      {canEdit && value !== saved && <Field label="Причина">{(id) => <TextInput id={id} placeholder="Например, техпаспорт" value={reason} onChange={(event) => setReason(event.target.value)} />}</Field>}
+      {view}
+      {canEdit && value !== saved && <Button size="full" disabled={!valid} onClick={() => void run(() => api.abonents.setTotalArea(abonent.id, parsed, reason.trim()), 'Общая площадь сохранена.').then((ok) => { if (ok) setReason(''); })}>Сохранить площадь</Button>}
+    </Section>
+  );
+}
+
+/** Флаги лицевого счёта из старой системы. Меняет бухгалтер или администратор. */
+function AccountFlagsSection({ abonent, details }: { abonent: Abonent; details: Details }) {
+  const role = useRole();
+  const canEdit = role === 'accountant' || role === 'admin';
+  const { run, view } = useAction();
+  const flags = { hideInPlatosfera: Boolean(details.hideInPlatosfera), hideIn1C: Boolean(details.hideIn1C), ignoreDuplicateCheck: Boolean(details.ignoreDuplicateCheck) };
+  const items: Array<[keyof typeof flags, string]> = [
+    ['hideInPlatosfera', 'Скрывать в реестре для платежей Платосфера'],
+    ['hideIn1C', 'Скрывать при загрузке платежей из 1С'],
+    ['ignoreDuplicateCheck', 'Игнорировать при сверке одинаковых ЛС'],
+  ];
+  return (
+    <Section title={`Лицевой счёт ${abonent.account}`}>
+      {items.map(([key, label]) => (
+        <label key={key} className="row small" style={{ gap: 8, minHeight: 32 }}>
+          <input type="checkbox" className="check" checked={flags[key]} disabled={!canEdit} onChange={(event) => void run(() => api.abonents.setAccountFlags(abonent.id, { ...flags, [key]: event.target.checked }), 'Сохранено.')} />
+          {label}
+        </label>
+      ))}
+      {!canEdit && <p className="small muted">Меняет бухгалтер или администратор.</p>}
+      {view}
     </Section>
   );
 }
@@ -318,7 +363,9 @@ export function AbonentDetailsTab({ abonent, details }: { abonent: Abonent; deta
       <HeatNormSection abonent={abonent} details={details} canEdit={canEdit} />
       <MetersSection abonent={abonent} canEdit={canEdit} />
       <ResidentsSection abonent={abonent} details={details} canEdit={canEdit} />
+      <TotalAreaSection abonent={abonent} details={details} canEdit={canEdit} />
       <ContactSection abonent={abonent} details={details} canEdit={canEdit} />
+      <AccountFlagsSection abonent={abonent} details={details} />
       {canEdit && <AbonentBenefits abonentId={abonent.id} />}
     </div>
   );

@@ -94,6 +94,10 @@ export interface CreatePaymentRequest {
   allocations: PaymentAllocation[];
   /** Показания счётчиков, принятые вместе с оплатой: каждое к своей услуге */
   readings?: Array<{ serviceId: string; value: number }>;
+  /** Офис приёма из справочника «Офисы приёма платежей» */
+  office?: string;
+  /** Расчётный месяц платежа, ГГГГ-ММ */
+  period?: string;
 }
 
 export interface CreatePaymentResult {
@@ -454,6 +458,12 @@ export interface AbonentDetails {
   kpp?: string | null;
   /** Паспорт заполнен. Сам паспорт видит только администратор */
   hasPassport?: boolean;
+  /** Общая площадь, м²; в расчёте не участвует */
+  totalArea?: number | null;
+  /** Флаги лицевого счёта, как в старой системе */
+  hideInPlatosfera?: boolean;
+  hideIn1C?: boolean;
+  ignoreDuplicateCheck?: boolean;
 }
 
 export interface BenefitCategory {

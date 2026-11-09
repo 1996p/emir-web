@@ -62,6 +62,12 @@ namespace Emir.Api.Migrations
                     b.Property<string>("HeatChamber")
                         .HasColumnType("text");
 
+                    b.Property<bool>("HideIn1C")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("HideInPlatosfera")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("House")
                         .HasColumnType("text");
 
@@ -71,6 +77,9 @@ namespace Emir.Api.Migrations
                     b.Property<decimal?>("HouseHeatNorm")
                         .HasPrecision(18, 6)
                         .HasColumnType("numeric(18,6)");
+
+                    b.Property<bool>("IgnoreDuplicateCheck")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Inn")
                         .HasColumnType("text");
@@ -115,6 +124,10 @@ namespace Emir.Api.Migrations
 
                     b.Property<string>("StreetName")
                         .HasColumnType("text");
+
+                    b.Property<decimal?>("TotalArea")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
 
                     b.Property<string>("WallMaterial")
                         .HasColumnType("text");
@@ -872,6 +885,12 @@ namespace Emir.Api.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("IdempotencyKey")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Office")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Period")
                         .HasColumnType("text");
 
                     b.Property<string>("Source")

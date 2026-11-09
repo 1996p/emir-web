@@ -99,6 +99,8 @@ export const api = {
     details: (id: string) => get<AbonentDetails>(`/abonents/${encodeURIComponent(id)}/details`),
     setNote: (id: string, note: string | null) => mutate<void>(`/abonents/${encodeURIComponent(id)}/note`, { note }),
     setContact: (id: string, phone: string | null) => mutate<void>(`/abonents/${encodeURIComponent(id)}/contact`, { phone }),
+    setTotalArea: (id: string, totalArea: number | null, reason: string) => mutate<void>(`/abonents/${encodeURIComponent(id)}/total-area`, { totalArea, reason }),
+    setAccountFlags: (id: string, flags: { hideInPlatosfera: boolean; hideIn1C: boolean; ignoreDuplicateCheck: boolean }) => mutate<void>(`/abonents/${encodeURIComponent(id)}/account-flags`, flags),
     setLegal: (id: string, consent: boolean | null, ownershipDocument: string | null) => mutate<void>(`/abonents/${encodeURIComponent(id)}/legal`, { consent, ownershipDocument }),
     setHeatNorm: (id: string, norm: number | null, reason: string) => mutate<void>(`/abonents/${encodeURIComponent(id)}/heat-norm`, { norm, reason }),
     setHouseCategory: (id: string, category: string | null, reason: string) => mutate<void>(`/abonents/${encodeURIComponent(id)}/house-category`, { category, reason }),
@@ -121,6 +123,7 @@ export const api = {
     pay: (body: CreatePaymentRequest, idempotencyKey: string) => mutate<CreatePaymentResult>('/cash/payments', body, { 'Idempotency-Key': idempotencyKey }),
     refund: (abonentId: string, paymentId: string, reason: string) => mutate<{ amount: Kopecks; newBalance: Kopecks }>('/cash/refunds', { abonentId, paymentId, reason }),
     shift: () => get<ShiftInfo>('/cash/shift'),
+    offices: () => get<string[]>('/cash/offices'),
   },
   readings: {
     houseMeters: () => get<HouseMeters>('/readings/house-meters'),
@@ -141,7 +144,7 @@ export const api = {
       return result;
     },
     houses: () => get<HouseProgress[]>('/readings/houses'),
-    rows: (house: string) => get<ReadingRow[]>(`/readings/rows?${q({ house })}`),
+    rows: (house: string, period?: string) => get<ReadingRow[]>(`/readings/rows?${q(period ? { house, period } : { house })}`),
     /** Экран не перезагружается после сохранения, чтобы не сбить ввод в других строках. */
     save: (rowId: string, value: number) => {
       const [abonentId, serviceId] = rowId.split(':');

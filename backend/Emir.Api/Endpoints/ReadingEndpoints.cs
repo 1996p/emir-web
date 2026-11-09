@@ -163,16 +163,20 @@ public static class ReadingEndpoints
                 .ToList();
         });
 
-        group.MapGet("/rows", async (string house, EmirDb db) =>
+        // period — месяц, как в старой системе. Вводить можно только в рабочем месяце, прошлые показываются для просмотра
+        group.MapGet("/rows", async (string house, string? period, EmirDb db) =>
         {
             var abonents = (await db.Abonents.Include(abonent => abonent.Services).ToListAsync()).Where(abonent => HouseKey(abonent) == house).ToList();
             var open = await Periods.WorkPeriod(db);
-            var saved = await db.PeriodReadings.Where(reading => reading.Period == open).ToListAsync();
+            var target = string.IsNullOrWhiteSpace(period) ? open : period.Trim();
+            if (!System.Text.RegularExpressions.Regex.IsMatch(target, @"^\d{4}-(0[1-9]|1[0-2])$")) throw new ApiError(422, "Месяц в виде ГГГГ-ММ");
+            var past = target != open;
+            var saved = await db.PeriodReadings.Where(reading => reading.Period == target).ToListAsync();
             return abonents.SelectMany(abonent => abonent.Services.Where(line => line.MeterNumber is not null).Select(line =>
             {
                 var reading = saved.FirstOrDefault(item => item.AbonentId == line.AbonentId && item.ServiceId == line.ServiceId);
                 return new ReadingRowDto($"{line.AbonentId}:{line.ServiceId}", abonent.Street, abonent.Flat ?? "—", line.MeterNumber!, line.Name,
-                    reading?.StartValue ?? line.MeterLastReading ?? 0, line.MeterAverage, reading?.Value.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) ?? "");
+                    reading?.StartValue ?? (past ? 0 : line.MeterLastReading ?? 0), line.MeterAverage, reading?.Value.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) ?? "");
             })).ToList();
         });
 

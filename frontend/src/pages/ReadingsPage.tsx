@@ -13,7 +13,11 @@ const CHECK_CLASS: Record<ReadingCheck, string> = { empty: 'muted', ok: 'ok', lo
 export function ReadingsPage() {
   const { data: month } = useApi(() => api.period.current(), []);
   const role = useRole();
-  const canEdit = role !== 'accountant';
+  // Месяц показаний, как в старой системе. Вводить можно только в рабочем месяце
+  const [viewPeriod, setViewPeriod] = useState('');
+  const shownPeriod = viewPeriod || month?.period || '';
+  const pastMonth = Boolean(month && shownPeriod && shownPeriod !== month.period);
+  const canEdit = role !== 'accountant' && !pastMonth;
   const { data: houses } = useApi(() => api.readings.houses(), []);
   // Из карточки абонента приходят дом и абонент: открываем его дом и подсвечиваем его счётчики
   const [params, setParams] = useSearchParams();
@@ -26,7 +30,7 @@ export function ReadingsPage() {
   const activeHouse = houseId ?? houses?.[0]?.id ?? null;
   // Дома нет в списке: у него нет квартирных счётчиков. Чужой дом вместо него не открываем
   const missingHouse = Boolean(houses && activeHouse && !houses.some((item) => item.id === activeHouse));
-  const { data: rows } = useApi(() => (activeHouse && !missingHouse ? api.readings.rows(activeHouse) : Promise.resolve([])), [activeHouse, missingHouse]);
+  const { data: rows } = useApi(() => (activeHouse && !missingHouse ? api.readings.rows(activeHouse, pastMonth ? shownPeriod : undefined) : Promise.resolve([])), [activeHouse, missingHouse, pastMonth, shownPeriod]);
   const [values, setValues] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -86,7 +90,8 @@ export function ReadingsPage() {
       <main className="main">
         <div className="bar">
           <h1 className="title">{house?.name ?? (missingHouse ? 'Дом без счётчиков' : 'Дом не выбран')}</h1>
-          <span className="muted" style={{ fontSize: 13.5 }}>{month?.title.toLowerCase() ?? ''}</span>
+          <TextInput type="month" aria-label="Месяц показаний" max={month?.period} value={shownPeriod} onChange={(event) => setViewPeriod(event.target.value)} style={{ width: 170, minHeight: 38 }} />
+          {pastMonth && <span className="small muted">прошлый месяц, только просмотр</span>}
           <div className="spacer" />
           <label className="small muted row">Ввожу
             <SelectInput aria-label="Что вводится" value={mode} onChange={(event) => setMode(event.target.value as InputMode)} style={{ width: 190, minHeight: 38, borderColor: mode === 'delta' ? 'var(--warn)' : undefined }}>
