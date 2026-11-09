@@ -623,7 +623,7 @@ export interface CorrectionType {
   actionVerb: string;
 }
 
-export type ExchangeLineState = 'ok' | 'not-found' | 'duplicate';
+export type ExchangeLineState = 'ok' | 'not-found' | 'duplicate' | 'hidden';
 
 export interface ExchangeLine {
   id: string;

@@ -59,7 +59,7 @@ export function ExchangePage() {
           key: 'state', header: 'Результат',
           render: (row) => row.state === 'ok'
             ? <span className="ok strong">{batch.posted ? 'Проведено' : 'Готово'}</span>
-            : <span className="warn strong">{row.state === 'not-found' ? 'Счёт не найден, не будет проведён' : 'Повтор в файле, не будет проведён'}</span>,
+            : <span className="warn strong">{row.state === 'not-found' ? 'Счёт не найден, не будет проведён' : row.state === 'hidden' ? 'Счёт скрыт для загрузки из 1С, не будет проведён' : 'Повтор в файле, не будет проведён'}</span>,
         },
         { key: 'amount', header: 'Сумма, ₽', align: 'right', mono: true, render: (row) => formatMoney(row.amount) },
         { key: 'action', header: 'Действие', render: (row) => (row.state === 'ok' ? <Link to={`/abonents?q=${encodeURIComponent(row.key)}`}>Открыть</Link> : <span className="muted">—</span>) },

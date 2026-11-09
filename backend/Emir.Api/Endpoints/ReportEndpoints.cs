@@ -60,7 +60,23 @@ public static class ReportEndpoints
         if (definition.Kind == "ledger") return await BuildTurnover(db, cut, who, period, from, to);
         if (definition.Kind == "sum") return await BuildSum(db, definition.Id, cut, who, period, from, to);
         if (definition.Kind == "use") return await BuildUse(db, definition.Id, cut, who, period, from, to);
+        if (definition.Kind == "bank") return await BuildBank(db, cut, who);
         return Unavailable();
+    }
+
+    /// <summary>Реестр начислений для банка: лицевой счёт и сумма к оплате. В реестр Платосферы не попадают счета с флагом «скрывать в реестре Платосфера».</summary>
+    private static async Task<ReportResultDto> BuildBank(EmirDb db, string cut, string who)
+    {
+        var abonents = (await db.Abonents.Include(abonent => abonent.Services).ToListAsync())
+            .Where(abonent => MatchesWho(abonent.Kind, who) && !(cut == "Платосфера" && abonent.HideInPlatosfera))
+            .OrderBy(abonent => abonent.Account, StringComparer.Ordinal).ToList();
+        var rows = abonents.Select(abonent =>
+        {
+            var debt = abonent.Services.Where(line => line.ServiceId != "penalty").Sum(line => line.Debt);
+            var fee = abonent.Services.Where(line => line.ServiceId == "penalty").Sum(line => line.Debt);
+            return new ReportRowDto($"{abonent.Account} · {abonent.ShortName} · {HouseOf(abonent)}", [debt, fee, debt + fee]);
+        }).ToList();
+        return Finish([new("Долг, ₽", "money"), new("Пени, ₽", "money"), new("К оплате, ₽", "money")], rows);
     }
 
     private static ReportResultDto Unavailable() => new(false, NotConnected, [], [], []);
@@ -161,7 +177,9 @@ public static class ReportEndpoints
         {
             "Дни" => payment => payment.AtUtc.ToLocalTime().ToString("yyyy-MM-dd"),
             "Кассиры" => payment => payment.Cashier,
-            "Офисы" or "Провайдеры" => payment => payment.Source,
+            "Провайдеры" => payment => payment.Source,
+            "Офисы" => payment => payment.Office ?? "Офис не указан",
+            "Расчётные периоды" => payment => payment.Period ?? payment.AtUtc.ToLocalTime().ToString("yyyy-MM"),
             "Сельсоветы" => payment => DistrictOf(people[payment.AbonentId]),
             "Котельные" => payment => BoilerOf(people[payment.AbonentId]),
             _ => null,

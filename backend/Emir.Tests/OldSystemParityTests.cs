@@ -92,4 +92,67 @@ public sealed class OldSystemParityTests : IDisposable
         Assert.Equal(current.GetArrayLength(), past.GetArrayLength());
         Assert.Equal(HttpStatusCode.UnprocessableEntity, (await oper.GetAsync($"/api/readings/rows?house={house}&period=октябрь")).StatusCode);
     }
+
+    private static async Task<List<string>> ReportNames(HttpClient client, string query)
+    {
+        var report = await client.GetFromJsonAsync<JsonElement>("/api/reports/run?" + query);
+        Assert.True(report.GetProperty("available").GetBoolean(), report.GetProperty("message").GetString());
+        return report.GetProperty("rows").EnumerateArray().Select(row => row.GetProperty("name").GetString()!).ToList();
+    }
+
+    [Fact]
+    public async Task PlatosferaRegistry_SkipsFlaggedAccount_OtherBanksKeepIt()
+    {
+        var buh = await Login("buh1");
+        var account = (await buh.GetFromJsonAsync<JsonElement>("/api/abonents/a8")).GetProperty("account").GetString()!;
+        (await buh.PostAsJsonAsync("/api/abonents/a8/account-flags", new { hideInPlatosfera = true, hideIn1C = false, ignoreDuplicateCheck = false })).EnsureSuccessStatusCode();
+        var plato = await ReportNames(buh, "reportId=bank&period=Текущий месяц&cut=Платосфера&who=Все");
+        var sber = await ReportNames(buh, "reportId=bank&period=Текущий месяц&cut=Сбербанк&who=Все");
+        Assert.DoesNotContain(plato, name => name.StartsWith(account + " "));
+        Assert.Contains(sber, name => name.StartsWith(account + " "));
+        Assert.Equal(sber.Count - 1, plato.Count);
+    }
+
+    [Fact]
+    public async Task OneCUpload_FlaggedAccountIsNotPosted()
+    {
+        var buh = await Login("buh1");
+        var hiddenAccount = (await buh.GetFromJsonAsync<JsonElement>("/api/abonents/a8")).GetProperty("account").GetString()!;
+        var openAccount = (await buh.GetFromJsonAsync<JsonElement>("/api/abonents/a7")).GetProperty("account").GetString()!;
+        (await buh.PostAsJsonAsync("/api/abonents/a8/account-flags", new { hideInPlatosfera = false, hideIn1C = true, ignoreDuplicateCheck = false })).EnsureSuccessStatusCode();
+
+        async Task<JsonElement> Upload(string fileName)
+        {
+            using var form = new MultipartFormDataContent();
+            form.Add(new ByteArrayContent(System.Text.Encoding.UTF8.GetBytes($"{hiddenAccount};100\n{openAccount};200\n")), "file", fileName);
+            var response = await buh.PostAsync("/api/exchange/upload", form);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<JsonElement>();
+        }
+        static string State(JsonElement batch, string key) => batch.GetProperty("lines").EnumerateArray().First(line => line.GetProperty("key").GetString() == key).GetProperty("state").GetString()!;
+
+        var oneC = await Upload("platezhi_1c.csv");
+        Assert.Equal("hidden", State(oneC, hiddenAccount));
+        Assert.Equal("ok", State(oneC, openAccount));
+        // Флаг касается только файлов 1С
+        Assert.Equal("ok", State(await Upload("sber.csv"), hiddenAccount));
+
+        (await buh.PostAsync($"/api/exchange/batches/{oneC.GetProperty("id").GetString()}/post", null)).EnsureSuccessStatusCode();
+        await using var db = Db();
+        Assert.False(await db.Payments.AnyAsync(payment => payment.AbonentId == "a8" && payment.Cashier == "1С"));
+        Assert.True(await db.Payments.AnyAsync(payment => payment.AbonentId == "a7" && payment.Cashier == "1С" && payment.Period != null));
+    }
+
+    [Fact]
+    public async Task CashTurnover_GroupsByOfficeAndPeriod()
+    {
+        var kassa = await Login("kassa1");
+        var period = (await kassa.GetFromJsonAsync<JsonElement>("/api/period/current")).GetProperty("period").GetString()!;
+        (await kassa.PostAsJsonAsync("/api/cash/payments", new { abonentId = "a2", source = "cash-person", allocations = new[] { new { serviceId = "heat", amount = 1000L } }, office = "Чистоозерное. Касса. ЮЛ.", period })).EnsureSuccessStatusCode();
+        var today = DateTime.Now.ToString("yyyy-MM-dd");
+        var buh = await Login("buh1");
+        var range = $"period=Свои даты&who=Все&from={today}&to={today}";
+        Assert.Contains("Чистоозерное. Касса. ЮЛ.", await ReportNames(buh, $"reportId=cash-turnover&cut=Офисы&{range}"));
+        Assert.Contains(period, await ReportNames(buh, $"reportId=cash-turnover&cut=Расчётные периоды&{range}"));
+    }
 }
