@@ -128,7 +128,7 @@ describe('Регистрация абонента', () => {
     await user.clear(phone);
     await user.type(phone, '89131234567');
     await user.tab();
-    expect(phone).toHaveValue('+7 913 123-45-67');
+    expect(phone).toHaveValue('+7 (913) 123 45 67');
     expect(screen.queryByRole('alert')).toBeNull();
     expect(screen.getByRole('button', { name: 'Создать абонента' })).toBeEnabled();
   });

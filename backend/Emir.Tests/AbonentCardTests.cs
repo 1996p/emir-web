@@ -223,7 +223,7 @@ public sealed class AbonentCardTests : IDisposable
     {
         var oper = await Login();
         (await oper.PostAsJsonAsync("/api/abonents/a2/contact", new { phone = " +7 900 000-00-99 " })).EnsureSuccessStatusCode();
-        Assert.Equal("+7 900 000-00-99", (await oper.GetFromJsonAsync<JsonElement>("/api/abonents/a2")).GetProperty("phone").GetString());
+        Assert.Equal("+7 (900) 000 00 99", (await oper.GetFromJsonAsync<JsonElement>("/api/abonents/a2")).GetProperty("phone").GetString());
     }
 
     [Fact]

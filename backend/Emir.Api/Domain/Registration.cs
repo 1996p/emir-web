@@ -20,9 +20,9 @@ public static partial class Registration
     [GeneratedRegex(@"^[^\s@]+@[^\s@]+\.[^\s@]+$")]
     private static partial Regex EmailPattern();
 
-    public const string PhoneHint = "Телефон: 10 цифр с кодом города или оператора, например +7 913 123-45-67";
+    public const string PhoneHint = "Телефон: 10 цифр с кодом города или оператора, например +7 (913) 123 45 67";
 
-    /// <summary>Российский номер в едином виде «+7 913 123-45-67». Принимает 8…, +7…, скобки, пробелы и дефисы.
+    /// <summary>Российский номер в едином виде «+7 (913) 123 45 67», как его показывает маска ввода. Принимает 8…, +7…, скобки, пробелы и дефисы.
     /// Нужны 10 цифр без кода страны, код начинается с 3, 4, 8 или 9; номер из одинаковых цифр не настоящий.</summary>
     public static string? Phone(string? value)
     {
@@ -34,7 +34,7 @@ public static partial class Registration
         else if (text.StartsWith('+')) throw new ApiError(422, PhoneHint);
         if (digits.Length != 10 || digits[0] is not ('3' or '4' or '8' or '9')) throw new ApiError(422, PhoneHint);
         if (digits.Distinct().Count() == 1) throw new ApiError(422, "Телефон похож на ненастоящий: все цифры одинаковые");
-        return $"+7 {digits[..3]} {digits[3..6]}-{digits[6..8]}-{digits[8..]}";
+        return $"+7 ({digits[..3]}) {digits[3..6]} {digits[6..8]} {digits[8..]}";
     }
 
     public static string? Email(string? value)

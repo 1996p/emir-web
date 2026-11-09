@@ -140,10 +140,10 @@ public sealed class RegistrationTests : IDisposable
     }
 
     [Theory]
-    [InlineData("89131234567", "+7 913 123-45-67")]
-    [InlineData("+7 (913) 123-45-67", "+7 913 123-45-67")]
-    [InlineData("913 123 45 67", "+7 913 123-45-67")]
-    [InlineData("8-383-512-34-56", "+7 383 512-34-56")]
+    [InlineData("89131234567", "+7 (913) 123 45 67")]
+    [InlineData("+7 (913) 123-45-67", "+7 (913) 123 45 67")]
+    [InlineData("913 123 45 67", "+7 (913) 123 45 67")]
+    [InlineData("8-383-512-34-56", "+7 (383) 512 34 56")]
     [InlineData("", null)]
     public void Phone_IsNormalized(string input, string? expected) => Assert.Equal(expected, Emir.Api.Domain.Registration.Phone(input));
 
@@ -168,6 +168,6 @@ public sealed class RegistrationTests : IDisposable
     {
         var oper = await LoginAs("oper1");
         (await oper.PostAsJsonAsync("/api/abonents/a2/contact", new { phone = "8 (913) 123 45 67" })).EnsureSuccessStatusCode();
-        Assert.Equal("+7 913 123-45-67", (await oper.GetFromJsonAsync<JsonElement>("/api/abonents/a2")).GetProperty("phone").GetString());
+        Assert.Equal("+7 (913) 123 45 67", (await oper.GetFromJsonAsync<JsonElement>("/api/abonents/a2")).GetProperty("phone").GetString());
     }
 }
