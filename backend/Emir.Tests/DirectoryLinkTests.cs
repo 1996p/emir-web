@@ -29,6 +29,8 @@ public sealed class DirectoryLinkTests : IDisposable
     private async Task AddTable(string name, string[] columns, params string[][] rows)
     {
         await using var db = Db();
+        // Справочники адресов приложение заводит при запуске: тест ставит свои
+        db.ReferenceTables.RemoveRange(db.ReferenceTables.Where(item => item.Name == name));
         db.ReferenceTables.Add(new ReferenceTable { Name = name, ColumnsJson = J(columns), RowsJson = J(rows), RowCount = rows.Length });
         await db.SaveChangesAsync();
     }

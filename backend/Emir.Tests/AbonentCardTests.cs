@@ -106,7 +106,7 @@ public sealed class AbonentCardTests : IDisposable
     public async Task NewAbonent_HasFactFromRegistrationMonth()
     {
         var oper = await Login();
-        var created = await oper.PostAsJsonAsync("/api/abonents", new { kind = "person", name = "Новый Абонент", address = "ул. Тест, 1" });
+        var created = await oper.PostAsJsonAsync("/api/abonents", new { kind = "person", name = "Новый Абонент", place = "р.п. Чистоозерное", street = "ул. Школьная", house = "12", flat = "99" });
         created.EnsureSuccessStatusCode();
         var id = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString();
         var details = await oper.GetFromJsonAsync<JsonElement>($"/api/abonents/{id}/details");
@@ -223,7 +223,7 @@ public sealed class AbonentCardTests : IDisposable
     {
         var oper = await Login();
         (await oper.PostAsJsonAsync("/api/abonents/a2/contact", new { phone = " +7 900 000-00-99 " })).EnsureSuccessStatusCode();
-        Assert.Equal("+7 900 000-00-99", (await oper.GetFromJsonAsync<JsonElement>("/api/abonents/a2")).GetProperty("phone").GetString());
+        Assert.Equal("+7 (900) 000 00 99", (await oper.GetFromJsonAsync<JsonElement>("/api/abonents/a2")).GetProperty("phone").GetString());
     }
 
     [Fact]

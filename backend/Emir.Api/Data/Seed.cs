@@ -112,6 +112,11 @@ public static class Seed
 
     private static Abonent Build(Abonent abonent, ServiceTemplate[] services)
     {
+        // Адрес как у зарегистрированного абонента: улица и дом из справочников, строка собирается из них
+        var (street, house) = Addresses.Split(abonent.Street);
+        abonent.StreetName = street;
+        abonent.House = house;
+        abonent.Street = Addresses.Compose(street, house);
         for (var index = 0; index < services.Length; index++)
         {
             var service = services[index];

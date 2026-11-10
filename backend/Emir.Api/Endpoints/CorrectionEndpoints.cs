@@ -5,7 +5,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Emir.Api.Endpoints;
 
-public record ApplyCorrectionRequest(string AbonentId, string TypeId, long Amount, string Reason, string? PaymentId);
+/// <summary>OperationDate — дата документа-основания (по умолчанию сегодня). Деньги проводятся в открытом месяце, дата пишется в журнал и основание.</summary>
+public record ApplyCorrectionRequest(string AbonentId, string TypeId, long Amount, string Reason, string? PaymentId, DateOnly? OperationDate = null);
 
 public static class CorrectionEndpoints
 {
@@ -21,6 +22,10 @@ public static class CorrectionEndpoints
             // По матрице ролей кассиру доступны только операции с платежами
             if (user.IsInRole(Roles.Cashier) && type.Group != "Платежи") throw new ApiError(403, "Эта операция доступна только бухгалтеру");
             if (string.IsNullOrWhiteSpace(request.Reason)) throw new ApiError(422, "Укажите причину");
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var date = request.OperationDate ?? today;
+            if (date > today) throw new ApiError(422, "Дата операции не может быть в будущем");
+            if (date < today.AddYears(-5)) throw new ApiError(422, "Дата операции старше пяти лет");
 
             await using var transaction = await db.BeginMoneyTransaction();
             var abonent = await db.GetAbonent(request.AbonentId);
@@ -37,7 +42,7 @@ public static class CorrectionEndpoints
             if (amount <= 0) throw new ApiError(422, "Укажите сумму");
             if (payment is not null && amount > payment.Amount) throw new ApiError(422, "Сумма больше платежа");
 
-            await db.BeginOperation("correction", user.Who(), $"{type.Name}: {request.Reason.Trim()}");
+            await db.BeginOperation("correction", user.Who(), $"{type.Name} от {date:dd.MM.yyyy}: {request.Reason.Trim()}");
             if (type.BalanceEffect < 0) Billing.TakeFromAbonent(abonent, amount);
             if (type.BalanceEffect > 0) Billing.GiveToAbonent(abonent, amount);
 
@@ -47,7 +52,7 @@ public static class CorrectionEndpoints
                 else payment.Amount -= amount;
             }
 
-            db.AddJournal(abonent.Id, type.Name, user.Who(), $"{EndpointHelpers.Money(amount)} ₽", request.Reason.Trim());
+            db.AddJournal(abonent.Id, type.Name, user.Who(), $"{EndpointHelpers.Money(amount)} ₽, дата операции {date:dd.MM.yyyy}", request.Reason.Trim());
             await db.SaveChangesAsync();
             await transaction.CommitAsync();
             return abonent.ToDto(await db.TariffPrices.ToListAsync(), await Periods.WorkPeriod(db));

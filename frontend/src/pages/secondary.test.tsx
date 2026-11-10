@@ -46,7 +46,7 @@ describe('Панель пользователей (админ)', () => {
     });
     renderPage(<UsersPanel />);
     expect(await screen.findByText('Сотрудники')).toBeInTheDocument();
-    expect(screen.getByText('buh1')).toBeInTheDocument();
+    expect(await screen.findByText('buh1')).toBeInTheDocument();
     expect(screen.getAllByText('Бухгалтер').length).toBeGreaterThan(0);
   });
 });

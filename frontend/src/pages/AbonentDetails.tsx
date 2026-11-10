@@ -4,6 +4,8 @@ import { formatPeriod, nextPeriod, parsePrice } from '@/domain/tariffs';
 import type { Abonent, AbonentDetails as Details } from '@/domain/types';
 import { useRole } from '@/layout/role';
 import { AbonentBenefits } from './BenefitsDirectory';
+import { PhoneField } from './PhoneField';
+import { checkPhone } from '@/domain/phone';
 import { Button, Field, Notice, SelectInput, TextArea, TextInput } from '@/ui';
 
 function useAction() {
@@ -51,7 +53,7 @@ function CalculationSection({ abonent, details, canEdit }: { abonent: Abonent; d
 
   return (
     <Section title="Параметры расчёта">
-      <p className="small muted" style={{ lineHeight: 1.45 }}>Сейчас: {abonent.area} м², жильцов {abonent.residents}. Новые значения действуют с выбранного месяца, прошлые месяцы не меняются.</p>
+      <p className="small muted" style={{ lineHeight: 1.45 }}>Сейчас: отапливаемая {abonent.area} м²{details.totalArea ? `, общая ${details.totalArea} м²` : ''}, жильцов {abonent.residents}. Новые значения действуют с выбранного месяца, прошлые месяцы не меняются.</p>
       {canEdit && (
         <>
           <div className="row" style={{ alignItems: 'flex-start' }}>
@@ -114,6 +116,51 @@ function ResidentsSection({ abonent, details, canEdit }: { abonent: Abonent; det
   );
 }
 
+/** Общая площадь, как в карточке старой системы («отапл/общ»). В расчёте не участвует, нужна для документов. */
+function TotalAreaSection({ abonent, details, canEdit }: { abonent: Abonent; details: Details; canEdit: boolean }) {
+  const saved = details.totalArea === null || details.totalArea === undefined ? '' : String(details.totalArea).replace('.', ',');
+  const [value, setValue] = useState(saved);
+  const [reason, setReason] = useState('');
+  const { run, view } = useAction();
+  useEffect(() => { setValue(saved); }, [saved, abonent.id]);
+  const parsed = value.trim() === '' ? null : parsePrice(value);
+  const valid = (value.trim() === '' || (parsed !== null && parsed > 0)) && reason.trim() !== '' && value !== saved;
+  return (
+    <Section title="Площадь">
+      <p className="small muted" style={{ lineHeight: 1.45 }}>Отапливаемая {abonent.area} м² — по ней идёт расчёт, меняется в «Параметрах расчёта». Общая — для документов.</p>
+      <Field label="Общая площадь, м²">{(id) => <TextInput id={id} mono inputMode="decimal" readOnly={!canEdit} value={value} onChange={(event) => setValue(event.target.value)} />}</Field>
+      {canEdit && value !== saved && <Field label="Причина">{(id) => <TextInput id={id} placeholder="Например, техпаспорт" value={reason} onChange={(event) => setReason(event.target.value)} />}</Field>}
+      {view}
+      {canEdit && value !== saved && <Button size="full" disabled={!valid} onClick={() => void run(() => api.abonents.setTotalArea(abonent.id, parsed, reason.trim()), 'Общая площадь сохранена.').then((ok) => { if (ok) setReason(''); })}>Сохранить площадь</Button>}
+    </Section>
+  );
+}
+
+/** Флаги лицевого счёта из старой системы. Меняет бухгалтер или администратор. */
+function AccountFlagsSection({ abonent, details }: { abonent: Abonent; details: Details }) {
+  const role = useRole();
+  const canEdit = role === 'accountant' || role === 'admin';
+  const { run, view } = useAction();
+  const flags = { hideInPlatosfera: Boolean(details.hideInPlatosfera), hideIn1C: Boolean(details.hideIn1C), ignoreDuplicateCheck: Boolean(details.ignoreDuplicateCheck) };
+  const items: Array<[keyof typeof flags, string]> = [
+    ['hideInPlatosfera', 'Скрывать в реестре для платежей Платосфера'],
+    ['hideIn1C', 'Скрывать при загрузке платежей из 1С'],
+    ['ignoreDuplicateCheck', 'Игнорировать при сверке одинаковых ЛС'],
+  ];
+  return (
+    <Section title={`Лицевой счёт ${abonent.account}`}>
+      {items.map(([key, label]) => (
+        <label key={key} className="row small" style={{ gap: 8, minHeight: 32 }}>
+          <input type="checkbox" className="check" checked={flags[key]} disabled={!canEdit} onChange={(event) => void run(() => api.abonents.setAccountFlags(abonent.id, { ...flags, [key]: event.target.checked }), 'Сохранено.')} />
+          {label}
+        </label>
+      ))}
+      {!canEdit && <p className="small muted">Меняет бухгалтер или администратор.</p>}
+      {view}
+    </Section>
+  );
+}
+
 function ContactSection({ abonent, details, canEdit }: { abonent: Abonent; details: Details; canEdit: boolean }) {
   const [phone, setPhone] = useState(details.phone ?? '');
   const [consent, setConsent] = useState(details.consent === null ? '' : String(details.consent));
@@ -126,21 +173,29 @@ function ContactSection({ abonent, details, canEdit }: { abonent: Abonent; detai
     setDocument(details.ownershipDocument ?? '');
   }, [details.phone, details.consent, details.ownershipDocument]);
 
+  const phoneCheck = checkPhone(phone);
   const save = () => run(async () => {
-    if (phone.trim() !== (details.phone ?? '')) await api.abonents.setContact(abonent.id, phone.trim() || null);
+    if ((phoneCheck.phone ?? '') !== (details.phone ?? '')) await api.abonents.setContact(abonent.id, phoneCheck.phone);
     await api.abonents.setLegal(abonent.id, consent === '' ? null : consent === 'true', document.trim() || null);
   }, 'Сохранено.');
 
   return (
     <Section title="Контакты и документы">
-      <p className="small muted">ЛС {abonent.account}{abonent.inn ? `, ИНН ${abonent.inn}` : ''}</p>
-      <Field label="Телефон">{(id) => <TextInput id={id} readOnly={!canEdit} value={phone} onChange={(event) => setPhone(event.target.value)} />}</Field>
+      <p className="small muted">ЛС {abonent.account}{abonent.inn ? `, ИНН ${abonent.inn}` : ''}{details.kpp ? `, КПП ${details.kpp}` : ''}</p>
+      {(details.email || details.birthDate || details.hasPassport) && (
+        <div className="small" style={{ lineHeight: 1.6 }}>
+          {details.birthDate && <div><span className="muted">Дата рождения: </span>{details.birthDate}</div>}
+          {details.email && <div><span className="muted">E-mail: </span>{details.email}</div>}
+          {details.hasPassport && <div><span className="muted">Паспорт: </span>заполнен, смотрит администратор в справочнике «Люди»</div>}
+        </div>
+      )}
+      <PhoneField value={phone} onChange={setPhone} readOnly={!canEdit} />
       <Field label="Согласие на передачу персональных данных" hint={details.consentWhen ? `Изменено ${details.consentWhen}` : undefined}>
         {(id) => <SelectInput id={id} disabled={!canEdit} value={consent} onChange={(event) => setConsent(event.target.value)}><option value="">Не указано</option><option value="false">Нет</option><option value="true">Да</option></SelectInput>}
       </Field>
       <Field label="Документ о праве собственности на отапливаемое помещение">{(id) => <TextArea id={id} rows={3} readOnly={!canEdit} value={document} onChange={(event) => setDocument(event.target.value)} />}</Field>
       {view}
-      {canEdit && <Button size="full" onClick={() => void save()}>Сохранить</Button>}
+      {canEdit && <Button size="full" disabled={Boolean(phoneCheck.error)} onClick={() => void save()}>Сохранить</Button>}
     </Section>
   );
 }
@@ -308,7 +363,9 @@ export function AbonentDetailsTab({ abonent, details }: { abonent: Abonent; deta
       <HeatNormSection abonent={abonent} details={details} canEdit={canEdit} />
       <MetersSection abonent={abonent} canEdit={canEdit} />
       <ResidentsSection abonent={abonent} details={details} canEdit={canEdit} />
+      <TotalAreaSection abonent={abonent} details={details} canEdit={canEdit} />
       <ContactSection abonent={abonent} details={details} canEdit={canEdit} />
+      <AccountFlagsSection abonent={abonent} details={details} />
       {canEdit && <AbonentBenefits abonentId={abonent.id} />}
     </div>
   );

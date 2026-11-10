@@ -5,7 +5,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Emir.Api.Endpoints;
 
-public record PayRequest(string AbonentId, string Source, List<Allocation> Allocations, decimal? Reading);
+/// <summary>Readings — показания счётчиков, принятые вместе с оплатой, по услугам. Reading — старый вариант для абонента с одним счётчиком.</summary>
+public record PayReading(string ServiceId, decimal Value);
+/// <summary>Office — офис приёма из справочника, Period — расчётный месяц платежа (по умолчанию рабочий).</summary>
+public record PayRequest(string AbonentId, string Source, List<Allocation> Allocations, decimal? Reading, List<PayReading>? Readings = null, string? Office = null, string? Period = null);
 public record PayResult(string PaymentId, long Total, long NewBalance);
 public record RefundRequest(string AbonentId, string PaymentId, string Reason);
 public record ShiftEntryDto(string Id, string Time, string Name, long Amount);
@@ -22,9 +25,18 @@ public static class CashEndpoints
     {
         var group = api.MapGroup("/cash");
 
+        group.MapGet("/offices", (EmirDb db) => Offices.List(db)).Roles(Roles.Cashier, Roles.Admin);
+
         group.MapPost("/payments", async (PayRequest request, HttpContext context, EmirDb db, ClaimsPrincipal user) =>
         {
             if (!Sources.TryGetValue(request.Source, out var sourceName)) throw new ApiError(422, "Неизвестный источник платежа");
+            var office = string.IsNullOrWhiteSpace(request.Office) ? null : request.Office.Trim();
+            if (office is not null && !(await Offices.List(db)).Contains(office)) throw new ApiError(422, $"Офиса «{office}» нет в справочнике «{Offices.Directory}»");
+            var workPeriod = await Periods.WorkPeriod(db);
+            var period = string.IsNullOrWhiteSpace(request.Period) ? workPeriod : request.Period.Trim();
+            // Платёж можно отнести к прошлому месяцу (оплата за прошлый период), но не к будущему
+            if (!System.Text.RegularExpressions.Regex.IsMatch(period, @"^\d{4}-(0[1-9]|1[0-2])$") || string.CompareOrdinal(period, workPeriod) > 0)
+                throw new ApiError(422, "Расчётный период — месяц не позже рабочего");
             var key = context.Request.Headers["Idempotency-Key"].FirstOrDefault();
 
             await using var transaction = await db.BeginMoneyTransaction();
@@ -36,13 +48,24 @@ public static class CashEndpoints
             }
 
             var abonent = await db.GetAbonent(request.AbonentId);
-            if (request.Reading is { } reading)
+            // Каждое показание — в счётчик своей услуги. Раньше одно показание всегда уходило в первый счётчик абонента
+            var readings = (request.Readings ?? []).ToList();
+            if (request.Reading is { } single)
             {
-                var meter = abonent.Services.FirstOrDefault(line => line.MeterNumber is not null)
-                    ?? throw new ApiError(422, "У абонента нет счётчика");
-                if (reading < meter.MeterLastReading) throw new ApiError(422, $"Показание {reading:0.####} меньше предыдущего {meter.MeterLastReading:0.####}");
+                var meters = abonent.Services.Where(line => line.MeterNumber is not null).ToList();
+                if (meters.Count == 0) throw new ApiError(422, "У абонента нет счётчика");
+                if (meters.Count > 1) throw new ApiError(422, "У абонента несколько счётчиков: укажите, к какой услуге показание");
+                readings.Add(new PayReading(meters[0].ServiceId, single));
+            }
+            if (readings.Select(item => item.ServiceId).Distinct().Count() != readings.Count) throw new ApiError(422, "Показание по услуге указано дважды");
+            foreach (var item in readings)
+            {
+                var meter = abonent.Services.FirstOrDefault(line => line.ServiceId == item.ServiceId && line.MeterNumber is not null)
+                    ?? throw new ApiError(422, "У этой услуги нет счётчика");
+                if (item.Value < meter.MeterLastReading) throw new ApiError(422, $"{meter.Name}: показание {item.Value:0.####} меньше предыдущего {meter.MeterLastReading:0.####}");
                 await db.BeginOperation("reading", user.Who(), meter.MeterNumber);
-                Billing.ApplyReading(db, abonent, meter, reading);
+                Billing.ApplyReading(db, abonent, meter, item.Value);
+                db.AddJournal(abonent.Id, "Показание счётчика", user.Who(), $"{meter.MeterNumber}: {item.Value:0.####}, принято в кассе");
                 // Отдельным движением: начисление по показанию и оплата в журнале не должны схлопнуться в разницу
                 await db.SaveChangesAsync();
             }
@@ -52,7 +75,7 @@ public static class CashEndpoints
             var total = Billing.ApplyAllocations(abonent, request.Allocations ?? []);
             var now = DateTime.UtcNow;
             var id = Guid.NewGuid().ToString("N");
-            db.Payments.Add(new Payment { Id = id, AbonentId = abonent.Id, AtUtc = now, Source = sourceName, Cashier = user.Who(), Amount = total, IdempotencyKey = string.IsNullOrEmpty(key) ? null : key });
+            db.Payments.Add(new Payment { Id = id, AbonentId = abonent.Id, AtUtc = now, Source = sourceName, Cashier = user.Who(), Amount = total, IdempotencyKey = string.IsNullOrEmpty(key) ? null : key, Office = office, Period = period });
             db.CashOperations.Add(new CashOperation { AtUtc = now, Name = abonent.ShortName, Amount = total });
             db.AddJournal(abonent.Id, "Платёж", user.Who(), $"Принято {EndpointHelpers.Money(total)} ₽, {sourceName}");
             await db.SaveChangesAsync();

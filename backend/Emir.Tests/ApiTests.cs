@@ -246,13 +246,16 @@ public sealed class ApiTests : IDisposable
     private Emir.Api.Data.EmirDb Db() => new(new DbContextOptionsBuilder<Emir.Api.Data.EmirDb>().UseNpgsql(_factory.ConnectionString).Options);
 
     [Theory]
-    [InlineData("аыва аы ав", "Раюочаяаяа")]     // адрес без цифры — мусор
-    [InlineData("111", "ул. Южная 7")]            // имя без букв
-    [InlineData("Иванов", "12345")]               // адрес без буквы
-    public async Task Register_RejectsJunk(string name, string address)
+    [InlineData("111", "р.п. Чистоозерное", "ул. Школьная", "12")]      // имя без букв
+    [InlineData("Иванов Иван", "", "ул. Школьная", "12")]                // без населённого пункта
+    [InlineData("Иванов Иван", "р.п. Чистоозерное", "ул. Южная", "7")]   // улицы нет в справочнике
+    [InlineData("Иванов Иван", "с. Журавка", "ул. Школьная", "12")]      // улица другого посёлка
+    [InlineData("Иванов Иван", "р.п. Чистоозерное", "ул. Школьная", "99")] // дома нет в справочнике
+    [InlineData("Иванов Иван", "р.п. Чистоозерное", "ул. Школьная", "")]   // без дома
+    public async Task Register_RejectsJunk(string name, string place, string street, string house)
     {
         var client = await LoginAs("oper1");
-        var response = await client.PostAsJsonAsync("/api/abonents", new { kind = "person", name, address });
+        var response = await client.PostAsJsonAsync("/api/abonents", new { kind = "person", name, place, street, house });
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
     }
 
@@ -290,8 +293,14 @@ public sealed class ApiTests : IDisposable
     public async Task Register_AcceptsRealAddress()
     {
         var client = await LoginAs("oper1");
-        var response = await client.PostAsJsonAsync("/api/abonents", new { kind = "person", name = "Петров Пётр", address = "ул. Молодёжная 1" });
+        var response = await client.PostAsJsonAsync("/api/abonents", new { kind = "person", name = "Петров Пётр", place = "р.п. Чистоозерное", street = "ул. Школьная", house = "12", flat = "5" });
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var created = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("р.п. Чистоозерное", created.GetProperty("place").GetString());
+        Assert.Equal("ул. Школьная 12", created.GetProperty("street").GetString());
+        Assert.Equal("ул. Школьная", created.GetProperty("streetName").GetString());
+        Assert.Equal("12", created.GetProperty("house").GetString());
+        Assert.Equal("5", created.GetProperty("flat").GetString());
     }
 
     [Fact]

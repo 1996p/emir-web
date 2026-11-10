@@ -33,9 +33,17 @@ export interface Abonent {
   kind: AbonentKind;
   name: string;
   shortName: string;
+  /** Населённый пункт из справочника «Города» */
   place: string;
+  /** Улица и дом одной строкой: «ул. Школьная 12» */
   street: string;
-  flat?: string;
+  /** Улица из справочника «Улицы». Нет у адресов, перенесённых из старой системы строкой */
+  streetName?: string | null;
+  /** Номер дома из справочника «Дома» */
+  house?: string | null;
+  flat?: string | null;
+  /** Ключ дома на экране показаний */
+  houseKey?: string;
   account: string;
   phone?: string;
   inn?: string;
@@ -43,6 +51,14 @@ export interface Abonent {
   area: number;
   credit: Kopecks;
   services: ServiceLine[];
+}
+
+/** Адрес из справочников: населённый пункт, улица, дом; квартира вводится руками. */
+export interface AddressValue {
+  place: string;
+  street: string;
+  house: string;
+  flat: string;
 }
 
 export interface PaymentRecord {
@@ -76,7 +92,12 @@ export interface CreatePaymentRequest {
   abonentId: string;
   source: PaymentSource;
   allocations: PaymentAllocation[];
-  reading?: number;
+  /** Показания счётчиков, принятые вместе с оплатой: каждое к своей услуге */
+  readings?: Array<{ serviceId: string; value: number }>;
+  /** Офис приёма из справочника «Офисы приёма платежей» */
+  office?: string;
+  /** Расчётный месяц платежа, ГГГГ-ММ */
+  period?: string;
 }
 
 export interface CreatePaymentResult {
@@ -431,6 +452,18 @@ export interface AbonentDetails {
   houseHeatNorm: number | null;
   /** Категория дома из справочника «Категории домов» */
   houseCategory?: string | null;
+  email?: string | null;
+  /** дд.мм.гггг */
+  birthDate?: string | null;
+  kpp?: string | null;
+  /** Паспорт заполнен. Сам паспорт видит только администратор */
+  hasPassport?: boolean;
+  /** Общая площадь, м²; в расчёте не участвует */
+  totalArea?: number | null;
+  /** Флаги лицевого счёта, как в старой системе */
+  hideInPlatosfera?: boolean;
+  hideIn1C?: boolean;
+  ignoreDuplicateCheck?: boolean;
 }
 
 export interface BenefitCategory {
@@ -590,7 +623,7 @@ export interface CorrectionType {
   actionVerb: string;
 }
 
-export type ExchangeLineState = 'ok' | 'not-found' | 'duplicate';
+export type ExchangeLineState = 'ok' | 'not-found' | 'duplicate' | 'hidden';
 
 export interface ExchangeLine {
   id: string;
@@ -661,10 +694,22 @@ export interface TodayView {
   messages: TodayMessage[];
 }
 
-export interface RegisterAbonentRequest {
+export type HeatChoice = 'norm' | 'none';
+export type WaterChoice = 'meter' | 'norm' | 'none';
+
+export interface RegisterAbonentRequest extends AddressValue {
   kind: AbonentKind;
   name: string;
-  address: string;
   phone?: string;
   inn?: string;
+  /** Только юрлицо */
+  kpp?: string;
+  email?: string;
+  /** Только физлицо, ГГГГ-ММ-ДД */
+  birthDate?: string;
+  /** Только физлицо. Хранится зашифрованным */
+  passport?: { series: string; number: string; issuedAt: string | null; departmentCode: string | null };
+  /** Записать человека в проживающие */
+  addResident?: boolean;
+  services?: { heat: HeatChoice; water: WaterChoice; meterNumber?: string; meterReading?: number };
 }

@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { AbonentSelect, abonentAddress } from './AbonentSelect';
 import { api, errorText, useApi } from '@/api';
 import { balanceOf, formatBalance, formatMoney, parseMoney } from '@/domain/billing';
 import type { CorrectionType } from '@/domain/types';
@@ -10,48 +11,47 @@ const GROUPS: CorrectionType['group'][] = ['Платежи', 'Начислени
 
 export function CorrectionsPage() {
   const { data: month } = useApi(() => api.period.current(), []);
-  const [params, setParams] = useSearchParams();
+  const [params] = useSearchParams();
   const { data: types } = useApi(() => api.corrections.types(), []);
   const { data: abonents } = useApi(() => api.abonents.list(), []);
   const [typeId, setTypeId] = useState('cancel-payment');
   const [amountText, setAmountText] = useState<string | null>(null);
   const [reason, setReason] = useState('');
-  const [query, setQuery] = useState('');
+  const [chosenId, setChosenId] = useState<string | null>(null);
+  const today = new Date().toLocaleDateString('sv-SE');
+  const [operationDate, setOperationDate] = useState(today);
   const [paymentId, setPaymentId] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const role = useRole();
-  const abonent = abonents?.find((item) => item.id === params.get('id')) ?? abonents?.[0] ?? null;
+  // Пришли из карточки абонента: абонент закреплён. Открыли раздел сами: выбирают из списка, заранее никто не подставляется
+  const fromCard = params.get('id');
+  const abonent = abonents?.find((item) => item.id === (fromCard ?? chosenId)) ?? null;
   const abonentId = abonent?.id ?? null;
   const { data: paymentList } = useApi(() => (abonentId ? api.abonents.payments(abonentId) : Promise.resolve([])), [abonentId]);
   const type = types?.find((item) => item.id === typeId) ?? null;
   const visibleGroups = role === 'cashier' ? GROUPS.filter((group) => group === 'Платежи') : GROUPS;
 
-  const matches = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
-    if (!normalized) return [];
-    return (abonents ?? []).filter((item) => `${item.name} ${item.account}`.toLowerCase().includes(normalized)).slice(0, 6);
-  }, [abonents, query]);
-
-  if (!types || !type || !abonent) return null;
+  if (!types || !type || !abonents) return null;
 
   const payments = (paymentList ?? []).filter((payment) => payment.status === 'Проведена');
   const payment = payments.find((item) => item.id === paymentId) ?? payments[0];
   const isCancel = type.id === 'cancel-payment';
   const amount = isCancel ? payment?.amount ?? 0 : parseMoney(amountText ?? formatMoney(type.defaultAmount)) ?? 0;
-  const balance = balanceOf(abonent);
+  const balance = abonent ? balanceOf(abonent) : 0;
   const after = balance + type.balanceEffect * amount;
-  const cannot = amount <= 0 || !reason.trim() || (type.needsPayment && !payment);
+  const cannot = !abonent || !operationDate || operationDate > today || amount <= 0 || !reason.trim() || (type.needsPayment && !payment);
 
   const selectType = (next: CorrectionType) => { setTypeId(next.id); setAmountText(null); setDone(false); };
-  const selectAbonent = (id: string) => { setParams({ id }, { replace: true }); setQuery(''); setPaymentId(null); setDone(false); };
+  const selectAbonent = (id: string) => { setChosenId(id); setPaymentId(null); setDone(false); setError(null); };
 
   const submit = async () => {
+    if (!abonent) return;
     setError(null);
     setDone(false);
     try {
-      await api.corrections.apply(abonent.id, type.id, amount, reason, payment?.id);
+      await api.corrections.apply(abonent.id, type.id, amount, reason, payment?.id, operationDate);
       setReason('');
       setAmountText(null);
       setPaymentId(null);
@@ -83,22 +83,26 @@ export function CorrectionsPage() {
             <h2 style={{ fontSize: 22, fontWeight: 700 }}>{type.name}</h2>
             <p className="muted" style={{ marginTop: 4, lineHeight: 1.45, maxWidth: 640 }}>{type.description}</p>
           </div>
-          <div style={{ position: 'relative' }}>
-            <Field label="Абонент">{(id) => <TextInput id={id} type="search" value={query} placeholder={`${abonent.name}, ЛС ${abonent.account}`} onChange={(event) => setQuery(event.target.value)} />}</Field>
-            {query.trim() && (
-              <div style={{ position: 'absolute', top: 68, left: 0, right: 0, zIndex: 5, background: 'var(--surface)', border: '1px solid var(--field)', borderRadius: 6 }}>
-                {matches.map((item) => (
-                  <button key={item.id} type="button" onClick={() => selectAbonent(item.id)} style={{ display: 'block', width: '100%', minHeight: 40, padding: '6px 12px', textAlign: 'left', background: 'transparent', border: 0, borderBottom: '1px solid var(--line-soft)' }}>{item.name}, ЛС {item.account}</button>
-                ))}
-                {matches.length === 0 && <div className="pad">Никого не нашли.</div>}
+          {fromCard
+            ? (
+              <div>
+                <Field label="Абонент" hint={abonent ? <>{abonentAddress(abonent)}. Абонент выбран в карточке. <Link to="/corrections">Выбрать другого</Link></> : undefined}>
+                  {(id) => <TextInput id={id} readOnly aria-readonly="true" value={abonent ? `${abonent.name}, ЛС ${abonent.account}` : ''} style={{ background: 'var(--tint)', cursor: 'not-allowed' }} />}
+                </Field>
+                {!abonent && <Notice tone="warn">Абонент из ссылки не найден. <Link to="/corrections">Выбрать из списка</Link></Notice>}
+              </div>
+            )
+            : (
+              <div>
+                <AbonentSelect label="Абонент" abonents={abonents} value={abonent} onChange={(item) => selectAbonent(item.id)} />
+                {abonent && <div className="field-hint muted">{abonentAddress(abonent)}</div>}
               </div>
             )}
-          </div>
           <div className="grid-fields">
             <Field label={type.amountLabel}>{(id) => (
               <TextInput id={id} mono inputMode="decimal" readOnly={isCancel} value={isCancel ? formatMoney(amount) : amountText ?? formatMoney(type.defaultAmount)} onChange={(event) => setAmountText(event.target.value)} />
             )}</Field>
-            <Field label="Дата операции">{(id) => <TextInput id={id} type="date" defaultValue={new Date().toLocaleDateString('sv-SE')} />}</Field>
+            <Field label="Дата операции" hint="Дата документа-основания. Деньги проводятся в открытом месяце">{(id) => <TextInput id={id} type="date" max={today} value={operationDate} onChange={(event) => setOperationDate(event.target.value)} />}</Field>
           </div>
           {type.needsPayment && (
             <fieldset style={{ margin: 0, padding: 0, border: 0 }}>
@@ -110,7 +114,7 @@ export function CorrectionsPage() {
                   <span className="mono strong">{formatMoney(item.amount)} ₽</span>
                 </label>
               ))}
-              {payments.length === 0 && <p className="muted">Подходящих платежей нет.</p>}
+              {payments.length === 0 && <p className="muted">{abonent ? 'Подходящих платежей нет.' : 'Сначала выберите абонента.'}</p>}
             </fieldset>
           )}
           <Field label="Причина, обязательно">{(id) => <TextArea id={id} rows={2} value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Например: ошибка в сумме при приёме в кассе" />}</Field>
@@ -134,12 +138,12 @@ export function CorrectionsPage() {
             <div className="between small" style={{ borderTop: '1px solid var(--line-soft)', paddingTop: 8 }}><span className="muted">Период</span><span>{month?.title ?? ''}{month?.status === 'closed' ? ', закрыт' : ', открыт'}</span></div>
           </div>
           <p className="small muted" style={{ lineHeight: 1.45 }}>Исходная запись останется. Операция и причина появятся в журнале абонента.</p>
-          {done && <Notice tone="ok">Проведено. <Link to={`/abonents?id=${abonent.id}`}>Открыть абонента</Link></Notice>}
+          {done && abonent && <Notice tone="ok">Проведено. <Link to={`/abonents?id=${abonent.id}`}>Открыть абонента</Link></Notice>}
           {error && <Notice tone="warn">{error}</Notice>}
         </div>
         <div className="pad" style={{ background: 'var(--surface)', borderTop: '1px solid var(--line)' }}>
           <Button variant="primary" size="lg" disabled={cannot} onClick={() => void submit()}>
-            {!reason.trim() ? 'Укажите причину' : amount <= 0 ? 'Укажите сумму' : `${type.actionVerb} ${formatMoney(amount)} ₽`}
+            {!abonent ? 'Выберите абонента' : !reason.trim() ? 'Укажите причину' : amount <= 0 ? 'Укажите сумму' : `${type.actionVerb} ${formatMoney(amount)} ₽`}
           </Button>
         </div>
       </aside>

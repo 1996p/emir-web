@@ -42,12 +42,15 @@ public static class ExchangeEndpoints
             using var reader = new StreamReader(file.OpenReadStream(), Encoding.UTF8);
             var content = await reader.ReadToEndAsync();
             var accounts = (await db.Abonents.Select(abonent => abonent.Account).ToListAsync()).ToHashSet();
-            var lines = ParseLines(content, accounts);
+            var partner = DetectPartner(fileName);
+            // Флаг лицевого счёта «скрывать при загрузке платежей из 1С», как в старой системе
+            var hidden = partner == "1С" ? (await db.Abonents.Where(abonent => abonent.HideIn1C).Select(abonent => abonent.Account).ToListAsync()).ToHashSet() : null;
+            var lines = ParseLines(content, accounts, hidden);
             if (lines.Count == 0) throw new ApiError(422, "В файле нет строк «лицевой счёт;сумма»");
 
             var id = Guid.NewGuid().ToString("N");
             lines.ForEach(line => line.BatchId = id);
-            var batch = new ExchangeBatch { Id = id, Partner = DetectPartner(fileName), AtUtc = DateTime.UtcNow, Title = "Реестр оплат", FileName = fileName, KeyColumn = "Лицевой счёт", IsPayments = true, Lines = lines };
+            var batch = new ExchangeBatch { Id = id, Partner = partner, AtUtc = DateTime.UtcNow, Title = "Реестр оплат", FileName = fileName, KeyColumn = "Лицевой счёт", IsPayments = true, Lines = lines };
             db.ExchangeBatches.Add(batch);
             db.AddJournal(null, "Загрузка файла", user.Who(), $"{fileName}, строк: {lines.Count}");
             await db.SaveChangesAsync();
@@ -62,6 +65,7 @@ public static class ExchangeEndpoints
 
             await db.BeginOperation("exchange", user.Who(), batch.FileName);
             var posted = 0;
+            var period = await Periods.WorkPeriod(db);
             if (batch.IsPayments)
             {
                 foreach (var line in batch.Lines.Where(line => line.State == "ok"))
@@ -69,7 +73,7 @@ public static class ExchangeEndpoints
                     var abonent = await db.Abonents.Include(item => item.Services).FirstOrDefaultAsync(item => item.Account == line.Key);
                     if (abonent is null) continue;
                     Billing.GiveToAbonent(abonent, line.Amount);
-                    db.Payments.Add(new Payment { Id = Guid.NewGuid().ToString("N"), AbonentId = abonent.Id, AtUtc = DateTime.UtcNow, Source = "Банковские платежи", Cashier = batch.Partner, Amount = line.Amount });
+                    db.Payments.Add(new Payment { Id = Guid.NewGuid().ToString("N"), AbonentId = abonent.Id, AtUtc = DateTime.UtcNow, Source = "Банковские платежи", Cashier = batch.Partner, Amount = line.Amount, Period = period });
                     db.AddJournal(abonent.Id, "Платёж из реестра", user.Who(), $"{EndpointHelpers.Money(line.Amount)} ₽, {batch.FileName}");
                     posted++;
                 }
@@ -92,7 +96,8 @@ public static class ExchangeEndpoints
         return "Сбербанк";
     }
 
-    public static List<ExchangeLine> ParseLines(string content, HashSet<string> accounts)
+    /// <summary>hidden — счета, платежи по которым из этого файла не принимаются (флаг лицевого счёта).</summary>
+    public static List<ExchangeLine> ParseLines(string content, HashSet<string> accounts, HashSet<string>? hidden = null)
     {
         var result = new List<ExchangeLine>();
         var seen = new HashSet<string>();
@@ -106,7 +111,7 @@ public static class ExchangeEndpoints
             if (!decimal.TryParse(raw, NumberStyles.Number, CultureInfo.GetCultureInfo("ru-RU"), out var rubles) || rubles <= 0) continue;
             var amount = (long)Math.Round(rubles * 100, MidpointRounding.AwayFromZero);
             var fingerprint = $"{key}|{amount}";
-            var state = !accounts.Contains(key) ? "not-found" : !seen.Add(fingerprint) ? "duplicate" : "ok";
+            var state = !accounts.Contains(key) ? "not-found" : hidden?.Contains(key) == true ? "hidden" : !seen.Add(fingerprint) ? "duplicate" : "ok";
             result.Add(new ExchangeLine { BatchId = "", Line = index + 1, Key = key, Amount = amount, State = state });
         }
         return result;

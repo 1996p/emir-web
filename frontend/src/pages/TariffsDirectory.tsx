@@ -23,8 +23,9 @@ export const SCHEMES: Record<string, string> = {
   NormTarifContract: 'Норматив по тарифу × норматив по заказу',
   AreaKrskNorm: 'Норма по услуге × норматив по заказу',
   AreaKrsk: 'Норматив по заказу, иначе площадь',
-  HeatHouseNormKrsk: 'Норматив по заказу (тепло)',
-  MonthlyAmount: 'Норматив по заказу на месяц',
+  HeatHouseNormKrsk: 'Норматив по заказу, иначе по площади (тепло)',
+  MonthlyAmount: 'Сумма по заказу на месяц, ₽',
+  MonthlyQuantity: 'Объём по заказу на месяц',
   HeatLost: 'Тепловые потери: норматив по заказу × доля месяца',
   MonthlyQuantityHouse: 'Потери тепла дома, по площади',
 };

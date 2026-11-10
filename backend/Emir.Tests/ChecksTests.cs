@@ -148,7 +148,7 @@ public sealed class ChecksTests : IDisposable
         Assert.Equal(0, Count(await Group(client, "duplicates")));
 
         var oper = await Login("oper1");
-        (await oper.PostAsJsonAsync("/api/abonents", new { kind = "person", name = "петров сергей ильич ", address = "ул. Другая, 1" })).EnsureSuccessStatusCode();
+        (await oper.PostAsJsonAsync("/api/abonents", new { kind = "person", name = "петров сергей ильич ", place = "р.п. Чистоозерное", street = "ул. Мира", house = "21", flat = "77" })).EnsureSuccessStatusCode();
         var byName = Cells(await Group(client, "duplicates")).ToList();
         Assert.Equal(2, byName.Count(cell => cell == "Одинаковое ФИО"));
 
@@ -245,8 +245,8 @@ public sealed class ChecksTests : IDisposable
     public async Task Export_EscapesFormulas_AndUnknownCheckIs404()
     {
         var oper = await Login("oper1");
-        (await oper.PostAsJsonAsync("/api/abonents", new { kind = "person", name = "=HYPERLINK(1)", address = "ул. А, 1" })).EnsureSuccessStatusCode();
-        (await oper.PostAsJsonAsync("/api/abonents", new { kind = "person", name = "=hyperlink(1)", address = "ул. Б, 1" })).EnsureSuccessStatusCode();
+        (await oper.PostAsJsonAsync("/api/abonents", new { kind = "person", name = "=HYPERLINK(1)", place = "р.п. Чистоозерное", street = "ул. Школьная", house = "12", flat = "101" })).EnsureSuccessStatusCode();
+        (await oper.PostAsJsonAsync("/api/abonents", new { kind = "person", name = "=hyperlink(1)", place = "р.п. Чистоозерное", street = "ул. Школьная", house = "12", flat = "102" })).EnsureSuccessStatusCode();
         var client = await Login();
         var response = await client.GetAsync("/api/checks/duplicates/export.csv");
         response.EnsureSuccessStatusCode();

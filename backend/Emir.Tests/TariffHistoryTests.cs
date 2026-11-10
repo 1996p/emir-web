@@ -201,7 +201,7 @@ public sealed class TariffHistoryTests : IDisposable
     public async Task NewService_GetsTariffFromTerm_AndIsCharged()
     {
         var oper = await Login("oper1");
-        var created = await oper.PostAsJsonAsync("/api/abonents", new { kind = "person", name = "Новый Абонент Тестович", address = "ул. Тестовая, 1" });
+        var created = await oper.PostAsJsonAsync("/api/abonents", new { kind = "person", name = "Новый Абонент Тестович", place = "р.п. Чистоозерное", street = "ул. Школьная", house = "12", flat = "98" });
         created.EnsureSuccessStatusCode();
         var id = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!;
 

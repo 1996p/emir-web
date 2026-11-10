@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { api, errorText, useApi } from '@/api';
 import { balanceOf, chargeForReading, formatBalance, formatMoney, parseMoney, parseReading } from '@/domain/billing';
 import type { Abonent, PaymentAllocation, PaymentSource, ServiceId } from '@/domain/types';
-import { Button, Field, LinkButton, Segmented, TextArea, TextInput } from '@/ui';
+import { Button, Field, LinkButton, Segmented, SelectInput, TextArea, TextInput } from '@/ui';
 
 type Mode = 'pay' | 'refund';
 
@@ -152,15 +152,24 @@ interface FormProps {
 function PaymentForm({ abonent, source, done, onDone, onNext, shift }: FormProps & { source: PaymentSource }) {
   const [unchecked, setUnchecked] = useState<Partial<Record<ServiceId, boolean>>>({});
   const [edited, setEdited] = useState<Partial<Record<ServiceId, string>>>({});
-  const [reading, setReading] = useState('');
+  // Показание у каждого счётчика своё: у абонента может быть несколько счётчиков (холодная и горячая вода)
+  const [readings, setReadings] = useState<Partial<Record<ServiceId, string>>>({});
   const [cash, setCash] = useState('');
+  // Как в старой системе: офис приёма и расчётный период платежа
+  const { data: offices } = useApi(() => api.cash.offices(), []);
+  const { data: month } = useApi(() => api.period.current(), []);
+  const [office, setOffice] = useState('');
+  const [payPeriod, setPayPeriod] = useState('');
+  const chosenOffice = office || offices?.[0] || '';
+  const chosenPeriod = payPeriod || month?.period || '';
   const [error, setError] = useState<string | null>(null);
   const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
   const [busy, setBusy] = useState(false);
-  const readingValue = parseReading(reading);
   const bank = source === 'bank';
 
   const rows = abonent.services.map((line) => {
+    const reading = readings[line.id] ?? '';
+    const readingValue = line.meter ? parseReading(reading) : null;
     const charge = chargeForReading(line, readingValue);
     const auto = line.debt + charge;
     const text = edited[line.id];
@@ -168,7 +177,7 @@ function PaymentForm({ abonent, source, done, onDone, onNext, shift }: FormProps
     const checked = !unchecked[line.id];
     const low = Boolean(line.meter && readingValue !== null && readingValue < line.meter.lastReading);
     const usage = line.meter && readingValue !== null && !low ? readingValue - line.meter.lastReading : 0;
-    return { line, charge, auto, text, amount, checked, low, usage };
+    return { line, charge, auto, text, amount, checked, low, usage, reading, readingValue };
   });
   const total = rows.reduce((sum, row) => sum + (row.checked ? Math.max(row.amount, 0) : 0), 0);
   const cashValue = parseMoney(cash) ?? 0;
@@ -184,13 +193,14 @@ function PaymentForm({ abonent, source, done, onDone, onNext, shift }: FormProps
     const allocations: PaymentAllocation[] = rows.filter((row) => row.checked && row.amount > 0).map((row) => ({ serviceId: row.line.id, amount: row.amount }));
     setBusy(true);
     try {
-      const request = { abonentId: abonent.id, source, allocations, ...(readingValue !== null ? { reading: readingValue } : {}) };
+      const entered = rows.filter((row) => row.readingValue !== null).map((row) => ({ serviceId: row.line.id, value: row.readingValue as number }));
+      const request = { abonentId: abonent.id, source, allocations, ...(entered.length > 0 ? { readings: entered } : {}), ...(chosenOffice ? { office: chosenOffice } : {}), ...(chosenPeriod ? { period: chosenPeriod } : {}) };
       const result = await api.cash.pay(request, idempotencyKey);
       setIdempotencyKey(crypto.randomUUID());
-      setEdited({}); setReading(''); setCash(''); setUnchecked({});
+      setEdited({}); setReadings({}); setCash(''); setUnchecked({});
       onDone({
         title: 'Оплата проведена',
-        text: `${formatMoney(result.total)} ₽ от ${abonent.shortName}.${bank ? '' : ` Сдача ${formatMoney(difference)} ₽.`}${readingValue !== null ? ' Показание сохранено.' : ''} Баланс: ${formatBalance(result.newBalance)} ₽.`,
+        text: `${formatMoney(result.total)} ₽ от ${abonent.shortName}.${bank ? '' : ` Сдача ${formatMoney(difference)} ₽.`}${entered.length > 0 ? (entered.length > 1 ? ' Показания сохранены.' : ' Показание сохранено.') : ''} Баланс: ${formatBalance(result.newBalance)} ₽.`,
       });
     } catch (reason) {
       setError(errorText(reason));
@@ -216,16 +226,16 @@ function PaymentForm({ abonent, source, done, onDone, onNext, shift }: FormProps
                   <td><input type="checkbox" className="check" checked={row.checked} aria-label={`Оплатить услугу ${row.line.name}`} onChange={() => setUnchecked((current) => ({ ...current, [row.line.id]: row.checked }))} /></td>
                   <td>
                     <div className="strong">{row.line.name}</div>
-                    <div className="muted" style={{ fontSize: 12.5, marginTop: 2 }}>{row.line.meter ? `Счётчик ${row.line.meter.number}, ${formatMoney(row.line.meter.tariff)} ₽ за м³` : row.line.tariffName}</div>
+                    <div className="muted" style={{ fontSize: 12.5, marginTop: 2 }}>{row.line.meter ? `Счётчик ${row.line.meter.number}, ${formatMoney(row.line.meter.tariff)} ₽ за единицу` : row.line.tariffName}</div>
                   </td>
                   <td className="right mono">{formatMoney(row.line.debt)}</td>
                   <td className="mono">{row.line.meter ? row.line.meter.lastReading : '—'}</td>
                   <td>
                     {row.line.meter && (
                       <>
-                        <TextInput mono inputMode="decimal" aria-label="Новое показание" value={reading} style={{ width: 100, minHeight: 38 }} onChange={(event) => { setReading(event.target.value); setEdited(({ [row.line.id]: _dropped, ...rest }) => rest); }} />
+                        <TextInput mono inputMode="decimal" aria-label={`Новое показание: ${row.line.name}`} value={row.reading} style={{ width: 100, minHeight: 38 }} onChange={(event) => { const value = event.target.value; setReadings((current) => ({ ...current, [row.line.id]: value })); setEdited(({ [row.line.id]: _dropped, ...rest }) => rest); }} />
                         {row.low && <div className="field-hint warn">Меньше предыдущего</div>}
-                        {row.usage > 0 && <div className="field-hint ok">Расход: {row.usage} м³</div>}
+                        {row.usage > 0 && <div className="field-hint ok">Расход: {Math.round(row.usage * 10000) / 10000}{row.line.meter.unit ? ` ${row.line.meter.unit}` : ''}</div>}
                       </>
                     )}
                   </td>
@@ -246,6 +256,12 @@ function PaymentForm({ abonent, source, done, onDone, onNext, shift }: FormProps
                 <span className="muted">Итого</span>
                 <span className="mono" style={{ fontSize: 26, fontWeight: 500 }}>{formatMoney(total)} ₽</span>
               </div>
+              <Field label="Офис приёма платежа">{(id) => (
+                <SelectInput id={id} value={chosenOffice} onChange={(event) => setOffice(event.target.value)}>
+                  {(offices ?? []).map((item) => <option key={item} value={item}>{item}</option>)}
+                </SelectInput>
+              )}</Field>
+              <Field label="Расчётный период" hint="За какой месяц платёж. Будущий месяц выбрать нельзя">{(id) => <TextInput id={id} type="month" max={month?.period} value={chosenPeriod} onChange={(event) => setPayPeriod(event.target.value)} />}</Field>
               {bank ? (
                 <p className="small muted" style={{ lineHeight: 1.45 }}>Безналичный платёж: сдачи нет, в реестре он будет отмечен офисом «Банковские платежи».</p>
               ) : (

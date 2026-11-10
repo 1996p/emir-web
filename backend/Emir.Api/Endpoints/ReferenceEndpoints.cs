@@ -72,12 +72,13 @@ public static class ReferenceEndpoints
             EditRow(db, user, request, index, "delete")).Roles(Roles.Service, Roles.Accountant, Roles.Admin);
 
         // Каждый просмотр паспорта попадает в журнал, даже если данных нет
-        api.MapPost("/directories/people/{account}/passport", async (string account, EmirDb db, ClaimsPrincipal user) =>
+        api.MapPost("/directories/people/{account}/passport", async (string account, EmirDb db, ClaimsPrincipal user, Microsoft.AspNetCore.DataProtection.IDataProtectionProvider protection) =>
         {
             var abonent = await db.Abonents.FirstOrDefaultAsync(item => item.Account == account) ?? throw new ApiError(404, "Человек не найден");
             db.AddJournal(abonent.Id, "Просмотр паспорта", user.Who(), $"ЛС {account}");
             await db.SaveChangesAsync();
-            return new { value = "Паспортные данные не заполнены" };
+            var passport = Registration.Unprotect(protection, abonent.PassportProtected);
+            return new { value = passport is null ? "Паспортные данные не заполнены" : Registration.Describe(passport) };
         }).Roles(Roles.Admin);
 
         api.MapGet("/admin/sections", async (EmirDb db) =>

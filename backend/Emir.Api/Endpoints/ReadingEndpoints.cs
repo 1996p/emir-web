@@ -11,7 +11,11 @@ public record SaveReadingRequest(string AbonentId, string ServiceId, decimal Val
 
 public static class ReadingEndpoints
 {
-    private static string HouseKey(Abonent abonent) => $"{abonent.Place}|{abonent.Street}";
+    /// <summary>«ул. Школьная, 12» и «Школьная ул. 12» в одном посёлке — один дом: адреса старой системы записаны по-разному.</summary>
+    private static string HouseKey(Abonent abonent) => Addresses.HouseKey(abonent.Place, abonent.Street);
+
+    /// <summary>Название дома в списке: посёлок нужен, иначе одинаковые улицы разных сёл не различить.</summary>
+    private static string HouseName(Abonent abonent) => abonent.Place.Trim() == "" ? abonent.Street : $"{abonent.Street}, {abonent.Place}";
 
     public static void MapReadings(this RouteGroupBuilder api)
     {
@@ -153,22 +157,26 @@ public static class ReadingEndpoints
                 .Select(house =>
                 {
                     var meters = house.SelectMany(abonent => abonent.Services.Where(line => line.MeterNumber is not null)).ToList();
-                    return new HouseProgressDto(house.Key, house.First().Street.Replace("ул. ", ""), meters.Count(line => saved.Contains(line.AbonentId + "|" + line.ServiceId)), meters.Count);
+                    return new HouseProgressDto(house.Key, HouseName(house.First()), meters.Count(line => saved.Contains(line.AbonentId + "|" + line.ServiceId)), meters.Count);
                 })
                 .OrderBy(house => house.Name)
                 .ToList();
         });
 
-        group.MapGet("/rows", async (string house, EmirDb db) =>
+        // period — месяц, как в старой системе. Вводить можно только в рабочем месяце, прошлые показываются для просмотра
+        group.MapGet("/rows", async (string house, string? period, EmirDb db) =>
         {
             var abonents = (await db.Abonents.Include(abonent => abonent.Services).ToListAsync()).Where(abonent => HouseKey(abonent) == house).ToList();
             var open = await Periods.WorkPeriod(db);
-            var saved = await db.PeriodReadings.Where(reading => reading.Period == open).ToListAsync();
+            var target = string.IsNullOrWhiteSpace(period) ? open : period.Trim();
+            if (!System.Text.RegularExpressions.Regex.IsMatch(target, @"^\d{4}-(0[1-9]|1[0-2])$")) throw new ApiError(422, "Месяц в виде ГГГГ-ММ");
+            var past = target != open;
+            var saved = await db.PeriodReadings.Where(reading => reading.Period == target).ToListAsync();
             return abonents.SelectMany(abonent => abonent.Services.Where(line => line.MeterNumber is not null).Select(line =>
             {
                 var reading = saved.FirstOrDefault(item => item.AbonentId == line.AbonentId && item.ServiceId == line.ServiceId);
                 return new ReadingRowDto($"{line.AbonentId}:{line.ServiceId}", abonent.Street, abonent.Flat ?? "—", line.MeterNumber!, line.Name,
-                    reading?.StartValue ?? line.MeterLastReading ?? 0, line.MeterAverage, reading?.Value.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) ?? "");
+                    reading?.StartValue ?? (past ? 0 : line.MeterLastReading ?? 0), line.MeterAverage, reading?.Value.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) ?? "");
             })).ToList();
         });
 

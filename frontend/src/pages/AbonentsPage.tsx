@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api, errorText, useApi } from '@/api';
 import { balanceNote, balanceOf, chargeForReading, formatBalance, formatMoney } from '@/domain/billing';
-import type { Abonent } from '@/domain/types';
+import type { Abonent, AddressValue } from '@/domain/types';
+import { AddressPicker, addressOf, formatAddress, isAddressComplete } from './AddressPicker';
 import { useRole } from '@/layout/role';
 import { formatPeriod, formatPrice, nextPeriod } from '@/domain/tariffs';
 import { AbonentDetailsTab, AbonentNote } from './AbonentDetails';
@@ -16,6 +17,9 @@ type Drawer = 'charge' | 'service' | 'terms' | 'address' | 'docs';
 const VIEWS: Array<[View, string]> = [['Абоненты', 'Абоненты'], ['Дома', 'Дома'], ['Контакты', 'Контакты'], ['Счета', 'Счета'], ['Заказы', 'Заказы'], ['Группы услуг', 'Группы'], ['Карта', 'Карта']];
 const CHIPS: Chip[] = ['Все', 'Долг', 'Юрлица', 'Нет тел.'];
 const VIEW_TAB: Partial<Record<View, Tab>> = { 'Контакты': 'contract', 'Счета': 'charges', 'Заказы': 'services', 'Группы услуг': 'services', 'Абоненты': 'services' };
+
+/** Экран показаний сразу на доме абонента и с его строками. */
+const readingsLink = (abonent?: Abonent, highlight = true) => (abonent?.houseKey ? `/readings?${new URLSearchParams(highlight ? { house: abonent.houseKey, abonent: abonent.id } : { house: abonent.houseKey }).toString()}` : '/readings');
 
 const fullAddress = (abonent: Abonent) => `${abonent.place ? `${abonent.place}, ` : ''}${abonent.street}${abonent.flat ? `-${abonent.flat}` : ''}`;
 
@@ -59,7 +63,7 @@ export function AbonentsPage() {
     const normalized = query.trim().toLowerCase();
     const map = new Map<string, Abonent[]>();
     (abonents ?? []).forEach((abonent) => {
-      const key = `${abonent.place}|${abonent.street}`;
+      const key = abonent.houseKey ?? `${abonent.place}|${abonent.street}`;
       map.set(key, [...(map.get(key) ?? []), abonent]);
     });
     return [...map.entries()].map(([key, people]) => ({ key, people })).filter((house) => !normalized || house.key.toLowerCase().includes(normalized));
@@ -146,7 +150,7 @@ export function AbonentsPage() {
               <p className="small muted" style={{ marginTop: 3 }}>{house?.people[0]?.place} · абонентов: {house?.people.length ?? 0}</p>
             </div>
             <div className="row">
-              <LinkButton to="/readings">Показания</LinkButton>
+              <LinkButton to={readingsLink(house?.people[0], false)}>Показания</LinkButton>
               <LinkButton to="/directories?name=Данные о домах">Данные дома</LinkButton>
             </div>
           </div>
@@ -240,7 +244,9 @@ function AbonentCard({ abonent, tab, onTab, drawer, onDrawer, note, onNote }: Ca
         </header>
         <div className="bar" style={{ gap: 6 }}>
           {(role === 'cashier' || role === 'admin') && <Button variant="primary" onClick={() => navigate(`/cash?id=${abonent.id}`)}>Принять оплату</Button>}
-          <LinkButton to="/readings">Показания</LinkButton>
+          {abonent.services.some((line) => line.meter)
+            ? <LinkButton to={readingsLink(abonent)}>Показания</LinkButton>
+            : <Button disabled title="У абонента нет квартирных счётчиков: показания не вводятся">Показания</Button>}
           {role !== 'cashier' && <Button active={drawer === 'charge'} aria-expanded={drawer === 'charge'} onClick={() => toggle('charge')}>Начислить</Button>}
           {(role === 'service' || role === 'admin') && <Button active={drawer === 'service'} aria-expanded={drawer === 'service'} onClick={() => toggle('service')}>Добавить услугу</Button>}
           {role !== 'cashier' && <Button active={drawer === 'terms'} aria-expanded={drawer === 'terms'} onClick={() => toggle('terms')}>Тариф услуги</Button>}
@@ -336,7 +342,7 @@ function ActionDrawer({ abonent, kind, onClose, onDone }: DrawerProps) {
   const navigate = useNavigate();
   const monthName = month?.title.split(' ')[0]?.toLowerCase() ?? 'месяц';
   const [service, setService] = useState('Горячая вода');
-  const [address, setAddress] = useState('');
+  const [address, setAddress] = useState<AddressValue>(() => addressOf(abonent));
   const [error, setError] = useState<string | null>(null);
   const titles: Record<DrawerProps['kind'], string> = { charge: 'Начислить абоненту', service: 'Добавить услугу', address: 'Сменить адрес', docs: 'Документы абонента' };
   const submit = async () => {
@@ -348,12 +354,12 @@ function ActionDrawer({ abonent, kind, onClose, onDone }: DrawerProps) {
       }
       if (kind === 'service') { await api.abonents.addService(abonent.id, service); onDone(`Услуга «${service}» добавлена.`); }
       if (kind === 'docs') navigate(`/documents?abonent=${encodeURIComponent(abonent.id)}`);
-      if (kind === 'address') { await api.abonents.changeAddress(abonent.id, address.trim()); onDone('Адрес изменён.'); }
+      if (kind === 'address') { await api.abonents.changeAddress(abonent.id, { ...address, flat: address.flat.trim() }); onDone(`Адрес изменён: ${formatAddress(address)}.`); }
     } catch (reason) {
       setError(errorText(reason));
     }
   };
-  const disabled = kind === 'address' && !address.trim();
+  const disabled = kind === 'address' && !isAddressComplete(address);
   const buttonLabel: Record<DrawerProps['kind'], string> = { charge: `Пересчитать ${monthName}`, service: 'Добавить услугу', address: 'Сменить адрес', docs: 'Все документы' };
   const waterLine = abonent.services.find((line) => line.meter);
 
@@ -382,7 +388,8 @@ function ActionDrawer({ abonent, kind, onClose, onDone }: DrawerProps) {
           <>
             <p className="small muted" style={{ lineHeight: 1.5 }}>{abonent.kind === 'org' ? 'Изменятся адреса абонента, всех его заказов и организации.' : 'Изменятся адреса абонента и всех его заказов.'}</p>
             <Field label="Сейчас">{(id) => <TextInput id={id} value={fullAddress(abonent)} readOnly />}</Field>
-            <Field label="Новый адрес">{(id) => <TextInput id={id} autoFocus value={address} onChange={(event) => setAddress(event.target.value)} />}</Field>
+            <h3 className="field-label" style={{ marginTop: 4 }}>Новый адрес</h3>
+            <AddressPicker value={address} onChange={setAddress} />
           </>
         )}
         {kind === 'docs' && (

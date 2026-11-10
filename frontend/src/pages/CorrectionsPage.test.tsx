@@ -37,4 +37,45 @@ describe('Корректировки', () => {
     const call = mock.calls.find((c) => c.method === 'POST' && c.path === '/corrections');
     expect(call?.body).toMatchObject({ abonentId: 'a1', typeId: 'write-off', reason: 'ошибка начисления' });
   });
+
+  it('из карточки абонент закреплён: поле только для чтения', async () => {
+    installFetch({
+      'GET /period/current': { period: '2026-11', title: 'Ноябрь 2026', status: 'open', nextTitle: null, reopenReason: null },
+      'GET /corrections/types': types, 'GET /abonents': [person], 'GET /abonents/a1/payments': [],
+    });
+    renderPage(<CorrectionsPage />, '/corrections?id=a1');
+    const field = await screen.findByLabelText('Абонент');
+    expect(field).toHaveAttribute('readonly');
+    expect(field).toHaveValue('Иванова Анна, ЛС 40010001');
+    expect(screen.queryByRole('combobox')).toBeNull();
+  });
+
+  it('без абонента в ссылке: никто не подставлен, абонент выбирается из выпадающего списка', async () => {
+    const other = { ...person, id: 'a2', name: 'Петров Пётр', account: '40010002' };
+    const mock = installFetch({
+      'GET /period/current': { period: '2026-11', title: 'Ноябрь 2026', status: 'open', nextTitle: null, reopenReason: null },
+      'GET /corrections/types': types, 'GET /abonents': [person, other],
+      'GET /abonents/a1/payments': [], 'GET /abonents/a2/payments': [],
+      'POST /corrections': other,
+    });
+    renderPage(<CorrectionsPage />, '/corrections');
+    const user = userEvent.setup();
+
+    const combo = await screen.findByRole('combobox', { name: 'Абонент' });
+    expect(combo).toHaveValue('');
+    await user.click(screen.getByRole('button', { name: 'Списание долга' }));
+    await user.type(screen.getByLabelText(/Причина/), 'ошибка');
+    expect(screen.getByRole('button', { name: 'Выберите абонента' })).toBeDisabled();
+
+    await user.click(combo);
+    expect(screen.getAllByRole('option')).toHaveLength(2);
+    await user.type(combo, 'петров');
+    expect(screen.getAllByRole('option')).toHaveLength(1);
+    await user.click(screen.getByRole('option', { name: /Петров Пётр/ }));
+    expect(combo).toHaveValue('Петров Пётр, ЛС 40010002');
+
+    await user.click(screen.getByRole('button', { name: /Провести 500,00/ }));
+    expect(await screen.findByText(/Проведено/)).toBeInTheDocument();
+    expect(mock.calls.find((c) => c.method === 'POST' && c.path === '/corrections')?.body).toMatchObject({ abonentId: 'a2' });
+  });
 });

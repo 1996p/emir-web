@@ -30,14 +30,32 @@ public class Abonent
     public required string Kind { get; set; }
     public required string Name { get; set; }
     public required string ShortName { get; set; }
+    /// <summary>Населённый пункт: значение из справочника «Города».</summary>
     public string Place { get; set; } = "";
+    /// <summary>Улица и дом одной строкой, как в старой системе. Для адресов из справочников собирается из StreetName и House.</summary>
     public required string Street { get; set; }
+    /// <summary>Улица из справочника «Улицы» (без дома). Нет значения: адрес перенесён строкой и в справочниках не сверен.</summary>
+    public string? StreetName { get; set; }
+    /// <summary>Номер дома из справочника «Дома».</summary>
+    public string? House { get; set; }
     public string? Flat { get; set; }
     public required string Account { get; set; }
     public string? Phone { get; set; }
     public string? Inn { get; set; }
+    /// <summary>КПП организации.</summary>
+    public string? Kpp { get; set; }
+    public string? Email { get; set; }
+    public DateOnly? BirthDate { get; set; }
+    /// <summary>Паспорт физлица, зашифрован (Data Protection). Расшифровывает только просмотр администратора с записью в журнал.</summary>
+    public string? PassportProtected { get; set; }
     public int Residents { get; set; }
     public decimal Area { get; set; }
+    /// <summary>Общая площадь квартиры, м². В расчёте не участвует (расчёт идёт по отапливаемой Area), нужна для документов и отчётов, как в старой системе.</summary>
+    public decimal? TotalArea { get; set; }
+    /// <summary>Флаги лицевого счёта из старой системы: не выгружать в реестр Платосферы, не принимать платежи из файла 1С, не показывать в сверке одинаковых ЛС.</summary>
+    public bool HideInPlatosfera { get; set; }
+    public bool HideIn1C { get; set; }
+    public bool IgnoreDuplicateCheck { get; set; }
     /// <summary>Сельсовет, котельная, тепловая камера, категория дома и материал стен: из справочников старой системы, для отчётов и отбора.</summary>
     public string? District { get; set; }
     public string? Boiler { get; set; }
@@ -231,6 +249,10 @@ public class Payment
     public long Amount { get; set; }
     public string Status { get; set; } = "Проведена";
     public string? IdempotencyKey { get; set; }
+    /// <summary>Офис приёма платежа (справочник «Офисы приёма платежей»).</summary>
+    public string? Office { get; set; }
+    /// <summary>Расчётный месяц, за который принят платёж, ГГГГ-ММ.</summary>
+    public string? Period { get; set; }
 }
 
 public class CashOperation

@@ -101,7 +101,10 @@ public class ChargeEngineTests
     public void MonthlyNormFormat_UsesCurrentMonth()
     {
         Assert.Equal(5m, Calc("ContractNorm", contractNorm: "01=1#11=5#12=9").Volume);
-        Assert.NotNull(Calc("ContractNorm", contractNorm: "01=1#12=9").Error);
+        // Месяца нет в нормативе: старая система начисляет 0 без ошибки (Krsk.Contract.Scheme.ContractNorm)
+        var missing = Calc("ContractNorm", contractNorm: "01=1#12=9");
+        Assert.Null(missing.Error);
+        Assert.Equal(0, missing.Amount);
     }
 
     [Fact]
@@ -124,6 +127,57 @@ public class ChargeEngineTests
     public void Rounding_IsToKopecks_AwayFromZero()
     {
         Assert.Equal(13, ChargeEngine.Money(1m, 0.125m));
+    }
+
+    // Расхождения, найденные сверкой с кодом старой системы (GKH.Contract.Scheme.*)
+    [Fact]
+    public void MonthlyAmount_IsRublesNotVolume()
+    {
+        // «Ежемесячные суммы по заказу»: 1500 ₽ в ноябре при цене 10 ₽ — это 1500 ₽ и 150 единиц, а не 15000 ₽
+        var result = Calc("MonthlyAmount", contractNorm: "10=1000#11=1500");
+        Assert.Equal(150000, result.Amount);
+        Assert.Equal(150m, result.Volume);
+        Assert.Equal(0, Calc("MonthlyAmount", contractNorm: "10=1000").Amount);
+        Assert.Null(Calc("MonthlyAmount", contractNorm: "10=1000").Error);
+    }
+
+    [Fact]
+    public void MonthlyQuantity_TakesVolumeOfMonth()
+    {
+        Assert.Equal(12.5m, Calc("MonthlyQuantity", contractNorm: "11=12,5").Volume);
+        Assert.Equal(12500, Calc("MonthlyQuantity", contractNorm: "11=12,5").Amount);
+        Assert.Equal(0, Calc("MonthlyQuantity", contractNorm: "12=3").Amount);
+    }
+
+    [Fact]
+    public void MeterAndHeatLost_RoundVolume_LikeOldSystem()
+    {
+        // Объём округляется до 4 знаков у физлиц и до 3 у юрлиц до умножения на цену
+        Assert.Equal(1.2346m, Calc("MeterApartment", usage: 1.23456m).Volume);
+        Assert.Equal(1.235m, ChargeEngine.Calculate(new ChargeInput("MeterApartment", 10m, 11, MeterUsage: 1.23456m, IsOrg: true)).Volume);
+        Assert.Equal(33.3333m, Calc("HeatLost", contractNorm: "100", share: 33.33333m).Volume);
+    }
+
+    [Fact]
+    public void HouseMeterLeftover_FailsWhenApartmentsUseMoreThanHouse()
+    {
+        var meter = new HouseMeterData(Usage: 30, IndividualUsage: 40, TotalArea: 1000, IndividualArea: 200, TotalResidents: 40, IndividualResidents: 10);
+        Assert.NotNull(Calc("HouseMeterLeftover", meter: meter).Error);
+    }
+
+    [Fact]
+    public void AreaSchemes_RequireArea_HeatHouseNormShowsGcal()
+    {
+        Assert.NotNull(Calc("Area", area: 0).Error);
+        Assert.NotNull(Calc("AreaNormTarif", area: 0, tariffNorm: "2").Error);
+        Assert.Equal(50m, Calc("AreaKrsk", contractNorm: "0").Volume);
+        // Тепло по норме дома: деньги по площади, объём в Гкал = норма × площадь
+        var heat = Calc("HeatHouseNorm", houseNorm: 0.02m);
+        Assert.Equal(1m, heat.Volume);
+        Assert.Equal(50000, heat.Amount);
+        // Норматив в заказе не задан: считается как тепло по норме дома
+        Assert.Equal(50000, Calc("HeatHouseNormKrsk").Amount);
+        Assert.Equal(20000, Calc("HeatHouseNormKrsk", contractNorm: "20").Amount);
     }
 
     [Fact]
@@ -152,23 +206,23 @@ public class PenaltyEngineTests
     [Fact]
     public void SecondTier_HandCalculated()
     {
-        // Август: срок 15.09, весь ноябрь просрочка 47-76 дней. 100000 × 9,5 % / 300 × 30 = 950
-        Assert.Equal(950, PenaltyEngine.Calculate([new("2026-08", 100000)], "2026-11", Settings));
+        // Август: срок 15.09, весь ноябрь просрочка 47-76 дней. За день 100000 × 9,5 % / 300 = 31,67 → 32 коп., × 30 = 960
+        Assert.Equal(960, PenaltyEngine.Calculate([new("2026-08", 100000)], "2026-11", Settings));
     }
 
     [Fact]
     public void ThirdTier_HandCalculated()
     {
-        // Май: срок 15.06, в ноябре просрочка больше 90 дней. 100000 × 9,5 % / 130 × 30 = 2192,3
-        Assert.Equal(2192, PenaltyEngine.Calculate([new("2026-05", 100000)], "2026-11", Settings));
+        // Май: срок 15.06, в ноябре просрочка больше 90 дней. За день 100000 × 9,5 % / 130 = 73,08 → 73 коп., × 30 = 2190
+        Assert.Equal(2190, PenaltyEngine.Calculate([new("2026-05", 100000)], "2026-11", Settings));
     }
 
     [Fact]
     public void BoundaryMonth_MixesTiers()
     {
         // Сентябрь: срок 15.10, 31-й день просрочки приходится на 15.11.
-        // С 15 по 30 ноября 16 дней: 100000 × 9,5 % / 300 × 16 = 506,67
-        Assert.Equal(507, PenaltyEngine.Calculate([new("2026-09", 100000)], "2026-11", Settings));
+        // С 15 по 30 ноября 16 дней по 32 коп. = 512
+        Assert.Equal(512, PenaltyEngine.Calculate([new("2026-09", 100000)], "2026-11", Settings));
     }
 
     [Fact]
@@ -178,8 +232,22 @@ public class PenaltyEngineTests
     public void RateChangesDuringMonth()
     {
         var settings = Settings with { Rates = [new(new DateOnly(2025, 1, 1), .10m), new(new DateOnly(2026, 11, 16), .20m)] };
-        // 15 дней по 10 % и 15 дней по 20 %: 100000 / 300 × (1,5 + 3) = 1500
+        // 15 дней по 33 коп. (10 %) и 15 дней по 67 коп. (20 %) = 1500
         Assert.Equal(1500, PenaltyEngine.Calculate([new("2026-08", 100000)], "2026-11", settings));
+    }
+
+    [Fact]
+    public void DailyAmountBelowKopeck_IsNotCharged_LikeOldSystem()
+    {
+        // 2 ₽ долга: за день 200 × 9,5 % / 300 = 0,06 коп. — старая система такую пеню не начисляет
+        Assert.Equal(0, PenaltyEngine.Calculate([new("2026-08", 200)], "2026-11", Settings));
+    }
+
+    [Fact]
+    public void DebtsOfOneMonth_AreSummedBeforeRounding()
+    {
+        // Две услуги по 500 ₽ за август: считается как 1000 ₽ одного месяца, а не два раза по 16 коп.
+        Assert.Equal(960, PenaltyEngine.Calculate([new("2026-08", 50000), new("2026-08", 50000)], "2026-11", Settings));
     }
 
     [Fact]
