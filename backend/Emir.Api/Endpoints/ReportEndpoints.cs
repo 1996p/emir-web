@@ -159,11 +159,24 @@ public static class ReportEndpoints
                         return new ReportRowDto(group.Key, [group.Count(), Debt(lines), Fee(lines), Debt(lines) + Fee(lines)]);
                     }).ToList();
                 break;
+            case "Для мобильного кассира":
+                // Список обхода: по домам и квартирам, у каждого ЛС, имя и телефон
+                columns = [.. money];
+                rows = abonents.Where(abonent => abonent.Services.Any(line => line.Debt > 0))
+                    .OrderBy(abonent => NaturalKey(HouseOf(abonent)), StringComparer.Ordinal).ThenBy(abonent => NaturalKey(abonent.Flat), StringComparer.Ordinal)
+                    .Select(abonent => new ReportRowDto(
+                        $"{HouseOf(abonent)}{(string.IsNullOrEmpty(abonent.Flat) ? "" : "-" + abonent.Flat)} · ЛС {abonent.Account} · {abonent.ShortName}{(string.IsNullOrEmpty(abonent.Phone) ? "" : " · " + abonent.Phone)}",
+                        [Debt(abonent.Services), Fee(abonent.Services), Debt(abonent.Services) + Fee(abonent.Services)])).ToList();
+                break;
             default:
                 return Unavailable();
         }
         return Finish(columns, rows);
     }
+
+    /// <summary>Ключ сортировки «по-человечески»: числа дополняются нулями, поэтому дом 9 идёт раньше дома 10.</summary>
+    private static string NaturalKey(string? text) =>
+        System.Text.RegularExpressions.Regex.Replace(text ?? "", @"\d+", match => match.Value.PadLeft(8, '0'));
 
     private static async Task<ReportResultDto> BuildCash(EmirDb db, string cut, string who, string period, DateOnly? from, DateOnly? to)
     {
@@ -172,6 +185,18 @@ public static class ReportEndpoints
         var persons = people.ToDictionary(pair => pair.Key, pair => pair.Value.Kind);
         var payments = (await db.Payments.Where(payment => (payment.Status == "Проведена" || payment.Status == "Перенесён") && payment.AtUtc >= start && payment.AtUtc < end).ToListAsync())
             .Where(payment => persons.TryGetValue(payment.AbonentId, out var kind) && MatchesWho(kind, who)).ToList();
+
+        if (cut is "Для 1С" or "Система Город")
+        {
+            // Реестр построчно: каждый платёж — дата, ЛС, плательщик, кассир. «Система Город» — платежи, загруженные из реестров Города
+            var registry = cut == "Система Город" ? payments.Where(payment => payment.Cashier == "Город").ToList() : payments;
+            var lines = registry.OrderBy(payment => payment.AtUtc).Select(payment =>
+            {
+                var abonent = people[payment.AbonentId];
+                return new ReportRowDto($"{payment.AtUtc.ToLocalTime():dd.MM.yyyy} · ЛС {abonent.Account} · {abonent.ShortName} · {payment.Cashier}", [payment.Amount]);
+            }).ToList();
+            return Finish([new("Сумма, ₽", "money")], lines);
+        }
 
         Func<Payment, string>? key = cut switch
         {
@@ -230,6 +255,22 @@ public static class ReportEndpoints
 
         switch (reportId)
         {
+            case "median":
+            {
+                // Кому нужен перевод на среднее: работающие счётчики без показаний за последний месяц отчёта и сумма по среднему
+                if (cut != "Абоненты") return Unavailable();
+                var month = months.Max(StringComparer.Ordinal)!;
+                var read = (await db.PeriodReadings.Where(reading => reading.Period == month).Select(reading => new { reading.AbonentId, reading.ServiceId }).ToListAsync())
+                    .Select(reading => (reading.AbonentId, reading.ServiceId)).ToHashSet();
+                var rows = lines.Values.Where(line => line.MeterNumber is not null && line.State == "Работает" && !read.Contains((line.AbonentId, line.ServiceId)))
+                    .OrderBy(line => abonents[line.AbonentId].Account, StringComparer.Ordinal)
+                    .Select(line =>
+                    {
+                        var usage = Billing.UsageOf(line, 0, line.MeterAverage);
+                        return new ReportRowDto($"{Label(abonents[line.AbonentId])} · {line.Name} · счётчик {line.MeterNumber}", [(long)Math.Round(usage * 1000m), Billing.ChargeFor(Billing.MeterPrice(db, line, month), usage)]);
+                    }).ToList();
+                return Finish([new("Среднее за месяц", "volume"), new("По среднему, ₽", "money")], rows);
+            }
             case "charges":
             {
                 var charges = await Charges();

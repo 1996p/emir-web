@@ -115,6 +115,7 @@ export const api = {
     recharge: (id: string) => mutate<ChargeRunResult>(`/abonents/${encodeURIComponent(id)}/recharge`),
     changeAddress: (id: string, address: AddressValue) => mutate<Abonent>(`/abonents/${encodeURIComponent(id)}/address`, address),
     addService: (id: string, serviceName: string) => mutate<Abonent>(`/abonents/${encodeURIComponent(id)}/services`, { serviceName }),
+    replaceService: (id: string, serviceId: string, targetServiceId: string, reason: string) => mutate<void>(`/abonents/${encodeURIComponent(id)}/services/${encodeURIComponent(serviceId)}/replace`, { targetServiceId, reason }),
     terms: (id: string, serviceId: string) => get<ServiceTermItem[]>(`/abonents/${encodeURIComponent(id)}/services/${encodeURIComponent(serviceId)}/terms`),
     setTerm: (id: string, serviceId: string, body: { fromPeriod: string; tariffId: string | null; state: string; reason: string }) => mutate<void>(`/abonents/${encodeURIComponent(id)}/services/${encodeURIComponent(serviceId)}/terms`, body),
   },
