@@ -46,14 +46,17 @@ export function CorrectionsPage() {
   const balance = abonent ? balanceOf(abonent) : 0;
   const after = balance + type.balanceEffect * amount;
   const isMoveAddress = type.id === 'move-address';
+  // Перенос переплаты на другой ЛС: тот же выбор абонента, сумма не больше переплаты
+  const isMoveCredit = type.id === 'move-credit';
+  const needsTarget = isMoveAddress || isMoveCredit;
   const isMoveService = type.id === 'move-service';
-  const target = isMoveAddress ? abonents.find((item) => item.id === targetId && item.id !== abonentId) ?? null : null;
+  const target = needsTarget ? abonents.find((item) => item.id === targetId && item.id !== abonentId) ?? null : null;
   const serviceOptions = [...(abonent?.services ?? []).map((line) => ({ id: line.id, name: `${line.name}, долг ${formatMoney(line.debt)} ₽` })), { id: 'credit', name: `Переплата, ${formatMoney(abonent?.credit ?? 0)} ₽` }];
   const moveFrom = fromService || serviceOptions[0]?.id || '';
   const moveTo = toService || serviceOptions.find((item) => item.id !== moveFrom)?.id || '';
-  const amountTooBig = isMoveAddress && payment !== undefined && amount > payment.amount;
+  const amountTooBig = (isMoveAddress && payment !== undefined && amount > payment.amount) || (isMoveCredit && amount > (abonent?.credit ?? 0));
   const cannot = !abonent || !operationDate || operationDate > today || amount <= 0 || !reason.trim() || (type.needsPayment && !payment)
-    || (isMoveAddress && (!target || amountTooBig)) || (isMoveService && (!moveFrom || !moveTo || moveFrom === moveTo));
+    || (needsTarget && (!target || amountTooBig)) || (isMoveService && (!moveFrom || !moveTo || moveFrom === moveTo));
 
   const selectType = (next: CorrectionType) => { setTypeId(next.id); setAmountText(null); setDone(false); };
   const selectAbonent = (id: string) => { setChosenId(id); setPaymentId(null); setTargetId(null); setFromService(''); setToService(''); setDone(false); setError(null); };
@@ -63,7 +66,7 @@ export function CorrectionsPage() {
     setError(null);
     setDone(false);
     try {
-      const move = isMoveAddress ? { targetAbonentId: target?.id } : isMoveService ? { fromServiceId: moveFrom, toServiceId: moveTo } : undefined;
+      const move = needsTarget ? { targetAbonentId: target?.id } : isMoveService ? { fromServiceId: moveFrom, toServiceId: moveTo } : undefined;
       await api.corrections.apply(abonent.id, type.id, amount, reason, payment?.id, operationDate, move);
       setReason('');
       setAmountText(null);
@@ -130,11 +133,11 @@ export function CorrectionsPage() {
               {payments.length === 0 && <p className="muted">{abonent ? 'Подходящих платежей нет.' : 'Сначала выберите абонента.'}</p>}
             </fieldset>
           )}
-          {isMoveAddress && (
+          {needsTarget && (
             <div>
-              <AbonentSelect label="Верный абонент" abonents={abonents.filter((item) => item.id !== abonentId)} value={target} onChange={(item) => setTargetId(item.id)} />
-              {target && <div className="field-hint muted">{abonentAddress(target)}. Деньги и платёж перейдут к нему, кассовые отчёты не изменятся.</div>}
-              {amountTooBig && <Notice tone="warn">Сумма больше платежа.</Notice>}
+              <AbonentSelect label={isMoveAddress ? 'Верный абонент' : 'На какой ЛС'} abonents={abonents.filter((item) => item.id !== abonentId)} value={target} onChange={(item) => setTargetId(item.id)} />
+              {target && <div className="field-hint muted">{abonentAddress(target)}. {isMoveAddress ? 'Деньги и платёж перейдут к нему, кассовые отчёты не изменятся.' : 'Переплата погасит его долг, остаток станет переплатой.'}</div>}
+              {amountTooBig && <Notice tone="warn">{isMoveCredit ? `Сумма больше переплаты (${formatMoney(abonent?.credit ?? 0)} ₽).` : 'Сумма больше платежа.'}</Notice>}
             </div>
           )}
           {isMoveService && abonent && (
@@ -177,7 +180,7 @@ export function CorrectionsPage() {
         </div>
         <div className="pad" style={{ background: 'var(--surface)', borderTop: '1px solid var(--line)' }}>
           <Button variant="primary" size="lg" disabled={cannot} onClick={() => void submit()}>
-            {!abonent ? 'Выберите абонента' : isMoveAddress && !target ? 'Выберите верного абонента' : !reason.trim() ? 'Укажите причину' : amount <= 0 ? 'Укажите сумму' : `${type.actionVerb} ${formatMoney(amount)} ₽`}
+            {!abonent ? 'Выберите абонента' : needsTarget && !target ? (isMoveAddress ? 'Выберите верного абонента' : 'Выберите ЛС') : !reason.trim() ? 'Укажите причину' : amount <= 0 ? 'Укажите сумму' : `${type.actionVerb} ${formatMoney(amount)} ₽`}
           </Button>
         </div>
       </aside>

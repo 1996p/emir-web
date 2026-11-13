@@ -77,6 +77,33 @@ public sealed class MoneyTransferTests : IDisposable
     }
 
     [Fact]
+    public async Task MoveCredit_ToAnotherAccount_OnlyFromOverpayment()
+    {
+        var buh = await Login("buh1");
+        var a2 = await buh.GetFromJsonAsync<JsonElement>("/api/abonents/a2");
+        var service = a2.GetProperty("services")[0].GetProperty("id").GetString();
+        // Готовим переплату 50 ₽ на a2
+        (await buh.PostAsJsonAsync("/api/corrections", new { abonentId = "a2", typeId = "move-service", amount = 5000L, reason = "Подготовка", fromServiceId = service, toServiceId = "credit" })).EnsureSuccessStatusCode();
+        var credit = (await buh.GetFromJsonAsync<JsonElement>("/api/abonents/a2")).GetProperty("credit").GetInt64();
+        var before2 = Balance(await buh.GetFromJsonAsync<JsonElement>("/api/abonents/a2"));
+        var before7 = Balance(await buh.GetFromJsonAsync<JsonElement>("/api/abonents/a7"));
+        object Move(long amount, string? target) => new { abonentId = "a2", typeId = "move-credit", amount, reason = "Переплата за соседа", targetAbonentId = target };
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await buh.PostAsJsonAsync("/api/corrections", Move(credit + 1, "a7"))).StatusCode);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await buh.PostAsJsonAsync("/api/corrections", Move(3000, null))).StatusCode);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await buh.PostAsJsonAsync("/api/corrections", Move(3000, "a2"))).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await (await Login("kassa1")).PostAsJsonAsync("/api/corrections", Move(3000, "a7"))).StatusCode);
+        (await buh.PostAsJsonAsync("/api/corrections", Move(3000, "a7"))).EnsureSuccessStatusCode();
+
+        var after2 = await buh.GetFromJsonAsync<JsonElement>("/api/abonents/a2");
+        Assert.Equal(credit - 3000, after2.GetProperty("credit").GetInt64());
+        Assert.Equal(before2 - 3000, Balance(after2));
+        Assert.Equal(before7 + 3000, Balance(await buh.GetFromJsonAsync<JsonElement>("/api/abonents/a7")));
+        await using var db = Db();
+        Assert.Contains(await db.Journal.Where(item => item.AbonentId == "a7").Select(item => item.Details).ToListAsync(), text => text.Contains("с ЛС"));
+    }
+
+    [Fact]
     public async Task MoveService_BetweenServicesAndCredit_KeepsBalance()
     {
         var buh = await Login("buh1");

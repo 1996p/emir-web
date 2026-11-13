@@ -52,6 +52,12 @@ public static class CorrectionEndpoints
                 db.AddJournal(target.Id, type.Name, user.Who(), $"{details}, с ЛС {abonent.Account}", request.Reason.Trim());
                 details += $", на ЛС {target.Account}";
             }
+            else if (type.Id == "move-credit")
+            {
+                var target = await MoveCredit(db, abonent, request.TargetAbonentId, amount);
+                db.AddJournal(target.Id, type.Name, user.Who(), $"{details}, с ЛС {abonent.Account}", request.Reason.Trim());
+                details += $", на ЛС {target.Account}";
+            }
             else if (type.Id == "move-service")
             {
                 details += ", " + MoveBetweenServices(abonent, request.FromServiceId, request.ToServiceId, amount);
@@ -98,6 +104,18 @@ public static class CorrectionEndpoints
                 Amount = amount, Office = payment.Office, Period = payment.Period,
             });
         }
+        return target;
+    }
+
+    /// <summary>Переплата уходит с этого ЛС на другой: там гасит долг по порядку услуг, остаток — в переплату. Долг на этом ЛС не создаётся.</summary>
+    private static async Task<Abonent> MoveCredit(EmirDb db, Abonent abonent, string? targetId, long amount)
+    {
+        if (string.IsNullOrWhiteSpace(targetId)) throw new ApiError(422, "Выберите лицевой счёт, на который перенести");
+        if (targetId == abonent.Id) throw new ApiError(422, "Лицевой счёт совпадает с текущим");
+        if (abonent.Credit < amount) throw new ApiError(422, $"Переплата {EndpointHelpers.Money(abonent.Credit)} ₽ меньше суммы переноса");
+        var target = await db.GetAbonent(targetId);
+        abonent.Credit -= amount;
+        Billing.GiveToAbonent(target, amount);
         return target;
     }
 

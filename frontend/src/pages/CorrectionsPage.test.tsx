@@ -105,6 +105,32 @@ describe('Корректировки', () => {
     expect(mock.calls.find((c) => c.method === 'POST' && c.path === '/corrections')?.body).toMatchObject({ abonentId: 'a1', typeId: 'move-address', paymentId: 'p1', targetAbonentId: 'a2', amount: 2000 });
   });
 
+  it('перенос переплаты на другой ЛС: не больше переплаты, ЛС уходит на сервер', async () => {
+    const rich = { ...person, credit: 5000 };
+    const other = { ...person, id: 'a2', name: 'Петров Пётр', account: '40010002' };
+    const move = { id: 'move-credit', name: 'Перенос переплаты на другой ЛС', group: 'Баланс', description: '', amountLabel: 'Сумма переноса', balanceEffect: -1, defaultAmount: 10000, flow: [], needsPayment: false, actionVerb: 'Перенести' };
+    const mock = installFetch({
+      'GET /period/current': { period: '2026-11', title: 'Ноябрь 2026', status: 'open', nextTitle: null, reopenReason: null },
+      'GET /corrections/types': [...types, move], 'GET /abonents': [rich, other], 'GET /abonents/a1/payments': [],
+      'POST /corrections': rich,
+    });
+    renderPage(<CorrectionsPage />, '/corrections?id=a1');
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Перенос переплаты на другой ЛС' }));
+    await user.type(screen.getByLabelText(/Причина/), 'за соседа');
+    await user.click(screen.getByRole('combobox', { name: 'На какой ЛС' }));
+    await user.click(screen.getByRole('option', { name: /Петров Пётр/ }));
+    expect(screen.getByText(/Сумма больше переплаты/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Перенести 100,00/ })).toBeDisabled();
+
+    const amount = screen.getByLabelText('Сумма переноса');
+    await user.clear(amount);
+    await user.type(amount, '30');
+    await user.click(screen.getByRole('button', { name: /Перенести 30,00/ }));
+    expect(await screen.findByText(/Проведено/)).toBeInTheDocument();
+    expect(mock.calls.find((c) => c.method === 'POST' && c.path === '/corrections')?.body).toMatchObject({ typeId: 'move-credit', targetAbonentId: 'a2', amount: 3000 });
+  });
+
   it('перенос между услугами: с услуги в переплату', async () => {
     const move = { id: 'move-service', name: 'Перенос между услугами', group: 'Платежи', description: '', amountLabel: 'Сумма переноса', balanceEffect: 0, defaultAmount: 3000, flow: [], needsPayment: false, actionVerb: 'Перенести' };
     const mock = installFetch({
