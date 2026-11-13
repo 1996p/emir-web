@@ -68,10 +68,15 @@ public sealed class LedgerTests : IDisposable
         // Возврат, все виды корректировок
         (await kassa.PostAsJsonAsync("/api/cash/refunds", new { abonentId = "a5", paymentId = "a5-p1", reason = "Тест" })).EnsureSuccessStatusCode();
         var types = await buh.GetFromJsonAsync<JsonElement>("/api/corrections/types");
+        var a6Service = (await buh.GetFromJsonAsync<JsonElement>("/api/abonents/a6")).GetProperty("services")[0].GetProperty("id").GetString();
         foreach (var type in types.EnumerateArray())
         {
             var needsPayment = type.GetProperty("needsPayment").GetBoolean();
-            var response = await buh.PostAsJsonAsync("/api/corrections", new { abonentId = "a6", typeId = type.GetProperty("id").GetString(), amount = 100L, reason = "Тест", paymentId = needsPayment ? "a6-p2" : null });
+            var response = await buh.PostAsJsonAsync("/api/corrections", new
+            {
+                abonentId = "a6", typeId = type.GetProperty("id").GetString(), amount = 100L, reason = "Тест", paymentId = needsPayment ? "a6-p2" : null,
+                targetAbonentId = "a7", fromServiceId = a6Service, toServiceId = "credit",
+            });
             if (needsPayment && !response.IsSuccessStatusCode) Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
             else response.EnsureSuccessStatusCode();
         }

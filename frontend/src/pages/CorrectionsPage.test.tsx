@@ -78,4 +78,49 @@ describe('Корректировки', () => {
     expect(await screen.findByText(/Проведено/)).toBeInTheDocument();
     expect(mock.calls.find((c) => c.method === 'POST' && c.path === '/corrections')?.body).toMatchObject({ abonentId: 'a2' });
   });
+
+  it('перенос между адресами: без верного абонента провести нельзя, выбранный уходит на сервер', async () => {
+    const other = { ...person, id: 'a2', name: 'Петров Пётр', account: '40010002' };
+    const move = { id: 'move-address', name: 'Перенос между адресами', group: 'Платежи', description: '', amountLabel: 'Сумма переноса', balanceEffect: -1, defaultAmount: 2000, flow: [], needsPayment: true, actionVerb: 'Перенести' };
+    const mock = installFetch({
+      'GET /period/current': { period: '2026-11', title: 'Ноябрь 2026', status: 'open', nextTitle: null, reopenReason: null },
+      'GET /corrections/types': [...types, move], 'GET /abonents': [person, other],
+      'GET /abonents/a1/payments': [{ id: 'p1', abonentId: 'a1', date: '01.11.2026', source: 'Касса ФЛ', cashier: 'Кассир', amount: 5000, status: 'Проведена' }],
+      'POST /corrections': person,
+    });
+    renderPage(<CorrectionsPage />, '/corrections?id=a1');
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Перенос между адресами' }));
+    await user.type(screen.getByLabelText(/Причина/), 'ошиблись адресом');
+    expect(screen.getByRole('button', { name: 'Выберите верного абонента' })).toBeDisabled();
+
+    const combo = screen.getByRole('combobox', { name: 'Верный абонент' });
+    await user.click(combo);
+    // Текущего абонента в списке нет
+    expect(screen.getAllByRole('option')).toHaveLength(1);
+    await user.click(screen.getByRole('option', { name: /Петров Пётр/ }));
+    await user.click(screen.getByRole('button', { name: /Перенести 20,00/ }));
+
+    expect(await screen.findByText(/Проведено/)).toBeInTheDocument();
+    expect(mock.calls.find((c) => c.method === 'POST' && c.path === '/corrections')?.body).toMatchObject({ abonentId: 'a1', typeId: 'move-address', paymentId: 'p1', targetAbonentId: 'a2', amount: 2000 });
+  });
+
+  it('перенос между услугами: с услуги в переплату', async () => {
+    const move = { id: 'move-service', name: 'Перенос между услугами', group: 'Платежи', description: '', amountLabel: 'Сумма переноса', balanceEffect: 0, defaultAmount: 3000, flow: [], needsPayment: false, actionVerb: 'Перенести' };
+    const mock = installFetch({
+      'GET /period/current': { period: '2026-11', title: 'Ноябрь 2026', status: 'open', nextTitle: null, reopenReason: null },
+      'GET /corrections/types': [...types, move], 'GET /abonents': [person], 'GET /abonents/a1/payments': [],
+      'POST /corrections': person,
+    });
+    renderPage(<CorrectionsPage />, '/corrections?id=a1');
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Перенос между услугами' }));
+    expect(screen.getByLabelText('Откуда')).toHaveValue('heat');
+    expect(screen.getByLabelText('Куда')).toHaveValue('credit');
+    await user.type(screen.getByLabelText(/Причина/), 'не та услуга');
+    await user.click(screen.getByRole('button', { name: /Перенести 30,00/ }));
+
+    expect(await screen.findByText(/Проведено/)).toBeInTheDocument();
+    expect(mock.calls.find((c) => c.method === 'POST' && c.path === '/corrections')?.body).toMatchObject({ typeId: 'move-service', fromServiceId: 'heat', toServiceId: 'credit' });
+  });
 });

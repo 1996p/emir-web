@@ -5,7 +5,7 @@ import { api, errorText, useApi } from '@/api';
 import { balanceOf, formatBalance, formatMoney, parseMoney } from '@/domain/billing';
 import type { CorrectionType } from '@/domain/types';
 import { useRole } from '@/layout/role';
-import { Button, Field, Notice, TextArea, TextInput } from '@/ui';
+import { Button, Field, Notice, SelectInput, TextArea, TextInput } from '@/ui';
 
 const GROUPS: CorrectionType['group'][] = ['Платежи', 'Начисления', 'Баланс'];
 
@@ -21,6 +21,10 @@ export function CorrectionsPage() {
   const today = new Date().toLocaleDateString('sv-SE');
   const [operationDate, setOperationDate] = useState(today);
   const [paymentId, setPaymentId] = useState<string | null>(null);
+  // Перенос: верный абонент для «между адресами», услуги «откуда» и «куда» для «между услугами» (credit — переплата)
+  const [targetId, setTargetId] = useState<string | null>(null);
+  const [fromService, setFromService] = useState('');
+  const [toService, setToService] = useState('');
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,17 +45,26 @@ export function CorrectionsPage() {
   const amount = isCancel ? payment?.amount ?? 0 : parseMoney(amountText ?? formatMoney(type.defaultAmount)) ?? 0;
   const balance = abonent ? balanceOf(abonent) : 0;
   const after = balance + type.balanceEffect * amount;
-  const cannot = !abonent || !operationDate || operationDate > today || amount <= 0 || !reason.trim() || (type.needsPayment && !payment);
+  const isMoveAddress = type.id === 'move-address';
+  const isMoveService = type.id === 'move-service';
+  const target = isMoveAddress ? abonents.find((item) => item.id === targetId && item.id !== abonentId) ?? null : null;
+  const serviceOptions = [...(abonent?.services ?? []).map((line) => ({ id: line.id, name: `${line.name}, долг ${formatMoney(line.debt)} ₽` })), { id: 'credit', name: `Переплата, ${formatMoney(abonent?.credit ?? 0)} ₽` }];
+  const moveFrom = fromService || serviceOptions[0]?.id || '';
+  const moveTo = toService || serviceOptions.find((item) => item.id !== moveFrom)?.id || '';
+  const amountTooBig = isMoveAddress && payment !== undefined && amount > payment.amount;
+  const cannot = !abonent || !operationDate || operationDate > today || amount <= 0 || !reason.trim() || (type.needsPayment && !payment)
+    || (isMoveAddress && (!target || amountTooBig)) || (isMoveService && (!moveFrom || !moveTo || moveFrom === moveTo));
 
   const selectType = (next: CorrectionType) => { setTypeId(next.id); setAmountText(null); setDone(false); };
-  const selectAbonent = (id: string) => { setChosenId(id); setPaymentId(null); setDone(false); setError(null); };
+  const selectAbonent = (id: string) => { setChosenId(id); setPaymentId(null); setTargetId(null); setFromService(''); setToService(''); setDone(false); setError(null); };
 
   const submit = async () => {
     if (!abonent) return;
     setError(null);
     setDone(false);
     try {
-      await api.corrections.apply(abonent.id, type.id, amount, reason, payment?.id, operationDate);
+      const move = isMoveAddress ? { targetAbonentId: target?.id } : isMoveService ? { fromServiceId: moveFrom, toServiceId: moveTo } : undefined;
+      await api.corrections.apply(abonent.id, type.id, amount, reason, payment?.id, operationDate, move);
       setReason('');
       setAmountText(null);
       setPaymentId(null);
@@ -117,6 +130,27 @@ export function CorrectionsPage() {
               {payments.length === 0 && <p className="muted">{abonent ? 'Подходящих платежей нет.' : 'Сначала выберите абонента.'}</p>}
             </fieldset>
           )}
+          {isMoveAddress && (
+            <div>
+              <AbonentSelect label="Верный абонент" abonents={abonents.filter((item) => item.id !== abonentId)} value={target} onChange={(item) => setTargetId(item.id)} />
+              {target && <div className="field-hint muted">{abonentAddress(target)}. Деньги и платёж перейдут к нему, кассовые отчёты не изменятся.</div>}
+              {amountTooBig && <Notice tone="warn">Сумма больше платежа.</Notice>}
+            </div>
+          )}
+          {isMoveService && abonent && (
+            <div className="grid-fields">
+              <Field label="Откуда">{(id) => (
+                <SelectInput id={id} value={moveFrom} onChange={(event) => setFromService(event.target.value)}>
+                  {serviceOptions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                </SelectInput>
+              )}</Field>
+              <Field label="Куда" hint={moveFrom === moveTo ? 'Выберите другую услугу' : 'Долг гасится, излишек уходит в переплату'}>{(id) => (
+                <SelectInput id={id} value={moveTo} onChange={(event) => setToService(event.target.value)}>
+                  {serviceOptions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                </SelectInput>
+              )}</Field>
+            </div>
+          )}
           <Field label="Причина, обязательно">{(id) => <TextArea id={id} rows={2} value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Например: ошибка в сумме при приёме в кассе" />}</Field>
         </div>
       </main>
@@ -143,7 +177,7 @@ export function CorrectionsPage() {
         </div>
         <div className="pad" style={{ background: 'var(--surface)', borderTop: '1px solid var(--line)' }}>
           <Button variant="primary" size="lg" disabled={cannot} onClick={() => void submit()}>
-            {!abonent ? 'Выберите абонента' : !reason.trim() ? 'Укажите причину' : amount <= 0 ? 'Укажите сумму' : `${type.actionVerb} ${formatMoney(amount)} ₽`}
+            {!abonent ? 'Выберите абонента' : isMoveAddress && !target ? 'Выберите верного абонента' : !reason.trim() ? 'Укажите причину' : amount <= 0 ? 'Укажите сумму' : `${type.actionVerb} ${formatMoney(amount)} ₽`}
           </Button>
         </div>
       </aside>
