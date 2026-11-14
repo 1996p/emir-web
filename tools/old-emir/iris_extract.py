@@ -3,7 +3,7 @@
 
 Запуск: iris_extract.py <папка>
   <папка>/export.xml       классы старой системы (схемы хранения)
-  <папка>/sverka/*.jsonl   глобалы, выгруженные из IRIS построчно: {"id": …, "v": [поля], "sub": {…}}
+  <папка>/iris-dump/*.jsonl (или sverka/) глобалы, выгруженные из IRIS построчно: {"id": …, "v": [поля], "sub": {…}}
 Результат: <папка>/load/*.csv и <папка>/load/extract-report.txt. В консоль только счётчики и суммы.
 
 Деньги старой системы лежат на счетах (AccountD), договор (услуга) платит со своего PayAccount. Долг услуги = −Balance.
@@ -11,6 +11,7 @@
 тогда остаток счёта достаётся одной строке: работающему договору, иначе последнему.
 """
 import collections
+import datetime
 import csv
 import json
 import os
@@ -61,11 +62,18 @@ def layouts():
 LAYOUTS = layouts()
 
 
-def table(name):
+DUMP = os.path.join(root, 'iris-dump') if os.path.isdir(os.path.join(root, 'iris-dump')) else os.path.join(root, 'sverka')
+
+
+def table(name, required=True):
     """Записи глобала ^<name> по его схеме хранения: {id: {свойство: значение, '_sub': {...}, '_id': id}}."""
     positions = LAYOUTS.get(name, {}).get('vals', {})
     rows = {}
-    with open(os.path.join(root, 'sverka', name + '.jsonl'), encoding='utf-8') as source:
+    path = os.path.join(DUMP, name + '.jsonl')
+    if not required and not os.path.exists(path):
+        report[f'нет выгрузки {name}, данные пропущены'] += 1
+        return rows
+    with open(path, encoding='utf-8') as source:
         for line in source:
             record = json.loads(line)
             values = record.get('v', [])
@@ -125,6 +133,17 @@ house_data = {s(row['House']): row for row in table('GKH.Housing.HouseD').values
 categories = table('GKH.Housing.HouseCategoryD')
 contract_norms = {s(row['Contract']): s(row['Value']) for row in table('GKH.Krsk.ContractNormD').values()}
 residents_old = table('GKH.User.ResidentD')
+# Для отчётов: сельсовет населённого пункта, котельная и тепловая камера дома, материал стен
+districts = table('Address.PDistrictD', False)
+boilers = table('GKH.Housing.BoilerD', False)
+boiler_rooms = table('GKH.Housing.BoilerRoomD', False)
+walls = table('GKH.Housing.WallMaterialD', False)
+resident_history = collections.defaultdict(list)
+for row in table('GKH.User.ResidentHistoryD', False).values():
+    resident_history[s(row['Address'])].append(row)
+benefit_humans = table('GKH.User.BenefitHumanD', False)
+benefits = table('GKH.Benefit.BenefitD', False)
+benefit_classes = table('GKH.Benefit.BenefitClassD', False)
 meters = table('GKH.Hard.MeterD')
 units = table('Reference.UnitD')
 links = collections.defaultdict(list)
@@ -163,7 +182,15 @@ def address_of(address_id):
     place = ' '.join(part for part in (CITY_TYPES.get(s(city.get('Type')), ''), s(city.get('Name'))) if part)
     house_number = s(house.get('Num')) + (f'/{s(house.get("NumB"))}' if s(house.get('NumB')) else '')
     street_name = ' '.join(part for part in (STREET_TYPES.get(s(street.get('Type')), 'ул.'), s(street.get('Name'))) if s(street.get('Name')))
-    return place, f'{street_name} {house_number}'.strip(), s(address.get('Apartment')), s(address.get('House'))
+    return place, f'{street_name} {house_number}'.strip(), s(address.get('Apartment')), s(address.get('House')), s(districts.get(s(city.get('PDistrict')), {}).get('Name'))
+
+
+def date_text(value):
+    """Дата старой системы ($H или «ГГГГ-ММ-ДД ЧЧ:ММ:СС») в ГГГГ-ММ-ДД."""
+    text = s(value)
+    if text.isdigit():
+        return (datetime.date(1840, 12, 31) + datetime.timedelta(days=int(text))).isoformat()
+    return text[:10] if re.match(r'\d{4}-\d{2}-\d{2}', text) else ''
 
 
 def short_name(full):
@@ -182,6 +209,7 @@ for contract in contracts.values():
 abonents_out, services_out, residents_out = [], [], []
 tariffs_out, line_of_contract = {}, {}
 house_meters_out, house_meter_of = [], {}
+account_of_human = {}
 seen_accounts = set()
 used_money_accounts = set()
 for abonent_id, own in sorted(by_abonent.items(), key=lambda item: int(item[0]) if item[0].isdigit() else 0):
@@ -233,11 +261,13 @@ for abonent_id, own in sorted(by_abonent.items(), key=lambda item: int(item[0]) 
     human = humans.get(s(person.get('Face')), {})
     organization = organizations.get(s(person.get('Org')), {})
     name = s(organization.get('Title')) if is_org and s(organization.get('Title')) else s(human.get('Name')) or s(organization.get('Title')) or f'Абонент {core}'
-    place, street, flat, house_id = address_of(s(gkh['Address']))
+    place, street, flat, house_id, district = address_of(s(gkh['Address']))
     apartment = apartments.get(s(gkh['Address']), {})
     area = dec(apartment.get('LivingArea')) or dec(apartment.get('TotalArea')) or Decimal(0)
     house = house_data.get(house_id, {})
     category = categories.get(s(house.get('HouseCategory')), {})
+    boiler_room = boiler_rooms.get(s(house.get('BoilerRoom')), {})
+    boiler = boilers.get(s(boiler_room.get('Boiler')), {})
     norm = dec(category.get('HeatNorm')) or dec(house.get('HeatNorm'))
     people = [humans.get(s(row['Human']), {}).get('Name') for row in residents_old.values() if s(row['Address']) == s(gkh['Address'])]
     people = sorted({s(person_name) for person_name in people if s(person_name)})
@@ -246,12 +276,26 @@ for abonent_id, own in sorted(by_abonent.items(), key=lambda item: int(item[0]) 
         'place': place, 'street': street or 'нет адреса', 'flat': flat, 'phone': s(human.get('Phone')) or s(organization.get('Phone')),
         'inn': s(organization.get('INN')) if is_org else '', 'area': number_text(area, '0.01'), 'residents': str(len(people)),
         'house_heat_norm': number_text(norm, '0.00001') if norm else '', 'house_category': s(category.get('Name')),
+        'district': district, 'boiler': s(boiler.get('Name')), 'heat_chamber': s(boiler_room.get('Name')), 'wall_material': s(walls.get(s(house.get('WallMaterial')), {}).get('Name')),
     })
     if not place or not street:
         problems.append(f'ЛС {core}: неполный адрес «{place}, {street}»')
         report['неполный адрес'] += 1
+    # История проживающих даёт даты въезда и выезда, в том числе выписанных; текущие без истории идут без дат
+    recorded = set()
+    for record in resident_history.get(s(gkh['Address']), []):
+        person_name = s(humans.get(s(record['Human']), {}).get('Name'))
+        if not person_name:
+            continue
+        residents_out.append({'account': core, 'name': person_name, 'from_date': date_text(record['DateCreate']), 'to_date': date_text(record['DateDelete'])})
+        if not date_text(record['DateDelete']):
+            recorded.add(person_name.lower())
     for person_name in people:
-        residents_out.append({'account': core, 'name': person_name})
+        if person_name.lower() not in recorded:
+            residents_out.append({'account': core, 'name': person_name})
+    for row in residents_old.values():
+        if s(row['Address']) == s(gkh['Address']):
+            account_of_human[s(row['Human'])] = core
 
     used = set()
     for contract, account, state, debt, holds_money in lines:
@@ -340,6 +384,41 @@ write('house_meter_readings.csv', ['meter_id', 'period', 'value'], house_reading
 write('abonents.csv', ['account', 'kind', 'name', 'short_name', 'place', 'street', 'flat', 'phone', 'inn', 'area', 'residents', 'house_heat_norm', 'district', 'boiler', 'heat_chamber', 'house_category', 'wall_material', 'credit', 'note', 'consent', 'ownership_document'], abonents_out)
 write('services.csv', ['account', 'service_id', 'name', 'state', 'tariff_id', 'debt', 'contract_norm', 'meter_number', 'meter_last_reading', 'meter_verified_until', 'meter_average', 'house_meter_id'], services_out)
 write('residents.csv', ['account', 'name', 'from_date', 'to_date'], residents_out)
+
+# Льготники: связь с ЛС через проживающего по адресу абонента. Категория — класс льготы
+beneficiaries_out, seen_benefits, seen_uuids = [], set(), set()
+report_status = collections.Counter()
+for row in benefit_humans.values():
+    core = account_of_human.get(s(row['Human']))
+    report_status[s(row['Status'])] += 1
+    # Status: 1 «Активен», 0 «Не активен». Неактивный без даты окончания стал бы у нас действующим, поэтому не переносится
+    if s(row['Status']) != '1':
+        report['льготник не активен, не перенесён'] += 1
+        continue
+    if core is None:
+        report['льготник не проживает у абонента ЖКХ, не перенесён'] += 1
+        continue
+    benefit = benefits.get(s(row['Benefit']), {})
+    category = s(benefit_classes.get(s(benefit.get('BenefitClass')), {}).get('Name')) or s(benefit_classes.get(s(row['Benefit']), {}).get('Name'))
+    person_name = s(humans.get(s(row['Human']), {}).get('Name'))
+    if not category or not person_name:
+        report['льготник без категории или имени, не перенесён'] += 1
+        continue
+    key = (core, person_name.lower(), category)
+    if key in seen_benefits:
+        report['повтор льготника убран'] += 1
+        continue
+    seen_benefits.add(key)
+    uuid = s(row['SZHumanNumber'])
+    if uuid in seen_uuids:
+        report['повтор UUID льготника: UUID не указан'] += 1
+        uuid = ''
+    elif uuid:
+        seen_uuids.add(uuid)
+    beneficiaries_out.append({'account': core, 'full_name': person_name, 'category': category, 'uuid': uuid})
+for status, count in report_status.items():
+    report[f'льготники со статусом «{status}»'] = count
+write('beneficiaries.csv', ['account', 'full_name', 'category', 'from_date', 'to_date', 'uuid'], beneficiaries_out)
 
 # Контроль: суммы считаются заново по самим счетам старой базы, а не по строкам файлов.
 # Счета абонентов ЖКХ с ненулевым остатком, не попавшие в перенос, означают потерю денег.
