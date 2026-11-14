@@ -13,7 +13,7 @@ const batch = {
 
 describe('Обмен — загрузка и проведение реестра', () => {
   it('загружает файл, показывает партию и проводит её', async () => {
-    const mock = installFetch({ 'GET /exchange/batches': [], 'GET /exchange/operations': [], 'POST /exchange/upload': batch, 'POST /exchange/batches/b1/post': { ...batch, posted: true } });
+    const mock = installFetch({ 'GET /exchange/batches': [], 'POST /exchange/upload': batch, 'POST /exchange/batches/b1/post': { ...batch, posted: true } });
     const { container } = renderPage(<ExchangePage />, '/exchange');
 
     // после загрузки список партий уже содержит созданную

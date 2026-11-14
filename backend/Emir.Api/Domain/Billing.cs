@@ -15,7 +15,7 @@ public record Allocation(string ServiceId, long Amount);
 public static class Billing
 {
     /// <summary>Цена по счётчику на открытый месяц. Нет цены, если услуга не работает или тариф не по счётчику.</summary>
-    private static decimal? MeterPrice(EmirDb db, ServiceLine line, string period)
+    public static decimal? MeterPrice(EmirDb db, ServiceLine line, string period)
     {
         var term = db.ServiceTerms.Where(item => item.AbonentId == line.AbonentId && item.ServiceId == line.ServiceId && string.Compare(item.FromPeriod, period) <= 0)
             .OrderByDescending(item => item.FromPeriod).FirstOrDefault();

@@ -23,6 +23,8 @@ public record SetLegalRequest(bool? Consent, string? OwnershipDocument);
 public record SetFactRequest(string FromPeriod, decimal Area, int Residents, string Reason);
 public record AddResidentRequest(string Name, DateOnly? FromDate);
 public record EndResidentRequest(DateOnly ToDate);
+/// <summary>Замена услуги на одном ЛС: долг переходит на TargetServiceId, заменяемая услуга закрывается с рабочего месяца.</summary>
+public record ReplaceServiceRequest(string TargetServiceId, string Reason);
 
 public static class AbonentDetailEndpoints
 {
@@ -185,6 +187,46 @@ public static class AbonentDetailEndpoints
         }).Roles(Roles.Service, Roles.Accountant, Roles.Admin);
 
         // Установка или замена квартирного счётчика у услуги. Нельзя менять, если показание открытого месяца уже внесено
+        // Смена услуги на одном ЛС, как в старой системе: например, «Теплоснабжение» закрывают, а долг продолжают вести на «Теплоснабжении по счётчику»
+        group.MapPost("/services/{serviceId}/replace", async (string id, string serviceId, ReplaceServiceRequest request, EmirDb db, ClaimsPrincipal user) =>
+        {
+            if (string.IsNullOrWhiteSpace(request.Reason)) throw new ApiError(422, "Укажите причину");
+            if (serviceId == request.TargetServiceId) throw new ApiError(422, "Услуга заменяется сама на себя");
+            if (serviceId == "penalty" || request.TargetServiceId == "penalty") throw new ApiError(422, "Пени не заменяются");
+
+            await using var transaction = await db.BeginMoneyTransaction();
+            var abonent = await db.GetAbonent(id);
+            var source = abonent.Services.FirstOrDefault(item => item.ServiceId == serviceId) ?? throw new ApiError(404, "Услуга не найдена");
+            var target = abonent.Services.FirstOrDefault(item => item.ServiceId == request.TargetServiceId) ?? throw new ApiError(422, "Выберите услугу, на которую перейти");
+            if (target.State == "Расторгнута") throw new ApiError(422, "Нельзя перейти на расторгнутую услугу");
+            var period = await Periods.WorkPeriod(db);
+            var moved = source.Debt;
+
+            await db.BeginOperation("correction", user.Who(), $"Смена услуги: {source.Name} → {target.Name}: {request.Reason.Trim()}");
+            target.Debt += source.Debt;
+            source.Debt = 0;
+            if (source.State != "Расторгнута")
+            {
+                await TariffHistory.EnsureCanChange(db, period, [(id, serviceId)]);
+                var term = await db.ServiceTerms.FirstOrDefaultAsync(item => item.AbonentId == id && item.ServiceId == serviceId && item.FromPeriod == period);
+                if (term is null)
+                {
+                    term = new ServiceTerm { AbonentId = id, ServiceId = serviceId, FromPeriod = period, State = "Расторгнута", Who = user.Who() };
+                    db.ServiceTerms.Add(term);
+                }
+                term.TariffId = source.TariffId;
+                term.State = "Расторгнута";
+                term.Who = user.Who();
+                term.AtUtc = DateTime.UtcNow;
+                term.Reason = request.Reason.Trim();
+                TariffHistory.ApplyCurrent(source, term, source.TariffId is null ? null : await db.Tariffs.FirstOrDefaultAsync(item => item.Id == source.TariffId));
+            }
+            db.AddJournal(id, "Смена услуги", user.Who(), $"{source.Name} закрыта с {Periods.Month(period)}, долг {EndpointHelpers.Money(moved)} ₽ перенесён на {target.Name}", request.Reason.Trim());
+            await db.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return Results.NoContent();
+        }).Roles(Roles.Service, Roles.Accountant, Roles.Admin);
+
         group.MapPost("/services/{serviceId}/meter", async (string id, string serviceId, SetMeterRequest request, EmirDb db, ClaimsPrincipal user) =>
         {
             var number = request.Number?.Trim();

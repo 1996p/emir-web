@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { api, errorText, useApi } from '@/api';
 import { formatMoney } from '@/domain/billing';
 import type { ExchangeBatch, ExchangeLine } from '@/domain/types';
-import { Button, DataTable, Notice, SelectInput, type Column } from '@/ui';
+import { Button, DataTable, Notice, type Column } from '@/ui';
 
 const PARTNERS = ['Все', '1С', 'Сбербанк', 'Платосфера', 'Город', 'ГИС ЖКХ', 'Соцзащита', 'Показания'];
 const STAGES = ['Файл', 'Столбцы', 'Проверка', 'Проведение'];
@@ -26,7 +26,6 @@ export function ExchangePage() {
   const [error, setError] = useState<string | null>(null);
   const visible = (batches ?? []).filter((batch) => filter === 'Все' || batch.partner === filter);
   const batch = visible.find((item) => item.id === selectedId) ?? visible[0] ?? null;
-  const { data: operations } = useApi(() => (batch ? api.exchange.operations(batch.partner) : Promise.resolve([])), [batch?.partner]);
 
   const onFile = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -107,9 +106,7 @@ export function ExchangePage() {
                 <h1 className="title">{batch.title}</h1>
                 <p className="small muted" style={{ marginTop: 2 }}><span className="mono">{batch.fileName}</span> · {batch.partner} · {batch.when}</p>
               </div>
-              <label className="small muted row">Операции источника
-                <SelectInput style={{ width: 280, minHeight: 38 }}>{operations?.map((operation) => <option key={operation}>{operation}</option>)}</SelectInput>
-              </label>
+              <p className="small muted" style={{ maxWidth: 340, lineHeight: 1.4 }}>Принимается файл оплат CSV или TXT: строка «лицевой счёт;сумма». Реестры банков в их форматах, 1С и ГИС ЖКХ пока не подключены.</p>
             </div>
             <ol aria-label="Этапы" style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexWrap: 'wrap', gap: 4, fontSize: 13, fontWeight: 500 }}>
               {STAGES.map((stage, index) => (

@@ -289,6 +289,21 @@ function TermsDrawer({ abonent, onClose, onDone }: { abonent: Abonent; onClose: 
   const latest = terms?.[0];
   const chosenTariff = tariffId ?? latest?.tariffId ?? '';
   const chosenState = state ?? latest?.state ?? 'Работает';
+  // Смена услуги на одном ЛС: эта услуга закрывается, долг переходит на выбранную
+  const targets = lines.filter((item) => item.id !== serviceId && item.state !== 'Расторгнута');
+  const [replaceWith, setReplaceWith] = useState('');
+  const target = targets.find((item) => item.id === replaceWith) ?? targets[0];
+
+  const replace = async () => {
+    if (!line || !target) return;
+    setError(null);
+    try {
+      await api.abonents.replaceService(abonent.id, serviceId, target.id, reason.trim());
+      onDone(`Услуга «${line.name}» закрыта, долг ${formatMoney(line.debt)} ₽ перенесён на «${target.name}».`);
+    } catch (reason_) {
+      setError(errorText(reason_));
+    }
+  };
 
   const submit = async () => {
     setError(null);
@@ -313,6 +328,16 @@ function TermsDrawer({ abonent, onClose, onDone }: { abonent: Abonent; onClose: 
         <Field label="Состояние">{(id) => <SelectInput id={id} value={chosenState} onChange={(event) => setState(event.target.value)}>{SERVICE_STATES.map((item) => <option key={item}>{item}</option>)}</SelectInput>}</Field>
         <Field label="Причина">{(id) => <TextInput id={id} placeholder="Например, заявление абонента" value={reason} onChange={(event) => setReason(event.target.value)} />}</Field>
         {error && <Notice tone="warn">{error}</Notice>}
+        <h3 className="section-title" style={{ marginTop: 6 }}>Сменить услугу</h3>
+        {targets.length > 0
+          ? (
+            <>
+              <p className="small muted" style={{ lineHeight: 1.45 }}>«{line?.name}» закроется с рабочего месяца, долг {formatMoney(line?.debt ?? 0)} ₽ перейдёт на выбранную услугу. Причина берётся из поля выше.</p>
+              <Field label="Перейти на">{(id) => <SelectInput id={id} value={target?.id ?? ''} onChange={(event) => setReplaceWith(event.target.value)}>{targets.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</SelectInput>}</Field>
+              <Button disabled={!reason.trim() || !target} onClick={() => void replace()}>Сменить услугу</Button>
+            </>
+          )
+          : <p className="small muted" style={{ lineHeight: 1.45 }}>Другой действующей услуги нет. Сначала добавьте услугу, на которую переходит абонент.</p>}
         <h3 className="section-title" style={{ marginTop: 6 }}>История</h3>
         {(terms ?? []).map((term) => (
           <div key={term.fromPeriod} className="small" style={{ borderBottom: '1px solid var(--line-soft)', paddingBottom: 6 }}>

@@ -115,6 +115,7 @@ export const api = {
     recharge: (id: string) => mutate<ChargeRunResult>(`/abonents/${encodeURIComponent(id)}/recharge`),
     changeAddress: (id: string, address: AddressValue) => mutate<Abonent>(`/abonents/${encodeURIComponent(id)}/address`, address),
     addService: (id: string, serviceName: string) => mutate<Abonent>(`/abonents/${encodeURIComponent(id)}/services`, { serviceName }),
+    replaceService: (id: string, serviceId: string, targetServiceId: string, reason: string) => mutate<void>(`/abonents/${encodeURIComponent(id)}/services/${encodeURIComponent(serviceId)}/replace`, { targetServiceId, reason }),
     terms: (id: string, serviceId: string) => get<ServiceTermItem[]>(`/abonents/${encodeURIComponent(id)}/services/${encodeURIComponent(serviceId)}/terms`),
     setTerm: (id: string, serviceId: string, body: { fromPeriod: string; tariffId: string | null; state: string; reason: string }) => mutate<void>(`/abonents/${encodeURIComponent(id)}/services/${encodeURIComponent(serviceId)}/terms`, body),
   },
@@ -169,7 +170,8 @@ export const api = {
   corrections: {
     types: () => get<CorrectionType[]>('/corrections/types'),
     /** operationDate — дата документа-основания, ГГГГ-ММ-ДД; деньги проводятся в открытом месяце */
-    apply: (abonentId: string, typeId: string, amount: Kopecks, reason: string, paymentId?: string, operationDate?: string) => mutate<Abonent>('/corrections', { abonentId, typeId, amount, reason, paymentId: paymentId ?? null, operationDate: operationDate || null }),
+    apply: (abonentId: string, typeId: string, amount: Kopecks, reason: string, paymentId?: string, operationDate?: string, move?: { targetAbonentId?: string; fromServiceId?: string; toServiceId?: string }) =>
+      mutate<Abonent>('/corrections', { abonentId, typeId, amount, reason, paymentId: paymentId ?? null, operationDate: operationDate || null, ...(move ?? {}) }),
   },
   reports: {
     catalog: () => get<ReportDefinition[]>('/reports/catalog'),
@@ -178,7 +180,6 @@ export const api = {
   },
   exchange: {
     batches: () => get<ExchangeBatch[]>('/exchange/batches'),
-    operations: (partner: string) => get<string[]>(`/exchange/operations?${q({ partner })}`),
     post: (batchId: string) => mutate<ExchangeBatch>(`/exchange/batches/${encodeURIComponent(batchId)}/post`),
     upload: async (file: File) => {
       const form = new FormData();

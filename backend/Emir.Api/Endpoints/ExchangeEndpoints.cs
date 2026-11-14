@@ -29,7 +29,6 @@ public static class ExchangeEndpoints
             return batches.OrderByDescending(batch => batch.AtUtc).Select(batch => batch.ToDto());
         }).Roles(Roles.Accountant, Roles.Admin);
 
-        group.MapGet("/operations", (string partner) => Catalog.ExchangeOperations.GetValueOrDefault(partner, [])).Roles(Roles.Accountant, Roles.Admin);
 
         group.MapPost("/upload", async (IFormFile file, EmirDb db, ClaimsPrincipal user) =>
         {
